@@ -263,6 +263,7 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       url: p.permalink || null,
       sku: p.sku || null,
       shelf: p.storeStock || undefined,   // on the store's own shelf (not a distributor's)
+      ln: p.line ? String(p.line).slice(0, 8) : undefined,   // its product line (variants share one), for the default order
       featured: Boolean(o.featured),
       rank: p.rank ?? items.length,
     });

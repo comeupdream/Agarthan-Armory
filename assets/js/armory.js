@@ -50,6 +50,33 @@
   const hay = (i) => [i.name, i.brand, i.sub, (AA.DEPTS[i.dept] || {}).name, i.desc, i.sku,
     ...Object.values(i.specs || {}), ...Object.values(i.f || {}).flat()].filter(Boolean).join(' ').toLowerCase();
   items.forEach((i) => { i._hay = hay(i); });
+  // the default order: the store's own shelf first, then what ships, then the rest; departments take
+  // turns (one of each, then the next of each) so the first screen shows the whole store, photos first
+  const DEPT_ORDER = Object.keys(AA.DEPTS);
+  const bucketOf = (i) => (i.status === 'in' || i.status === 'low' ? 0 : i.status === 'ship' ? 1 : i.status === 'out' ? 3 : 2);
+  const groups = new Map();
+  for (const i of items) {
+    i._bucket = bucketOf(i); i._dept = DEPT_ORDER.indexOf(i.dept);
+    const k = i._bucket + '|' + i.dept; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
+  }
+  for (const g of groups.values()) {
+    // within a department: photos and the store's own shelf first; one variant of every product line
+    // before a second of any; subcategories take turns (a pistol, a revolver, a bolt gun, …)
+    g.sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9));
+    const seen = new Map();
+    for (const i of g) { const k = i.ln || i.id; const n = seen.get(k) || 0; seen.set(k, n + 1); i._v = n; }
+    const tiers = new Map();
+    for (const i of g) {
+      const t = `${i.images && i.images[0] ? 0 : 1}${i.shelf ? 0 : 1}${String(Math.min(i._v, 999)).padStart(3, '0')}`;
+      if (!tiers.has(t)) tiers.set(t, new Map());
+      const bySub = tiers.get(t); if (!bySub.has(i.sub)) bySub.set(i.sub, []); bySub.get(i.sub).push(i);
+    }
+    let n = 0;
+    for (const t of [...tiers.keys()].sort()) {
+      const lists = [...tiers.get(t).values()];
+      for (let r = 0; lists.some((l) => r < l.length); r++) for (const l of lists) if (r < l.length) l[r]._mix = n++;
+    }
+  }
 
   /* ---------- controls ---------- */
   const deptChips = $('#deptChips'), subChips = $('#subChips'), facetsBox = $('#facets');
@@ -152,7 +179,7 @@
     const r = items.filter((i) => passes(i));
     const byPrice = (dir) => (a, b) => (a.price == null) - (b.price == null) || dir * ((a.price || 0) - (b.price || 0));
     const sorters = {
-      featured: (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || (rank[a.status] || 0) - (rank[b.status] || 0) || (a.rank ?? 1e9) - (b.rank ?? 1e9),
+      featured: (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || a._bucket - b._bucket || a._mix - b._mix || a._dept - b._dept,
       'price-asc': byPrice(1), 'price-desc': byPrice(-1),
       name: (a, b) => a.name.localeCompare(b.name),
       // ammo by price per round; anything without one after
