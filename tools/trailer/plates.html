@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plates — lockups for the films</title>
+<!-- the site's own type and colours; render.mjs screenshots one #plate on a transparent page -->
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+  html, body { background: transparent !important; margin: 0; }
+  body::after { display: none !important; }
+  .plate { display: inline-flex; flex-direction: column; align-items: center; text-align: center; padding: 60px 90px; }
+  .plate h1 { margin: 0; line-height: .95; letter-spacing: .08em; }
+  .plate .l2 { display: block; font-size: .52em; letter-spacing: .5em; margin-top: .22em; padding-left: .5em; }
+  .mono { font: 400 26px/1.4 var(--f-mono); letter-spacing: .42em; text-transform: uppercase; color: var(--cyan); text-shadow: 0 0 14px rgba(93, 228, 255, .7); }
+  .runes { font-size: 30px; }
+  #wordmark img { width: 190px; height: 190px; filter: drop-shadow(0 0 26px rgba(93, 228, 255, .8)); margin-bottom: 18px; }
+  #wordmark h1 { font-size: 170px; }
+  #wordmark .mono { margin-top: 34px; }
+  #tagline h2, #code h2 { font: 800 96px/1.05 var(--f-display); letter-spacing: .06em; margin: 0; }
+  #tagline .mono, #code .mono { margin-top: 26px; }
+  #code .runes { margin-top: 22px; }
+</style>
+</head>
+<body>
+<div id="plates">
+  <div class="plate" id="wordmark">
+    <img src="/assets/img/logo.svg" alt="">
+    <h1 class="frost-text">Agarthan<span class="l2">Armory</span></h1>
+    <div class="mono">Federally licensed · beyond the wall</div>
+  </div>
+  <div class="plate" id="tagline">
+    <h2 class="frost-text">Hyperborean steel.<br>Agarthan engineering.</h2>
+    <div class="mono">Firearms · ammunition · optics · FFL transfers</div>
+  </div>
+  <div class="plate" id="code">
+    <h2 class="frost-text">Strength, kept in peace</h2>
+    <p class="runes" data-runes="peace · protection · discipline"></p>
+    <div class="mono">Lock it up at home · train often · keep the peace</div>
+  </div>
+  <div class="plate" id="url">
+    <div class="mono" style="font-size:40px">agarthanarmory.com</div>
+  </div>
+</div>
+<script>
+  // the site's own Elder Futhark (assets/js/site.js AA.runes), so the plates spell as the pages do
+  const F = { a: 'ᚨ', b: 'ᛒ', c: 'ᚲ', d: 'ᛞ', e: 'ᛖ', f: 'ᚠ', g: 'ᚷ', h: 'ᚺ', i: 'ᛁ', j: 'ᛃ', k: 'ᚲ', l: 'ᛚ', m: 'ᛗ',
+    n: 'ᚾ', o: 'ᛟ', p: 'ᛈ', q: 'ᚲ', r: 'ᚱ', s: 'ᛊ', t: 'ᛏ', u: 'ᚢ', v: 'ᚹ', w: 'ᚹ', x: 'ᚲᛊ', y: 'ᛃ', z: 'ᛉ' };
+  const runes = (str) => String(str).toLowerCase().replace(/([a-z])\1+/g, '$1').split(/\s*·\s*/).map((ph) =>
+    ph.trim().split(/\s+/).map((w) => w.replace(/th/g, 'ᚦ').replace(/ng/g, 'ᛜ').replace(/[a-z]/g, (c) => F[c]).replace(/[^ᚠ-᛿]/g, '')).join('᛫')).join(' ᛬ ');
+  document.querySelectorAll('[data-runes]').forEach((e) => { e.textContent = runes(e.dataset.runes); });
+  // one plate at a time, so its box is its own
+  const id = location.hash.slice(1);
+  document.querySelectorAll('.plate').forEach((p) => { p.style.display = p.id === id ? '' : 'none'; });
+</script>
+</body>
+</html>

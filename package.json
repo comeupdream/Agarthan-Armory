@@ -14,6 +14,10 @@
     "build:wall": "node tools/build-wall.mjs",
     "build:icons": "node tools/build-icons.mjs",
     "stamp": "node tools/stamp-partials.mjs",
+    "films": "node tools/trailer/render.mjs",
+    "films:sound": "node tools/trailer/sound/score.mjs && node tools/trailer/sound/soundtrack.mjs",
+    "films:trailer": "node tools/trailer/trailer.mjs",
+    "films:check": "node tools/trailer/flash-check.mjs media/films/*.mp4",
     "images": "node scripts/match-images.mjs",
     "find-images": "node scripts/find-images.mjs",
     "save-pages": "node scripts/save-pages.mjs"

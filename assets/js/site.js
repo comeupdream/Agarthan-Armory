@@ -532,7 +532,11 @@
       let held = reduced, done = false, onScreen = !('IntersectionObserver' in window);
       if (reduced && !v.loop && v.dataset.still) v.poster = v.dataset.still;
       const sync = () => {
-        if (!held && !done && onScreen && !document.hidden) { const p = v.play(); if (p) p.catch(() => {}); } else v.pause();
+        if (!held && !done && onScreen && !document.hidden) {
+          const p = v.play();
+          // autoplay refused (iPhone Low Power Mode, data saver): offer Play, a tap is allowed
+          if (p) p.catch((e) => { if (e && e.name === 'NotAllowedError' && !held) { held = true; sync(); } });
+        } else v.pause();
         if (frame) { frame.classList.toggle('held', held && !done); frame.classList.toggle('still', done); }
         if (state) state.textContent = done ? 'Still' : held ? 'Held' : 'Live';
         if (btn) {
