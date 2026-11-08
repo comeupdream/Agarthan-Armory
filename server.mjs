@@ -50,9 +50,20 @@ http.createServer((req, res) => {
     const ext = path.extname(file).toLowerCase();
     // text compresses ~4:1 — the catalog script is the one that matters
     const gzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '') && /\.(html|css|js|json|svg|txt|xml)$/.test(ext);
+    // pages, styles, scripts and data are re-checked on every visit (a cheap
+    // 304 when unchanged), so an update reaches everyone at once; a day-long
+    // cache once left visitors with new pages on an old stylesheet. Photos,
+    // fonts and video keep the day-long cache.
+    const longCache = /\.(woff2|png|jpe?g|webp|gif|avif|ico|mp4)$/.test(ext);
+    const modified = st.mtime.toUTCString();
+    if (!longCache && req.headers['if-modified-since'] === modified) {
+      res.writeHead(304, { 'Last-Modified': modified, 'Cache-Control': 'no-cache' });
+      return res.end();
+    }
     res.writeHead(200, {
       'Content-Type': TYPES[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400',
+      'Cache-Control': longCache ? 'public, max-age=86400' : 'no-cache',
+      'Last-Modified': modified,
       'X-Content-Type-Options': 'nosniff',
       ...(gzip ? { 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' } : {}),
     });
