@@ -22,6 +22,8 @@
  *                        "firearm": true, "name": "…", "specs": { "barrel": "4.02 in" } } }
  *
  * USAGE  node scripts/build-catalog.mjs [--in path] [--overrides path] [--out path] [--remote-images]
+ *   (no --in: merges every store scraped under assets/data/scraped/, e.g. the
+ *    main site plus `--out assets/data/scraped/shop` for a second storefront)
  *   --remote-images  fall back to the store's own photo URLs when a product
  *                    has no downloaded photo (hotlinks: break if that host moves)
  * ===========================================================================*/
@@ -97,7 +99,7 @@ export function iconFor(dept, p) {
     case 'ammo': return /\b(12|16|20|28)\s?(ga|gauge)\b|\.410|shotshell|buckshot|birdshot|slug/.test(n) ? 'shells' : 'ammo';
     case 'optics':
       if (/thermal|night vision|nvg|monocular|binocular/.test(n)) return 'thermal';
-      if (/\b(light|lumen|flashlight|tlr|surefire|streamlight)\b/.test(n)) return 'light';
+      if (/\b(light|lumen|flashlight|tlr|surefire|streamlight|lasers?|peq|ngal|atpial|dbal)\b/.test(n)) return 'light';
       if (/red ?dot|reflex|holographic|rmr|\brds\b|micro dot|enclosed emitter|eotech|aimpoint|holosun/.test(n) && !/scope|lpvo|\d+-\d+x/.test(n)) return 'reddot';
       return 'scope';
     default:
@@ -157,12 +159,14 @@ export function specsFor(dept, p) {
 }
 
 /* ---------- build ---------- */
-const BRANDS = ['Smith & Wesson', 'Springfield Armory', 'Sig Sauer', 'SIG Sauer', 'Daniel Defense', 'Heckler & Koch', 'Palmetto State Armory', 'Sellier & Bellot', 'Primary Arms', 'Shadow Systems', 'Aero Precision', 'Kel-Tec', 'Glock', 'Ruger', 'CZ', 'Taurus', 'Beretta', 'Mossberg', 'Remington', 'Winchester', 'Benelli', 'Henry', 'Savage', 'Tikka', 'Browning', 'Colt', 'Kimber', 'Walther', 'HK', 'FN', 'BCM', 'Canik', 'Staccato', 'Stoeger', 'Marlin', 'Bergara', 'Howa', 'Federal', 'Hornady', 'CCI', 'PMC', 'Fiocchi', 'Magtech', 'Aguila', 'Speer', 'Barnes', 'Nosler', 'Blazer', 'Holosun', 'Vortex', 'Trijicon', 'EOTech', 'Aimpoint', 'Leupold', 'Burris', 'Bushnell', 'Swampfox', 'Streamlight', 'SureFire', 'Olight', 'Magpul', 'Pelican', 'Liberty', 'Hoppe’s', "Hoppe's", 'Otis', 'Pulsar', 'AGM', 'ATN', 'Steiner', 'Nightforce', 'Zeiss', 'Swarovski'];
+const BRANDS = ['Licentia Arms Co.', 'Team Wendy', 'Ops-Core', 'L3Harris', 'B.E. Meyers', 'Crye Precision', 'Gentex', 'Wilcox', 'Smith & Wesson', 'Springfield Armory', 'Sig Sauer', 'SIG Sauer', 'Daniel Defense', 'Heckler & Koch', 'Palmetto State Armory', 'Sellier & Bellot', 'Primary Arms', 'Shadow Systems', 'Aero Precision', 'Kel-Tec', 'Glock', 'Ruger', 'CZ', 'Taurus', 'Beretta', 'Mossberg', 'Remington', 'Winchester', 'Benelli', 'Henry', 'Savage', 'Tikka', 'Browning', 'Colt', 'Kimber', 'Walther', 'HK', 'FN', 'BCM', 'Canik', 'Staccato', 'Stoeger', 'Marlin', 'Bergara', 'Howa', 'Federal', 'Hornady', 'CCI', 'PMC', 'Fiocchi', 'Magtech', 'Aguila', 'Speer', 'Barnes', 'Nosler', 'Blazer', 'Holosun', 'Vortex', 'Trijicon', 'EOTech', 'Aimpoint', 'Leupold', 'Burris', 'Bushnell', 'Swampfox', 'Streamlight', 'SureFire', 'Olight', 'Magpul', 'Pelican', 'Liberty', 'Hoppe’s', "Hoppe's", 'Otis', 'Pulsar', 'AGM', 'ATN', 'Steiner', 'Nightforce', 'Zeiss', 'Swarovski'];
 const brandOf = (p) => {
   if (p.brand) return p.brand;
   const a = attr(p, /^(brand|manufacturer|make|mfg)$/i); if (a) return a;
   const n = p.name || '';
-  for (const b of BRANDS) if (new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(n)) return b;
+  // (?!\w) rather than \b: a brand can end in punctuation ("Licentia Arms Co.")
+  for (const b of BRANDS) if (new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\w)`, 'i').test(n)) return b;
+  if (/^LAC-/i.test(n)) return 'Licentia Arms Co.';
   return null;
 };
 const clip = (s, n) => { s = String(s || '').trim(); if (s.length <= n) return s; const cut = s.slice(0, n); const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('\n')); return (end > n * 0.6 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, '') + '…').trim(); };
@@ -201,20 +205,51 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
   return items;
 }
 
+/** Every scraped store: assets/data/scraped/catalog.json (the main site) plus
+ *  one level of sub-folders (scrape.mjs --out assets/data/scraped/shop for a
+ *  second storefront). The main site comes first, so on a shared id it wins. */
+export async function loadScraped(dir) {
+  const { readdir } = await import('node:fs/promises');
+  const files = [path.join(dir, 'catalog.json')];
+  try {
+    for (const e of await readdir(dir, { withFileTypes: true })) if (e.isDirectory()) files.push(path.join(dir, e.name, 'catalog.json'));
+  } catch { /* no folder */ }
+  const seen = new Set(); const out = []; const sources = []; const reports = [];
+  for (const f of files) {
+    let list; try { list = JSON.parse(await readFile(f, 'utf8')); } catch { continue; }
+    if (!Array.isArray(list)) continue;
+    sources.push(path.relative(process.cwd(), f));
+    try { reports.push(JSON.parse(await readFile(path.join(path.dirname(f), 'report.json'), 'utf8'))); } catch { /* optional */ }
+    const base = out.length;
+    list.forEach((p, i) => { if (p && p.id && !seen.has(p.id)) { seen.add(p.id); out.push({ ...p, rank: base + (p.rank ?? i) }); } });
+  }
+  return { products: out, sources, reports };
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const arg = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
-  const IN = path.resolve(arg('in', 'assets/data/scraped/catalog.json'));
+  const IN = arg('in', null) ? path.resolve(arg('in')) : null;
   const OV = path.resolve(arg('overrides', 'assets/data/overrides.json'));
   const OUTF = path.resolve(arg('out', 'assets/data/catalog.js'));
-  let scraped;
-  try { scraped = JSON.parse(await readFile(IN, 'utf8')); }
-  catch (e) { console.error(`✗ can't read ${IN} — run scripts/scrape.mjs first (${e.message})`); process.exit(1); }
-  if (!Array.isArray(scraped) || !scraped.length) { console.error('✗ scraped catalog is empty — nothing written'); process.exit(1); }
+  // --in names one scraped catalog; by default every store under assets/data/scraped/ is merged
+  let scraped, reports = [];
+  if (IN) {
+    try { scraped = JSON.parse(await readFile(IN, 'utf8')); }
+    catch (e) { console.error(`✗ can't read ${IN} — run scripts/scrape.mjs first (${e.message})`); process.exit(1); }
+    try { reports = [JSON.parse(await readFile(path.join(path.dirname(IN), 'report.json'), 'utf8'))]; } catch { /* optional */ }
+  } else {
+    const got = await loadScraped(path.resolve('assets/data/scraped'));
+    scraped = got.products; reports = got.reports;
+    if (got.sources.length) console.log('  sources: ' + got.sources.join(', '));
+  }
+  if (!Array.isArray(scraped) || !scraped.length) { console.error('✗ scraped catalog is empty — nothing written (run scripts/scrape.mjs first)'); process.exit(1); }
   let overrides = {};
   try { overrides = JSON.parse(await readFile(OV, 'utf8')); delete overrides._readme; } catch { /* optional */ }
-  let report = {};
-  try { report = JSON.parse(await readFile(path.join(path.dirname(IN), 'report.json'), 'utf8')); } catch { /* optional */ }
+  const report = {
+    site: reports.map((r) => r.site).filter(Boolean).join(' + ') || null,
+    finishedAt: reports.map((r) => r.finishedAt).filter(Boolean).sort().pop() || null,
+  };
   const items = buildItems(scraped, overrides, { remoteImages: argv.includes('--remote-images') });
   const byDept = items.reduce((a, i) => ((a[i.dept] = (a[i.dept] || 0) + 1), a), {});
   const doc = { demo: false, source: report.site || 'store', updated: (report.finishedAt || new Date().toISOString()).slice(0, 10), items };

@@ -426,7 +426,17 @@ section { position: relative; }
   border: 1px solid var(--line);
 }
 .card .viz svg { width: 88%; height: auto; }
-.card .viz img { width: 100%; height: 100%; object-fit: contain; }
+/* absolutely placed: a percentage height inside the aspect-ratio box would
+   otherwise fall back to the photo's natural height and crop it */
+.card .viz img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.viz.photo, .viz-lg.photo {
+  background:
+    radial-gradient(120% 90% at 50% 0%, #ffffff 0%, #eef7fc 45%, #cfe5f1 100%) !important;
+  border-color: rgba(190, 235, 255, .55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6), inset 0 -18px 30px rgba(120, 180, 215, .25);
+}
+.viz.photo img, .viz-lg.photo img { mix-blend-mode: multiply; padding: 3%; }
+.viz-lg.photo img { width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
 .card h3 { font: 600 17px/1.25 var(--f-ui); letter-spacing: .01em; color: var(--frost); }
 .card .brandline { font: 400 11px/1 var(--f-mono); letter-spacing: .2em; color: var(--cyan); text-transform: uppercase; margin-bottom: 6px; }
 .card .specs { margin: 10px 0 0; font: 400 12px/1.6 var(--f-mono); color: var(--muted); letter-spacing: .04em; }

@@ -14,7 +14,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildItems, classify, iconFor, specsFor } from './build-catalog.mjs';
+import { buildItems, classify, iconFor, specsFor, loadScraped } from './build-catalog.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRAPE = path.join(HERE, 'scrape.mjs');
@@ -263,6 +263,16 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
   }
   eq(specsFor('ammo', { name: 'Hornady Critical Defense 9mm 115gr FTX 25rd Box' }), { caliber: '9mm', bullet: '115gr FTX', count: '25 rounds' }, 'ammo specs from the name');
   eq(specsFor('longarms', { name: 'Mossberg 590A1 12 Gauge 20" 8-Shot Pump' }).capacity, '8 rounds', 'capacity "8-Shot"');
+
+  /* ---------- 7. two storefronts merge into one catalog ---------- */
+  console.log('merge');
+  const md = tmp();
+  const { mkdirSync } = await import('node:fs');
+  mkdirSync(path.join(md, 'shop'), { recursive: true });
+  writeFileSync(path.join(md, 'catalog.json'), JSON.stringify([{ id: 'a', name: 'Main A' }, { id: 'dup', name: 'Main wins' }]));
+  writeFileSync(path.join(md, 'shop', 'catalog.json'), JSON.stringify([{ id: 'dup', name: 'Shop loses' }, { id: 'b', name: 'Shop B' }]));
+  const merged = await loadScraped(md);
+  eq(merged.products.map((p) => [p.id, p.name]), [['a', 'Main A'], ['dup', 'Main wins'], ['b', 'Shop B']], 'merge: main site first, shared id kept once');
 
   [woo, sm, cr, sh, wall].forEach((s) => s.server.close());
   console.log(`\n${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);

@@ -19,7 +19,9 @@
   if (grid) {
     const pool = items.filter((i) => i.status !== 'out');
     const flagged = pool.filter((i) => i.featured);
-    const rest = pool.filter((i) => !i.featured);
+    // priced, photographed items make the strongest first impression
+    const score = (i) => (i.price != null ? 2 : 0) + (i.images && i.images.length ? 1 : 0);
+    const rest = pool.filter((i) => !i.featured).sort((a, b) => score(b) - score(a));
     const pick = [...flagged];
     const seen = new Set(pick.map((i) => i.dept));
     for (const i of rest) { if (pick.length >= 8) break; if (!seen.has(i.dept)) { pick.push(i); seen.add(i.dept); } }

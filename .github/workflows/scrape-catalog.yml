@@ -28,6 +28,10 @@ on:
         description: 'Parallel requests (keep it polite)'
         default: '3'
         required: false
+      folder:
+        description: 'Blank for the main site; a name like "shop" for a second storefront (kept separately, merged into the catalog)'
+        default: ''
+        required: false
       limit:
         description: 'Cap on products this run (blank = all) — use 20 for a trial run'
         default: ''
@@ -69,12 +73,15 @@ jobs:
           MAXI: ${{ inputs.max_images || '6' }}
           CONC: ${{ inputs.concurrency || '3' }}
           LIMIT: ${{ inputs.limit }}
+          FOLDER: ${{ inputs.folder }}
           IGNORE_ROBOTS: ${{ inputs.ignore_robots && '1' || '' }}
           ALLOW_SHRINK: ${{ inputs.allow_shrink && '1' || '' }}
-        run: >
-          node scripts/scrape.mjs --site "$SITE" --platform "$PLATFORM"
-          --max-images "$MAXI" --concurrency "$CONC"
-          ${LIMIT:+--limit "$LIMIT"} ${IGNORE_ROBOTS:+--ignore-robots} ${ALLOW_SHRINK:+--allow-shrink}
+        run: |
+          case "$FOLDER" in *[!a-z0-9-]*) echo "::error::folder may only use a-z, 0-9 and -"; exit 1;; esac
+          node scripts/scrape.mjs --site "$SITE" --platform "$PLATFORM" \
+            --max-images "$MAXI" --concurrency "$CONC" \
+            ${FOLDER:+--out "assets/data/scraped/$FOLDER"} \
+            ${LIMIT:+--limit "$LIMIT"} ${IGNORE_ROBOTS:+--ignore-robots} ${ALLOW_SHRINK:+--allow-shrink}
 
       - name: Build the site catalog
         run: node scripts/build-catalog.mjs

@@ -71,6 +71,13 @@ npm run sync
 That runs `npm run scrape` then `npm run build:catalog`. Extra flags pass
 through, for example `npm run scrape -- --limit 20`.
 
+**A second storefront** (for example a separate shop subdomain) goes in its own
+folder, and `build-catalog` merges every folder under `assets/data/scraped/`:
+
+```bash
+npm run scrape -- --site https://shop.agarthanarmory.com --out assets/data/scraped/shop
+```
+
 **How it reads the store, cheapest and most exact first:**
 
 1. The WooCommerce Store API (`/wp-json/wc/store/v1/products`).

@@ -112,11 +112,11 @@
       ? `mailto:${esc(AA.cfg.email)}?subject=${encodeURIComponent('Question: ' + it.name)}`
       : 'index.html#visit';
     $('#detailInner').innerHTML = `
-      <div class="viz-lg">${AA.viz(it, true)}</div>
+      <div class="viz-lg${it.images && it.images[0] ? ' photo' : ''}">${AA.viz(it, true)}</div>
       <div class="detail-body">
         <div class="card-top"><span>${esc((AA.DEPTS[it.dept] || {}).title || '')}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
         <h2 id="detailTitle">${esc(it.name)}</h2>
-        <div class="brandline">${esc(it.brand || '')}${it.sku ? ` · <span style="color:var(--muted)">SKU ${esc(it.sku)}</span>` : ''}</div>
+        <div class="brandline">${[it.brand ? esc(it.brand) : '', it.sku ? `<span style="color:var(--muted)">SKU ${esc(it.sku)}</span>` : ''].filter(Boolean).join(' · ')}</div>
         <div style="margin:18px 0 4px">${AA.priceHtml(it)}</div>
         ${specs.length ? `<table class="spec-table"><tbody>${specs.map(([k, v]) => `<tr><th scope="row">${esc(LABELS[k] || k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>` : ''}
         ${it.desc ? `<p class="desc">${esc(it.desc)}</p>` : ''}
