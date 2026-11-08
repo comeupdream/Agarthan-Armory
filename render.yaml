@@ -1,0 +1,30 @@
+# Render blueprint for the Agarthan Armory site.
+#
+# Deploy: Render dashboard → New + → Blueprint → pick this repo → Apply.
+# Every push to main redeploys automatically.
+#
+# Runs server.mjs (zero dependencies, no build step): it serves the pages and
+# assets, keeps tools/, scripts/, partials/ and the raw scraped data private,
+# gives clean URLs (/armory → armory.html) and the themed 404.
+#
+# Plan: Starter (~$7/mo) stays awake. "free" also works for a preview, but it
+# sleeps after ~15 minutes idle and the next visitor waits 30–60 seconds while
+# it wakes, which is a bad first impression in a client demo.
+#
+# Custom domain: leave agarthanarmory.com pointed at the current store until
+# cutover day. Review on the .onrender.com address Render gives you; at cutover,
+# add the domain under Settings → Custom Domains and point DNS where Render says.
+
+services:
+  - type: web
+    name: agarthan-armory
+    runtime: node
+    plan: starter
+    branch: main
+    buildCommand: ""
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

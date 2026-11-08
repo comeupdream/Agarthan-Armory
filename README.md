@@ -112,8 +112,9 @@ prober, X-Cart and Shopify scrapers, merged into one adaptive tool.
 The repo root is the site, with no build step.
 
 - **Netlify or Cloudflare Pages:** publish directory `/`, build command empty.
-- **Render:** a Static Site with publish directory `.`, or a Web Service with
-  start command `npm start` (that server serves only the public files).
+- **Render:** `render.yaml` is a ready blueprint (New + → Blueprint → this
+  repo). It runs `npm start` as a Starter web service, which serves only the
+  public files. A Static Site with publish directory `.` also works.
 
 Point the domain's DNS where the host says. HTTPS is automatic on all of them.
 
