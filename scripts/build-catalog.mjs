@@ -29,6 +29,7 @@
  * ===========================================================================*/
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { readCatalog, catalogExists } from './lib-store.mjs';
 import { pathToFileURL } from 'node:url';
 import { subOf, facetsOf, storePath } from './lib-facets.mjs';
 
@@ -280,7 +281,7 @@ export async function loadScraped(dir) {
   } catch { /* no folder */ }
   const seen = new Set(); const out = []; const sources = []; const reports = [];
   for (const f of files) {
-    let list; try { list = JSON.parse(await readFile(f, 'utf8')); } catch { continue; }
+    let list; try { if (!catalogExists(f)) continue; list = await readCatalog(f); } catch { continue; }
     if (!Array.isArray(list)) continue;
     sources.push(path.relative(process.cwd(), f));
     try { reports.push(JSON.parse(await readFile(path.join(path.dirname(f), 'report.json'), 'utf8'))); } catch { /* optional */ }
@@ -304,7 +305,7 @@ async function main() {
   // --in names one scraped catalog; by default every store under assets/data/scraped/ is merged
   let scraped, reports = [];
   if (IN) {
-    try { scraped = JSON.parse(await readFile(IN, 'utf8')); }
+    try { scraped = IN.endsWith('.gz') ? await readCatalog(IN.slice(0, -3)) : JSON.parse(await readFile(IN, 'utf8')); }
     catch (e) { console.error(`✗ can't read ${IN} — run scripts/scrape.mjs first (${e.message})`); process.exit(1); }
     try { reports = [JSON.parse(await readFile(path.join(path.dirname(IN), 'report.json'), 'utf8'))]; } catch { /* optional */ }
   } else {

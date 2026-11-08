@@ -39,6 +39,7 @@
  * ===========================================================================*/
 import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { readCatalog, writeCatalog, catalogExists } from './lib-store.mjs';
 import { pathToFileURL } from 'node:url';
 import { upcOf, isImage, extOf } from './match-images.mjs';
 
@@ -115,7 +116,7 @@ async function main() {
   const files = [path.join(CAT_DIR, 'catalog.json')];
   try { for (const e of await readdir(CAT_DIR, { withFileTypes: true })) if (e.isDirectory()) files.push(path.join(CAT_DIR, e.name, 'catalog.json')); } catch { /* none */ }
   const cats = [];
-  for (const f of files) { try { cats.push({ f, list: JSON.parse(await readFile(f, 'utf8')) }); } catch { /* missing */ } }
+  for (const f of files) { try { if (catalogExists(f)) cats.push({ f, list: await readCatalog(f) }); } catch { /* unreadable */ } }
   const todo = cats.flatMap((c) => c.list).filter((p) => !(p.localImages || []).length && (RETRY || !(p.photoSearch && p.photoSearch.result === 'none')));
   // one search per product LINE: the variants of a line (calibers, colors) share its photo unless --per-variant
   const groups = new Map();
@@ -189,7 +190,7 @@ async function main() {
   } catch (e) {
     console.error('✗ ' + e.message); if (!e.fatal) console.error(e.stack);
   }
-  for (const c of cats) await writeFile(c.f, JSON.stringify(c.list, null, 2) + '\n');
+  for (const c of cats) await writeCatalog(c.f, c.list);
 
   // contact sheet for checking by eye
   const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

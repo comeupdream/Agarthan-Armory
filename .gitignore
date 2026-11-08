@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 *.log
 .scrape-trial/
+assets/data/scraped/**/progress.json*
+assets/data/scraped/**/lines.json

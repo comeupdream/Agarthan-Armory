@@ -38,6 +38,7 @@
  *   node scripts/scrape.mjs --site https://agarthanarmory.com
  *     [--platform auto|woo|shopify|gearfire|sitemap|crawl]  [--concurrency 3]
  *     [--only "Handguns,Magazines"]  [--save-html dir]   (Gearfire: a trial on some listings; keep listing pages)
+ *     [--resume]  [--max-blocked 45]   (Gearfire: keep what an earlier run read; stop after N minutes of refusals)
  *     [--max-images 6]  [--max-pages 8000]  [--limit 0]  [--delay 250]
  *     (over 400 products and no --max-images: 1 photo each, to keep the repo light)
  *     [--ignore-robots]  [--allow-shrink]  [--out assets/data/scraped]
@@ -45,11 +46,12 @@
  * Node 18+ (built-in fetch). Zero npm dependencies.
  * ===========================================================================*/
 
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isGearfire, navOf, listingsOf, linesOn, crawlListings, productsFromPage } from './lib-gearfire.mjs';
+import { readCatalog, writeCatalog } from './lib-store.mjs';
 
 /* ---------- args (free-text workflow inputs arrive verbatim: validate) ---------- */
 const argv = process.argv.slice(2);
@@ -74,6 +76,13 @@ const IGNORE_ROBOTS = flag('ignore-robots');
 // Gearfire: only the listings whose name contains one of these (a trial run), and where to keep listing pages for a look
 const ONLY = (arg('only', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
 const SAVE_HTML = arg('save-html', '') ? path.resolve(arg('save-html', '')) : null;
+// Gearfire: keep what an earlier run read and fetch only the rest; pace for a store behind a rate-limiting firewall
+const RESUME = flag('resume');
+const GF_CONC = argv.includes('--concurrency') ? CONCURRENCY : 2;
+const GF_DELAY0 = argv.includes('--delay') ? DELAY : 700;
+const MAX_BLOCKED_MIN = num('max-blocked', 45, 1);   // minutes of refusals in a row before stopping (resume later)
+const MAX_BLOCKED_MS = num('max-blocked-ms', MAX_BLOCKED_MIN * 60000, 1);
+const BLOCK_PAUSE = num('block-pause', 30000, 1);      // first pause after a refusal (ms); doubles each time, up to 10 min
 const ALLOW_SHRINK = flag('allow-shrink');
 // a trial on a few listings (--only) never overwrites the real catalog: it always goes to .scrape-trial/
 const OUT = path.resolve(arg('only', '') ? '.scrape-trial' : arg('out', 'assets/data/scraped'));
@@ -494,38 +503,119 @@ async function gearfireAdapter(home) {
   const nav = navOf(home);
   const lists = listingsOf(ORIGIN, nav);
   console.log(`  Gearfire storefront: ${nav.length} department(s), ${lists.length} category listings${ONLY.length ? ` (only: ${ONLY.join(', ')})` : ''}`);
-  const politeGet = async (u) => { if (!robotsAllowed(u)) throw new Error('robots.txt disallows ' + u); const r = await get(u, { tries: 2 }); if (DELAY) await sleep(DELAY); return r; };
-  const save = SAVE_HTML ? async (l, n, html, param) => {
-    await mkdir(SAVE_HTML, { recursive: true });
-    await writeFile(path.join(SAVE_HTML, `list-${slugify(l.label)}-p${n}${param ? '-' + param : ''}.html`), html);
-  } : null;
-  const lines = new Map();   // product line id → a page of it
-  const found = await crawlListings(politeGet, ORIGIN, nav, { log: (m) => console.log(m), only: ONLY.length ? ONLY : null, onPage: save });
-  for (const [pid, v] of found) lines.set(pid, v.url);
-  const fromLists = lines.size;
-  if (!ONLY.length) {
-    try {
-      for (const u of await discoverFromSitemaps()) { const d = u.match(/\/detail\/([0-9a-f-]{36})\/[0-9a-f-]{36}/i); if (d && !lines.has(d[1])) lines.set(d[1], u); }
-    } catch (e) { warn(`sitemap: ${e.message}`); }
-    for (const [pid, u] of linesOn(home, SITE + '/')) if (!lines.has(pid)) lines.set(pid, u);
+  console.log(`  pace: ${GF_CONC} at a time, ${GF_DELAY0} ms apart; refusals pause and retry (stop after ${MAX_BLOCKED_MIN} min of them)`);
+
+  /* ---- patience: the shop's firewall answers a fast scraper with 403s; wait it out, slow down, carry on ---- */
+  const block = { until: 0, strikes: 0, total: 0, delay: GF_DELAY0, pauses: 0 };
+  async function patient(u) {
+    for (let attempt = 1; ; attempt++) {
+      const wait = block.until - Date.now(); if (wait > 0) await sleep(wait);
+      try {
+        const r = await get(u, { tries: 2 });
+        if (r.text.length < 8000 && /request blocked|the request could not be satisfied/i.test(r.text)) { const e = new Error('blocked page'); e.status = 403; throw e; }
+        block.strikes = 0; return r;
+      } catch (e) {
+        const st = e.status || 0;
+        const refused = [403, 429, 502, 503, 504].includes(st) || (!st && /timeout|ECONNRESET|fetch failed|socket|network/i.test(e.message));
+        if (!refused || attempt >= 8) throw e;
+        if (Date.now() >= block.until) {
+          block.strikes++; block.pauses++;
+          const pause = Math.min(BLOCK_PAUSE * 2 ** (block.strikes - 1), 10 * 60000);
+          block.until = Date.now() + pause; block.total += pause;
+          block.delay = Math.min(Math.round(block.delay * 1.5), 5000);
+          console.log(`  ⏸ the store refused (${st || e.message.split(' for ')[0]}) — pausing ${Math.round(pause / 1000)} s, then ${block.delay} ms between requests`);
+        }
+        if (block.strikes > 1 && block.total > MAX_BLOCKED_MS) { const s2 = new Error('the store kept refusing'); s2.stop = true; throw s2; }
+      }
+    }
   }
-  console.log(`  ${lines.size} product lines (${fromLists} from listings, ${lines.size - fromLists} more from the sitemap and home page)`);
-  let urls = [...lines.values()];
-  if (LIMIT) urls = urls.slice(0, LIMIT);
-  console.log(`  reading ${urls.length} product pages (concurrency ${CONCURRENCY})…`);
-  let done = 0, failed = 0, fallback = 0;
-  const got = await pool(urls, CONCURRENCY, async (u) => {
-    const r = await get(u, { tries: 2 });
-    if (++done % 100 === 0) console.log(`    ${done}/${urls.length}`);
-    const ps = productsFromPage(r.text, r.url || u);
-    if (ps) return ps;
-    if (!isProductPage(r.text)) return [];
-    fallback++; return [readProductPage(r.text, r.url || u)];
-  });
-  for (const g of got) if (g && g.error) failed++;
-  if (failed) warn(`${failed} product pages failed to load`);
+  const politeGet = async (u) => { if (!robotsAllowed(u)) throw new Error('robots.txt disallows ' + u); const r = await patient(u); await sleep(block.delay); return r; };
+
+  /* ---- what an earlier run already read (--resume) ---- */
+  const progressFile = path.join(OUT, 'progress.json');
+  const linesFile = path.join(OUT, 'lines.json');
+  const earlier = RESUME ? [...await readCatalog(path.join(OUT, 'catalog.json')), ...await readCatalog(progressFile)] : [];
+  const kept = new Map();   // line id → its variants
+  for (const p of earlier) if (p && p.line && p.source === 'gearfire') { if (!kept.has(p.line)) kept.set(p.line, new Map()); kept.get(p.line).set(p.id, p); }
+  if (RESUME) console.log(`  resuming: ${kept.size} product lines (${earlier.length} variants) already read are kept`);
+
+  /* ---- every product line: listings, then the sitemap and home page ---- */
+  let lines = null;
+  if (RESUME && !ONLY.length) {
+    try {
+      const st = await stat(linesFile);
+      if (Date.now() - st.mtimeMs < 48 * 3600e3) { lines = new Map(JSON.parse(await readFile(linesFile, 'utf8')).lines); console.log(`  reusing the ${lines.size} product lines found ${Math.round((Date.now() - st.mtimeMs) / 3600e3)} h ago`); }
+    } catch { /* none yet */ }
+  }
+  if (!lines) {
+    const save = SAVE_HTML ? async (l, n, html, param) => {
+      await mkdir(SAVE_HTML, { recursive: true });
+      await writeFile(path.join(SAVE_HTML, `list-${slugify(l.label)}-p${n}${param ? '-' + param : ''}.html`), html);
+    } : null;
+    lines = new Map();
+    const found = await crawlListings(politeGet, ORIGIN, nav, { log: (m) => console.log(m), only: ONLY.length ? ONLY : null, onPage: save });
+    for (const [pid, v] of found) lines.set(pid, v.url);
+    const fromLists = lines.size;
+    if (!ONLY.length) {
+      try {
+        for (const u of await discoverFromSitemaps()) { const d = u.match(/\/detail\/([0-9a-f-]{36})\/[0-9a-f-]{36}/i); if (d && !lines.has(d[1])) lines.set(d[1], u); }
+      } catch (e) { warn(`sitemap: ${e.message}`); }
+      for (const [pid, u] of linesOn(home, SITE + '/')) if (!lines.has(pid)) lines.set(pid, u);
+      await mkdir(OUT, { recursive: true });
+      await writeFile(linesFile, JSON.stringify({ at: new Date().toISOString(), lines: [...lines] }));
+    }
+    console.log(`  ${lines.size} product lines (${fromLists} from listings, ${lines.size - fromLists} more from the sitemap and home page)`);
+  }
+
+  /* ---- one page per line gives all its variants ---- */
+  let todo = [...lines].filter(([pid]) => !kept.has(pid));
+  if (LIMIT) todo = todo.slice(0, LIMIT);
+  console.log(`  reading ${todo.length} product pages${kept.size ? ` (${kept.size} lines kept from before)` : ''} — about ${Math.round(todo.length * (block.delay + 600) / GF_CONC / 60000)} min at this pace…`);
+  const results = []; const failures = {}; const failedUrls = [];
+  let next = 0, done = 0, fallback = 0, stopped = false;
+  const t0 = Date.now();
+  const keptList = () => [...kept.values()].flatMap((m) => [...m.values()]);
+  const checkpoint = () => writeCatalog(progressFile, [...keptList(), ...results]);
+  const onInt = async () => { console.log('\n  stopped — saving progress…'); try { await checkpoint(); console.log(`  saved ${results.length} variants read this run. Run the same command with --resume to carry on.`); } finally { process.exit(130); } };
+  process.once('SIGINT', onInt);
+  await Promise.all(Array.from({ length: Math.min(GF_CONC, todo.length) }, async () => {
+    while (!stopped && next < todo.length) {
+      const [, u] = todo[next++];
+      try {
+        const r = await patient(u);
+        const ps = productsFromPage(r.text, r.url || u);
+        if (ps) results.push(...ps);
+        else if (isProductPage(r.text)) { fallback++; results.push(readProductPage(r.text, r.url || u)); }
+      } catch (e) {
+        if (e.stop) { stopped = true; break; }
+        const k = e.status ? `HTTP ${e.status}` : /timeout/i.test(e.message) ? 'timeout' : 'network error';
+        failures[k] = (failures[k] || 0) + 1; if (failedUrls.length < 20) failedUrls.push(`${k} ${u}`);
+      }
+      if (++done % 100 === 0) {
+        const mins = (Date.now() - t0) / 60000;
+        console.log(`    ${done}/${todo.length} pages · ${results.length} variants · ${Object.values(failures).reduce((a, b) => a + b, 0)} failed · ${Math.round(done / mins)}/min`);
+      }
+      if (done % 200 === 0) await checkpoint();
+      await sleep(block.delay);
+    }
+  }));
+  process.removeListener('SIGINT', onInt);
+  const failed = Object.values(failures).reduce((a, b) => a + b, 0);
+  if (failed) {
+    warn(`${failed} product pages failed: ${Object.entries(failures).map(([k, n]) => `${k} × ${n}`).join(', ')}`);
+    failedUrls.slice(0, 5).forEach((x) => console.log('    ' + x));
+    report.failed = { byCause: failures, examples: failedUrls };
+  }
+  if (block.pauses) console.log(`  the store refused ${block.pauses} time(s); paused ${Math.round(block.total / 60000)} min in all`);
+  const left = todo.length - done;
+  if (stopped || left > 0) {
+    warn(`stopped with ${left} product pages still to read (the store kept refusing). Later, run the same command with --resume to carry on.`);
+    report.incomplete = { pagesLeft: left };
+  }
   if (fallback) warn(`${fallback} pages had no inline product data — read from the page text instead`);
-  const products = got.filter(Array.isArray).flat().filter((p) => p && p.name);
+  if (!stopped && !left) await rm(progressFile + '.gz', { force: true }).then(() => rm(progressFile, { force: true }));
+  else await checkpoint();
+  const products = [...keptList(), ...results].filter((p) => p && p.name);
   const categories = [];
   for (const d of nav) for (const c of d.categories || []) {
     categories.push({ name: c.categoryName });
@@ -653,7 +743,7 @@ if (isMain) (async () => {
    * is more likely a broken run (bot wall, theme change) than a store that
    * lost half its stock — keep the old data unless told otherwise */
   let prev = [];
-  try { prev = JSON.parse(await readFile(path.join(OUT, 'catalog.json'), 'utf8')); if (!Array.isArray(prev)) prev = []; } catch { /* no previous run */ }
+  try { prev = await readCatalog(path.join(OUT, 'catalog.json')); if (!Array.isArray(prev)) prev = []; } catch { /* no previous run */ }
   if (prev.length >= 10 && products.length < prev.length * 0.5 && !ALLOW_SHRINK && !LIMIT) {
     console.error(`\n✗ Found ${products.length} products, the last good run had ${prev.length}. Not overwriting.`);
     console.error('  If the store really shrank, re-run with --allow-shrink.');
@@ -702,7 +792,7 @@ if (isMain) (async () => {
   const at = new Date().toISOString();
   products.forEach((p, i) => { p.rank = i; p.scrapedAt = at; });
   await mkdir(OUT, { recursive: true });
-  await writeFile(path.join(OUT, 'catalog.json'), JSON.stringify(products, null, 2) + '\n');
+  const wrote = await writeCatalog(path.join(OUT, 'catalog.json'), products);
   await writeFile(path.join(OUT, 'categories.json'), JSON.stringify(result.categories || [], null, 2) + '\n');
   Object.assign(report.counts, {
     products: products.length,
@@ -716,7 +806,7 @@ if (isMain) (async () => {
   await writeFile(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2) + '\n');
   const c = report.counts;
   console.log(`\n✓ ${c.products} products via ${report.platform} — ${c.withPrice} priced, ${c.callForPrice} call-for-price, ${c.withDescription} with descriptions, ${c.withSpecs} with spec rows`);
-  console.log(`  wrote ${path.relative(process.cwd(), OUT)}/catalog.json · categories.json · report.json`);
+  console.log(`  wrote ${path.relative(process.cwd(), wrote)} · categories.json · report.json`);
   console.log('  next: node scripts/build-catalog.mjs   (→ assets/data/catalog.js, what the site shows)');
   if (process.env.GITHUB_STEP_SUMMARY) {
     const { appendFile } = await import('node:fs/promises');

@@ -116,7 +116,9 @@ export function navOf(html) {
   for (const d of nodeData(kitData(html))) if (d.initData && Array.isArray(d.initData.navList)) return d.initData.navList;
   return [];
 }
-const slug = (s) => String(s || '').toLowerCase().replace(/&/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// Gearfire's own spelling: drop anything but letters, digits, spaces and hyphens, then spaces → hyphens
+// ("Red Dots / Holographic" → red-dots--holographic, "G33 Magnifier " → g33-magnifier-)
+export const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9 -]/g, '').replace(/ /g, '-');
 
 /** one listing page per subcategory (or per category when it has none) */
 export function listingsOf(origin, nav) {
