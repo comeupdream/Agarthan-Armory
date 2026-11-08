@@ -174,6 +174,16 @@ section { position: relative; }
 .brand { display: flex; align-items: center; gap: 12px; color: var(--frost); flex-shrink: 0; }
 .brand:hover { color: #fff; }
 .brand-mark { width: 40px; height: 40px; flex-shrink: 0; filter: var(--deco-filter) drop-shadow(0 0 8px rgba(var(--accent-rgb), .55)); }
+/* the brand's seal (assets/img/brand/, cut from the client's logoagarthan.jpeg). The artwork
+   is white on a black disc; multiply turns the white into the realm's own light and keeps the
+   disc black, so every realm tints it from its tokens. Black & White shows it as drawn. */
+.seal { position: relative; display: inline-block; border-radius: 50%; isolation: isolate; overflow: hidden; }
+.seal img { display: block; width: 100%; height: 100%; }
+.seal::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; mix-blend-mode: multiply;
+  background: linear-gradient(155deg, var(--frost) 0%, var(--cyan) 38%, var(--aurora) 100%); }
+html[data-theme="mono"] .seal::after { display: none; }
+.brand-mark.seal { filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), .55)); }
+.gate-seal { position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px; filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), .6)); }
 .brand-name { display: flex; flex-direction: column; line-height: 1; }
 .brand-name strong { font: 800 17px/1 var(--f-display); letter-spacing: .16em; }
 .brand-name small { font: 400 9px/1 var(--f-mono); letter-spacing: .3em; color: var(--muted); margin-top: 6px; text-transform: uppercase; }

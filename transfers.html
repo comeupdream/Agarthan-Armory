@@ -6,7 +6,7 @@
 <title>FFL Transfers — Agarthan Armory</title>
 <meta name="description" content="Ship your online firearm purchase to Agarthan Armory's FFL. Transfer fees, what to bring, how long it takes, and private-party transfers.">
 <meta name="theme-color" content="#03060c">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/img/brand/seal-64.png">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Agarthan Armory">
@@ -15,7 +15,7 @@
 <meta property="og:image" content="https://agarthanarmory.com/assets/img/og-card.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/cinzel-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=6061ac9e44">
+<link rel="stylesheet" href="assets/css/site.css?v=63e558e7c2">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font&&p.font!=='ancient')d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -28,10 +28,8 @@
         <circle cx="60" cy="60" r="56" stroke-opacity=".25"/>
         <g class="spin"><path d="M60 4a56 56 0 0 1 48.5 28" stroke-width="2"/><path d="M60 116a56 56 0 0 1-48.5-28" stroke-width="2"/></g>
         <g class="spin2" stroke-dasharray="3 7" stroke-opacity=".6"><circle cx="60" cy="60" r="44"/></g>
-        <circle cx="60" cy="60" r="30" stroke-opacity=".4"/>
-        <path d="M45 66l9-17 6 9 5-7 10 15z" fill="currentColor" fill-opacity=".18"/>
-        <ellipse cx="60" cy="47" rx="12" ry="3.2" fill="currentColor" fill-opacity=".35"/>
       </svg>
+      <span class="seal gate-seal"><img src="assets/img/brand/seal-160.png" alt=""></span>
     </div>
     <span class="eyebrow">Perimeter checkpoint</span>
     <h2 id="gateTitle">Credentials required beyond the wall</h2>
@@ -62,7 +60,7 @@
 <header class="site-header">
   <nav class="nav wrap" aria-label="Main">
     <a class="brand" href="index.html" aria-label="Agarthan Armory — home">
-      <img class="brand-mark" src="assets/img/logo.svg" alt="" width="40" height="40">
+      <span class="brand-mark seal" aria-hidden="true"><img src="assets/img/brand/seal-160.png" alt="" width="40" height="40"></span>
       <span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>Federally licensed · beyond the wall</small></span>
     </a>
     <ul class="nav-links" id="navLinks">
@@ -211,7 +209,7 @@
 <footer class="site-footer">
   <div class="wrap foot-grid">
     <div>
-      <a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt="" width="40" height="40"><span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>The last outpost before the wall</small></span></a>
+      <a class="brand" href="index.html"><span class="brand-mark seal" aria-hidden="true"><img src="assets/img/brand/seal-160.png" alt="" width="40" height="40"></span><span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>The last outpost before the wall</small></span></a>
       <p style="margin-top:18px;max-width:320px">Firearms, ammunition, optics and FFL transfers. Hyperborean steel, Agarthan engineering, and every form filled out properly.</p>
       <p class="runes foot-runes" data-runes="hyperborea · agartha · the ice wall"></p>
       <div class="ffl-plate">FFL · <span data-cfg="ffl.number" data-tbd="[ FFL NUMBER ]"></span><br><span data-cfg="ffl.type"></span><span data-sot hidden> · SOT</span></div>
