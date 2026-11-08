@@ -191,6 +191,9 @@
     box.classList.remove('photo');
     img.outerHTML = `<span class="holo-glow" style="display:contents">${AA.icon((item && item.type) || box.dataset.type || 'case')}</span>`;
   }, true);
+  // a National Firearms Act item carries a red NFA plate on its cover, wherever the cover is drawn
+  AA.isNfa = (item) => !!(item && (item.nfa || item.dept === 'nfa'));
+  AA.nfaTag = (item) => (AA.isNfa(item) ? '<span class="nfa-tag" title="National Firearms Act item">NFA</span>' : '');
   AA.viz = (item, big) => {
     const img = item.images && item.images[0];
     if (img) return `<img src="${esc(img)}" alt="${esc(item.name)}" loading="lazy" decoding="async">`;
@@ -213,7 +216,7 @@
     const sold = item.status === 'out';
     return `<article class="card hud brackets" data-id="${esc(item.id)}">
       <div class="card-top"><span>${esc(item.sub || (DEPTS[item.dept] || {}).name || '')}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
-      <div class="viz scan${item.images && item.images[0] ? ' photo' : ''}">${AA.viz(item)}</div>
+      <div class="viz scan${item.images && item.images[0] ? ' photo' : ''}">${AA.viz(item)}${AA.nfaTag(item)}</div>
       <div class="brandline">${esc(item.brand || '')}</div>
       <h3>${esc(item.name)}</h3>
       ${AA.specLine(item) ? `<p class="specs">${AA.specLine(item)}</p>` : ''}

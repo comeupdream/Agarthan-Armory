@@ -457,6 +457,12 @@ html[data-theme="mono"] .seal::after { display: none; }
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6), inset 0 -18px 30px rgba(var(--plate-shadow-rgb), .25);
 }
 .viz.photo img, .viz-lg.photo img { mix-blend-mode: multiply; padding: 3%; }
+/* NFA items: a red plate on the cover, the same red in every realm (black and white included) */
+.card .viz, .viz-lg { position: relative; }
+.nfa-tag { position: absolute; top: 8px; left: 8px; z-index: 2; padding: 4px 8px 3px; border-radius: 2px;
+  font: 700 12px/1 var(--f-mono); letter-spacing: .2em; text-indent: .2em; color: #fff; background: #d0142c;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .35) inset, 0 2px 10px rgba(208, 20, 44, .45); pointer-events: none; }
+.viz-lg .nfa-tag { top: 14px; left: 14px; padding: 6px 11px 5px; font-size: 15px; }
 .viz-lg.photo img { width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
 .card h3 { font: 600 17px/1.25 var(--f-ui); letter-spacing: .01em; color: var(--frost); }
 .card .brandline { font: 400 11px/1 var(--f-mono); letter-spacing: .2em; color: var(--cyan); text-transform: uppercase; margin-bottom: 6px; }
