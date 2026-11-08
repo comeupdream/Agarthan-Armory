@@ -45,6 +45,7 @@
  * ===========================================================================*/
 
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -594,14 +595,13 @@ if (isMain) (async () => {
   /* safety fuse: a run that finds far fewer products than the last good one
    * is more likely a broken run (bot wall, theme change) than a store that
    * lost half its stock — keep the old data unless told otherwise */
-  try {
-    const prev = JSON.parse(await readFile(path.join(OUT, 'catalog.json'), 'utf8'));
-    if (Array.isArray(prev) && prev.length >= 10 && products.length < prev.length * 0.5 && !ALLOW_SHRINK && !LIMIT) {
-      console.error(`\n✗ Found ${products.length} products, the last good run had ${prev.length}. Not overwriting.`);
-      console.error('  If the store really shrank, re-run with --allow-shrink.');
-      process.exit(1);
-    }
-  } catch { /* no previous run */ }
+  let prev = [];
+  try { prev = JSON.parse(await readFile(path.join(OUT, 'catalog.json'), 'utf8')); if (!Array.isArray(prev)) prev = []; } catch { /* no previous run */ }
+  if (prev.length >= 10 && products.length < prev.length * 0.5 && !ALLOW_SHRINK && !LIMIT) {
+    console.error(`\n✗ Found ${products.length} products, the last good run had ${prev.length}. Not overwriting.`);
+    console.error('  If the store really shrank, re-run with --allow-shrink.');
+    process.exit(1);
+  }
 
   /* images */
   if (!IMAGES_GIVEN && products.length > BIG_CATALOG && MAX_IMAGES > 1) {
@@ -626,6 +626,20 @@ if (isMain) (async () => {
     console.log(`  ✓ ${ok} saved, ${fail} failed`);
     report.counts.images = ok; report.counts.imageFailures = fail;
   }
+  /* photos from earlier runs stay: a data-only re-scrape, or a store whose own
+   * photos are blocked, must not drop photos added since (a distributor pack
+   * via match-images, a web search via find-images, an earlier download) */
+  const before = new Map(); for (const q of prev) { if (q && q.id) before.set(q.id, q); if (q && q.permalink) before.set(q.permalink, q); }
+  let kept = 0;
+  for (const p of products) {
+    const q = before.get(p.id) || before.get(p.permalink); if (!q) continue;
+    if (q.photoSearch && !p.photoSearch) p.photoSearch = q.photoSearch;
+    if (p.localImages.length || !(q.localImages || []).length) continue;
+    const still = q.localImages.filter((f) => existsSync(path.resolve(f)) || existsSync(path.join(IMG_DIR, path.basename(f))));
+    if (!still.length) continue;
+    p.localImages = still; if (q.photoSource) p.photoSource = q.photoSource; kept++;
+  }
+  if (kept) console.log(`  kept earlier photos for ${kept} products`);
 
   /* write */
   const at = new Date().toISOString();

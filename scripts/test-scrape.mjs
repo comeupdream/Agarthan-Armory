@@ -120,6 +120,17 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
     eq(b && b.priceNote, 'Call for price', 'woo: call-for-price detected');
     eq(b && b.availability, 'out', 'woo: is_in_stock false → out');
     ok(JSON.parse(readFileSync(path.join(d, 'scraped', 'report.json'), 'utf8')).platform === 'woo', 'woo: report names the method');
+    // a data-only re-scrape keeps photos added since (find-images / a photo pack) and the store's own earlier photos
+    writeFileSync(path.join(d, 'img', 'federal-power-shok-00-web.jpg'), JPEG);
+    const withPhoto = c.map((p) => (p.id === 'federal-power-shok-00' ? { ...p, localImages: ['img/federal-power-shok-00-web.jpg'], photoSource: { page: 'https://example.com/x', score: 9 }, photoSearch: { result: 'found' } } : p));
+    writeFileSync(path.join(d, 'scraped', 'catalog.json'), JSON.stringify(withPhoto));
+    const again = await run(wb, ['--max-images', '0'], d);
+    ok(again.code === 0, 'woo: data-only re-run exits 0\n' + again.out);
+    const c2 = read(d);
+    const f2 = c2.find((p) => p.id === 'federal-power-shok-00'), g2 = c2.find((p) => p.id === 'glock-19-gen-5');
+    eq(f2 && f2.localImages, ['img/federal-power-shok-00-web.jpg'], 're-scrape: a searched-for photo is kept');
+    eq(f2 && f2.photoSource && f2.photoSource.score, 9, 're-scrape: its source note is kept');
+    eq(g2 && g2.localImages.length, 2, 're-scrape: the store photos from the last run are kept');
     // build-catalog on it
     const items = buildItems(c, { 'benelli-m4-tactical': { featured: true, lore: 'The wall’s last line.' } });
     const gi = items.find((i) => i.id === 'glock-19-gen-5');

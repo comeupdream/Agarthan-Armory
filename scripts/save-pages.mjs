@@ -14,6 +14,9 @@
  *   node scripts/save-pages.mjs                         # shop, 1 per category
  *   node scripts/save-pages.mjs --folder shop --per 2 --out pages
  *   node scripts/save-pages.mjs --ids <id>,<id>         # particular products
+ *
+ * shop.agarthanarmory.com sits behind a CloudFront firewall that refuses
+ * cloud servers (GitHub Actions included): run this from a home connection.
  * ===========================================================================*/
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -112,26 +115,34 @@ async function main() {
 
   // the store's own menu: which departments exist at all
   const home = await get(origin + '/');
-  console.log(`HOME ${home.status} ${home.text.length}b`);
-  if (home.text) {
+  console.log(`HOME ${home.status} ${home.text.length}b${isBlocked(home) ? ' (blocked)' : ''}`);
+  if (!isBlocked(home)) {
     await writeFile(path.join(OUT, '_home.html'), home.text);
     const links = [...new Set([...home.text.matchAll(/<a\b[^>]*href=["']([^"'#?]+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
       .map((m) => `${m[1].replace(origin, '')} = ${stripHtml(m[2]).replace(/\s+/g, ' ').trim()}`)
       .filter((l) => /^\/[a-z0-9-]+(?:\/[a-z0-9-]+){0,2}\/? = .+/i.test(l)))];
     console.log('  MENU ' + links.slice(0, 120).join('\n  MENU '));
   }
-  let i = 0;
+  let i = 0, saved = 0, blocked = 0;
   for (const p of pick) {
     if (i++) await sleep(DELAY);
     const r = await get(p.permalink);
     const file = `${String(p.id).replace(/[^a-z0-9-]/gi, '').slice(0, 60) || i}.html`;
-    if (r.text) await writeFile(path.join(OUT, file), r.text);
     console.log(`\n=== ${i}/${pick.length} ${(p.categories || []).slice(-1)[0] || ''} · ${p.brand || ''} ${p.name} · UPC ${(p.attributes || {}).UPC || p.sku || ''}`);
-    console.log(`  ${r.status} ${r.text.length}b ${p.permalink} → ${file}${r.error ? ' ERROR ' + r.error : ''}`);
-    if (r.text) console.log(digest(r.text));
+    if (isBlocked(r)) { blocked++; console.log(`  ✗ ${r.status || 'no answer'} — blocked or failed${r.error ? ': ' + r.error : ''} (${p.permalink})`); continue; }
+    await writeFile(path.join(OUT, file), r.text); saved++;
+    console.log(`  ${r.status} ${r.text.length}b ${p.permalink} → ${file}`);
+    console.log(digest(r.text));
   }
-  console.log(`\n✓ ${pick.length} pages saved in ${path.relative(process.cwd(), OUT)}/`);
+  console.log(`\n${saved ? '✓' : '✗'} ${saved} of ${pick.length} pages saved in ${path.relative(process.cwd(), OUT)}/${blocked ? ` · ${blocked} blocked` : ''}`);
+  if (!saved) {
+    console.log('  The store refused this machine (its firewall blocks data-center and cloud addresses).\n  Run it from a home or office connection: npm run save-pages');
+    process.exit(2);
+  }
 }
+// a firewall page (CloudFront "Request blocked", Cloudflare challenge…) is not a product page
+const isBlocked = (r) => !r.text || r.status < 200 || r.status >= 300 ||
+  /request blocked|the request could not be satisfied|just a moment|cf-browser-verification|captcha|access denied/i.test(r.text.slice(0, 4000));
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === new URL(import.meta.url).pathname;
 if (isMain) main().catch((e) => { console.error('✗ ' + e.message); process.exit(1); });

@@ -5,6 +5,9 @@ name: Sample product pages
 # text under the title. Used to teach the scraper where the store keeps
 # caliber, grain, round count, barrel length and so on. Commits nothing; the
 # pages are attached to the run as an artifact.
+#
+# shop.agarthanarmory.com blocks GitHub's servers (CloudFront "Request
+# blocked"), so for the shop run `npm run save-pages` from a home connection.
 
 on:
   workflow_dispatch:

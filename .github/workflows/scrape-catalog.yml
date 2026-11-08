@@ -5,6 +5,11 @@ name: Scrape catalog
 # site shows (assets/data/catalog.js). Runs on GitHub's runners because the
 # Claude sandbox cannot reach the store.
 #
+# agarthanarmory.com works from here. shop.agarthanarmory.com (Gearfire) does
+# NOT: its CloudFront firewall answers GitHub's servers with "403 Request
+# blocked". Scrape the shop from a home connection instead:
+#   npm run scrape:shop -- --max-images 0
+#
 # How to run: Actions tab → "Scrape catalog" → Run workflow → pick the branch.
 # A failed or empty scrape commits nothing (scrape.mjs refuses to overwrite).
 

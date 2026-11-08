@@ -19,8 +19,11 @@
  * (open it in a browser; it is never served by the site). Products with no
  * acceptable result are marked and skipped next run (--retry to search again).
  *
- * SETUP: a Brave Search API key (search.brave.com → API). Keep it out of the
- * repo — set it for the terminal session only:
+ * SETUP: a Brave Search API key — sign up at api-dashboard.search.brave.com,
+ * add a card, subscribe to the Search plan, then API Keys → Add. Billed per
+ * search (about $5 per 1,000, with a $5 monthly credit, so ~1,000 free a
+ * month); the whole shop is roughly 3,000–5,000 searches. Keep the key out
+ * of the repo — set it for the terminal session only:
  *   PowerShell:  $env:BRAVE_API_KEY="…"      macOS/Linux:  export BRAVE_API_KEY=…
  *
  * USAGE  node scripts/find-images.mjs --limit 20          (try 20 first, then check the review page)
