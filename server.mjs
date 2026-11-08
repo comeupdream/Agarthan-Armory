@@ -20,6 +20,7 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.avif': 'image/avif', '.ico': 'image/x-icon',
   '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8',
+  '.mp4': 'video/mp4', '.webm': 'video/webm',
 };
 const PUBLIC = (p) => {
   const segs = p.split('/').filter(Boolean);
@@ -44,11 +45,25 @@ http.createServer((req, res) => {
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return send404();
     const ext = path.extname(file).toLowerCase();
-    res.writeHead(200, {
+    const head = {
       'Content-Type': TYPES[ext] || 'application/octet-stream',
       'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400',
       'X-Content-Type-Options': 'nosniff',
-    });
+      'Accept-Ranges': 'bytes',
+    };
+    // byte ranges: Safari and iOS will not play a video without them
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? +m[1] : Math.max(0, st.size - +m[2]);
+      const end = m[1] && m[2] ? Math.min(+m[2], st.size - 1) : st.size - 1;
+      if (start > end || start >= st.size) {
+        res.writeHead(416, { 'Content-Range': `bytes */${st.size}` });
+        return res.end();
+      }
+      res.writeHead(206, { ...head, 'Content-Range': `bytes ${start}-${end}/${st.size}`, 'Content-Length': end - start + 1 });
+      return fs.createReadStream(file, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { ...head, 'Content-Length': st.size });
     fs.createReadStream(file).pipe(res);
   });
 }).listen(PORT, () => console.log(`Agarthan Armory → http://localhost:${PORT}`));

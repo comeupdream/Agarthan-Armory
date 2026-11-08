@@ -708,6 +708,78 @@ dialog::backdrop { background: rgba(1, 4, 9, .78); -webkit-backdrop-filter: blur
 .service p { color: var(--muted); font-size: 15px; margin: 0; }
 .service .glyph { width: 44px; height: 44px; color: var(--cyan); }
 
+/* =====================================================================
+   AGARTHA TRANSMISSIONS — the client's art videos, shown as lit
+   screens in HUD frames. Played by site.js only while on screen.
+   ===================================================================== */
+.relic { margin: 0; padding: 12px; position: relative; }
+.relic-bar, .relic-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  font: 400 10px/1.4 var(--f-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+}
+.relic-bar { padding: 2px 2px 10px; }
+.relic-foot { padding: 10px 2px 0; }
+.relic-bar b { display: inline-flex; align-items: center; gap: 7px; color: var(--aurora); font-weight: 400; white-space: nowrap; }
+.relic-bar b::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; animation: blink 1.6s ease-in-out infinite; }
+.relic.held .relic-bar b { color: var(--amber); }
+.relic.held .relic-bar b::before { animation: none; }
+.relic-screen {
+  position: relative; overflow: hidden; background: var(--panel-solid);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 0 0 1px rgba(3, 6, 12, .8), 0 0 34px rgba(93, 228, 255, .18);
+}
+.relic-screen.tall { aspect-ratio: 398 / 652; }
+.relic-screen.square { aspect-ratio: 348 / 354; }
+.relic-screen video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+/* screen glass: fine scanlines and a soft edge so the light frame sits in the night */
+.relic-screen::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(3, 12, 24, .07) 0 1px, transparent 1px 3px);
+  box-shadow: inset 0 0 38px rgba(3, 10, 20, .45);
+}
+/* a slow scan bar */
+.relic-screen::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 18%; top: -18%; z-index: 2; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(93, 228, 255, .1) 80%, rgba(190, 245, 255, .28));
+  animation: scan 7s linear infinite;
+}
+.relic.held .relic-screen::after { animation-play-state: paused; }
+.relic-hold {
+  background: rgba(93, 228, 255, .08); border: 1px solid var(--line-strong); color: var(--frost); cursor: pointer;
+  font: 400 10px/1 var(--f-mono); letter-spacing: .2em; text-transform: uppercase; padding: 7px 10px; flex-shrink: 0;
+}
+.relic-hold:hover { background: rgba(93, 228, 255, .2); }
+
+/* home: the code, with the rotating piece on a lit pedestal */
+.code-section { background: radial-gradient(55% 70% at 22% 55%, rgba(93, 255, 177, .07), transparent 70%); }
+.code-grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: clamp(32px, 6vw, 88px); align-items: center; }
+.code-section .relic { margin-bottom: 34px; }
+.code-section .relic::after {
+  content: ''; position: absolute; left: 6%; right: 6%; bottom: -34px; height: 34px; pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 30%, rgba(93, 228, 255, .45), rgba(93, 255, 177, .12) 55%, transparent 75%);
+  filter: blur(4px); animation: gate 6s ease-in-out infinite;
+}
+.code-copy h2 { font-size: clamp(30px, 4.6vw, 56px); margin-top: 14px; }
+.code-copy > p:not(.runes):not(.code-coda) { color: var(--text); font-size: 17px; max-width: 600px; }
+.code-runes { margin: 16px 0 0; font-size: 15px; }
+.code-laws { list-style: none; padding: 0; margin: 26px 0 0; border-top: 1px solid var(--line); max-width: 640px; }
+.code-laws li { display: grid; grid-template-columns: 46px 1fr; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.code-laws b { font: 800 17px/1.5 var(--f-display); color: var(--cyan); text-shadow: var(--glow-cyan); }
+.code-laws span { color: var(--muted); font-size: 15px; }
+.code-laws strong { color: var(--frost); font-weight: 600; }
+.code-coda { margin-top: 22px; font: 400 12px/1.6 var(--f-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--aurora); }
+@media (max-width: 860px) {
+  .code-grid { grid-template-columns: 1fr; }
+  .code-section .relic { order: 2; width: min(100%, 300px); margin-inline: auto; }
+}
+
+/* transfers: the static piece as a checkpoint monitor beside the hero copy */
+.hero-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 320px); gap: clamp(28px, 5vw, 64px); align-items: center; }
+@media (max-width: 860px) {
+  .hero-split { grid-template-columns: 1fr; }
+  .hero-split .feed { width: min(100%, 280px); }
+}
+
 /* ---------- reveal ---------- */
 .reveal { opacity: 0; transform: translateY(22px); transition: opacity .8s ease, transform .8s ease; }
 .reveal.in { opacity: 1; transform: none; }

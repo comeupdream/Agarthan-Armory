@@ -507,6 +507,29 @@
     els.forEach((e) => io.observe(e));
   }
 
+  /* ---------- Agartha transmissions: the client's art videos ----------
+   * Play only while on screen and the tab is visible. Reduced motion starts
+   * them held on the poster frame. Hold / Play lets anyone stop the motion. */
+  function transmissions() {
+    $$('video[data-art]').forEach((v) => {
+      v.muted = true;                       // iOS needs the property, not only the attribute
+      const frame = v.closest('[data-art-frame]');
+      const btn = frame && $('[data-art-hold]', frame);
+      const state = frame && $('[data-art-state]', frame);
+      let held = reduced, onScreen = !('IntersectionObserver' in window);
+      const sync = () => {
+        if (!held && onScreen && !document.hidden) { const p = v.play(); if (p) p.catch(() => {}); } else v.pause();
+        if (frame) frame.classList.toggle('held', held);
+        if (state) state.textContent = held ? 'Held' : 'Live';
+        if (btn) { btn.textContent = held ? 'Play' : 'Hold'; btn.setAttribute('aria-label', held ? 'Play the animation' : 'Pause the animation'); }
+      };
+      if (btn) btn.addEventListener('click', () => { held = !held; sync(); });
+      if (!onScreen) new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; sync(); }, { rootMargin: '160px 0px' }).observe(v);
+      document.addEventListener('visibilitychange', sync);
+      sync();
+    });
+  }
+
   /* ---------- structured data: only once the real facts are filled in ---------- */
   function jsonLd() {
     const a = cfg.address || {};
@@ -543,6 +566,7 @@
     $$('[data-open-req]').forEach((b) => b.addEventListener('click', openDrawer));
     $$('canvas[data-sky]').forEach((c) => AA.sky(c, c.dataset.sky === 'lite' ? { intensity: 0.7, density: 3200, pole: false } : {}));
     ufo();
+    transmissions();
     reveal();
     document.dispatchEvent(new CustomEvent('aa:ready'));
   }

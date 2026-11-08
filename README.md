@@ -16,6 +16,7 @@ transfers.html    FFL transfers: steps, fees, what to bring, services, FAQ
 assets/js/config.js        ← THE STORE'S FACTS (address, FFL #, phone, hours, fees…)
 assets/data/catalog.js     what the Armory shows (sample until the first sync)
 assets/data/overrides.json hand corrections to the synced catalog
+assets/video/      the client's Agartha art (rotating loop + static piece) and their poster frames
 scripts/           probe-site · scrape · build-catalog · test-scrape
 .github/workflows/ Probe the store · Scrape catalog · Test
 partials/          header, footer, age gate (stamped into every page)
@@ -134,6 +135,12 @@ Point the domain's DNS where the host says. HTTPS is automatic on all of them.
 
 - **Header, footer or age gate:** edit `partials/*.html`, then run
   `npm run stamp`.
+- **Agartha art videos** (from the client): the rotating loop stands on a lit
+  pedestal in the home page's "Agarthan code" section; the static piece is the
+  "checkpoint feed" in the transfers page hero. They play only while on screen,
+  start paused for visitors who ask for reduced motion, and each has a Hold /
+  Play button. To swap one, replace the `.mp4` in `assets/video/` (keep it
+  muted, with no audio track) and its `.jpg` poster (the first frame).
 - **Map outposts** (which lore place stands for which department): the
   `NODES` list in `assets/js/map.js`.
 - **Art:**
