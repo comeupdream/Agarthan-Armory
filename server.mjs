@@ -12,6 +12,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +process.env.PORT || 3000;
@@ -25,7 +26,10 @@ const PUBLIC = (p) => {
   const segs = p.split('/').filter(Boolean);
   if (segs.some((s) => s.startsWith('.') || s.startsWith('_'))) return false;
   if (segs.length === 1) return /\.(html|svg|ico|txt|xml|png)$/.test(segs[0]);
-  return segs[0] === 'assets' && segs[1] !== 'data' || (segs[0] === 'assets' && segs[1] === 'data' && segs.length === 3 && segs[2].endsWith('.js'));
+  if (segs[0] !== 'assets') return false;
+  if (segs[1] !== 'data') return true;
+  // assets/data: the catalog script and the per-item detail files only (never scraped/ or overrides)
+  return (segs.length === 3 && segs[2].endsWith('.js')) || (segs.length === 4 && segs[2] === 'items' && segs[3].endsWith('.json'));
 };
 
 http.createServer((req, res) => {
@@ -44,11 +48,15 @@ http.createServer((req, res) => {
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return send404();
     const ext = path.extname(file).toLowerCase();
+    // text compresses ~4:1 — the catalog script is the one that matters
+    const gzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '') && /\.(html|css|js|json|svg|txt|xml)$/.test(ext);
     res.writeHead(200, {
       'Content-Type': TYPES[ext] || 'application/octet-stream',
       'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400',
       'X-Content-Type-Options': 'nosniff',
+      ...(gzip ? { 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' } : {}),
     });
-    fs.createReadStream(file).pipe(res);
+    const stream = fs.createReadStream(file);
+    (gzip ? stream.pipe(zlib.createGzip()) : stream).pipe(res);
   });
 }).listen(PORT, () => console.log(`Agarthan Armory → http://localhost:${PORT}`));
