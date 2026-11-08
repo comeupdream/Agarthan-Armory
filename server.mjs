@@ -21,6 +21,7 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.avif': 'image/avif', '.ico': 'image/x-icon',
   '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8',
+  '.mp4': 'video/mp4', '.webm': 'video/webm',
 };
 const PUBLIC = (p) => {
   const segs = p.split('/').filter(Boolean);
@@ -60,14 +61,30 @@ http.createServer((req, res) => {
       res.writeHead(304, { 'Last-Modified': modified, 'Cache-Control': 'no-cache' });
       return res.end();
     }
-    res.writeHead(200, {
+    const head = {
       'Content-Type': TYPES[ext] || 'application/octet-stream',
       'Cache-Control': longCache ? 'public, max-age=86400' : 'no-cache',
       'Last-Modified': modified,
       'X-Content-Type-Options': 'nosniff',
-      ...(gzip ? { 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' } : {}),
-    });
-    const stream = fs.createReadStream(file);
-    (gzip ? stream.pipe(zlib.createGzip()) : stream).pipe(res);
+    };
+    if (gzip) {
+      res.writeHead(200, { ...head, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
+      return fs.createReadStream(file).pipe(zlib.createGzip()).pipe(res);
+    }
+    // byte ranges, for files sent as-is: Safari and iOS will not play a video without them
+    head['Accept-Ranges'] = 'bytes';
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? +m[1] : Math.max(0, st.size - +m[2]);
+      const end = m[1] && m[2] ? Math.min(+m[2], st.size - 1) : st.size - 1;
+      if (start > end || start >= st.size) {
+        res.writeHead(416, { 'Content-Range': `bytes */${st.size}` });
+        return res.end();
+      }
+      res.writeHead(206, { ...head, 'Content-Range': `bytes ${start}-${end}/${st.size}`, 'Content-Length': end - start + 1 });
+      return fs.createReadStream(file, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { ...head, 'Content-Length': st.size });
+    fs.createReadStream(file).pipe(res);
   });
 }).listen(PORT, () => console.log(`Agarthan Armory → http://localhost:${PORT}`));
