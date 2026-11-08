@@ -76,7 +76,7 @@ through, for example `npm run scrape -- --limit 20`.
 folder, and `build-catalog` merges every folder under `assets/data/scraped/`:
 
 ```bash
-npm run scrape -- --site https://shop.agarthanarmory.com --out assets/data/scraped/shop
+npm run scrape:shop
 ```
 
 The Gearfire shop sits behind a CloudFront firewall that refuses GitHub's
@@ -130,6 +130,23 @@ The repo root is the site, with no build step.
   public files. A Static Site with publish directory `.` also works.
 
 Point the domain's DNS where the host says. HTTPS is automatic on all of them.
+
+## Display settings (Realm button, top right)
+
+Visitors can switch, and the choice is saved on their device (`assets/js/prefs.js`):
+
+- **Realm** (colour theme): Polar Night, Inner Earth, Black & White, Agarthan
+  Crystal, Vril. Each is one block of CSS variables in `assets/css/site.css`
+  (`html[data-theme="…"]`). The decorative art (sky, ice wall, map, logo,
+  craft) takes the theme's `--deco-filter`; product photos are never tinted.
+- **Script** (typeface set): Ancient Tech (Cinzel), Future Tech (Orbitron +
+  Exo 2), Old World (Uncial Antiqua + EB Garamond), Runic (Cinzel Decorative,
+  with Elder Futhark lines under the headings).
+- **Cursor**: standard, reticle, or a craft (disc, Tic Tac, black triangle,
+  foo fighter) drawn in the theme's colours, with a tractor-beam flash on click.
+
+To add a realm: copy a theme block in `site.css`, then add it to `THEMES` in
+`prefs.js`.
 
 ## Editing
 

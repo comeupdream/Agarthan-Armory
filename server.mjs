@@ -12,6 +12,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +process.env.PORT || 3000;
@@ -26,7 +27,10 @@ const PUBLIC = (p) => {
   const segs = p.split('/').filter(Boolean);
   if (segs.some((s) => s.startsWith('.') || s.startsWith('_'))) return false;
   if (segs.length === 1) return /\.(html|svg|ico|txt|xml|png)$/.test(segs[0]);
-  return segs[0] === 'assets' && segs[1] !== 'data' || (segs[0] === 'assets' && segs[1] === 'data' && segs.length === 3 && segs[2].endsWith('.js'));
+  if (segs[0] !== 'assets') return false;
+  if (segs[1] !== 'data') return true;
+  // assets/data: the catalog script and the per-item detail files only (never scraped/ or overrides)
+  return (segs.length === 3 && segs[2].endsWith('.js')) || (segs.length === 4 && segs[2] === 'items' && segs[3].endsWith('.json'));
 };
 
 http.createServer((req, res) => {
@@ -45,13 +49,30 @@ http.createServer((req, res) => {
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return send404();
     const ext = path.extname(file).toLowerCase();
+    // text compresses ~4:1 — the catalog script is the one that matters
+    const gzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '') && /\.(html|css|js|json|svg|txt|xml)$/.test(ext);
+    // pages, styles, scripts and data are re-checked on every visit (a cheap
+    // 304 when unchanged), so an update reaches everyone at once; a day-long
+    // cache once left visitors with new pages on an old stylesheet. Photos,
+    // fonts and video keep the day-long cache.
+    const longCache = /\.(woff2|png|jpe?g|webp|gif|avif|ico|mp4)$/.test(ext);
+    const modified = st.mtime.toUTCString();
+    if (!longCache && req.headers['if-modified-since'] === modified) {
+      res.writeHead(304, { 'Last-Modified': modified, 'Cache-Control': 'no-cache' });
+      return res.end();
+    }
     const head = {
       'Content-Type': TYPES[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400',
+      'Cache-Control': longCache ? 'public, max-age=86400' : 'no-cache',
+      'Last-Modified': modified,
       'X-Content-Type-Options': 'nosniff',
-      'Accept-Ranges': 'bytes',
     };
-    // byte ranges: Safari and iOS will not play a video without them
+    if (gzip) {
+      res.writeHead(200, { ...head, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
+      return fs.createReadStream(file).pipe(zlib.createGzip()).pipe(res);
+    }
+    // byte ranges, for files sent as-is: Safari and iOS will not play a video without them
+    head['Accept-Ranges'] = 'bytes';
     const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
     if (m && (m[1] || m[2])) {
       const start = m[1] ? +m[1] : Math.max(0, st.size - +m[2]);

@@ -75,11 +75,34 @@
     };
     return r.sort(sorters[state.sort] || sorters.featured);
   }
+  /* the grid draws a page at a time: 2,000 cards at once would stall a phone */
+  const PAGE = 48;
+  let current = [], shown = 0;
+  const more = document.createElement('div');
+  more.className = 'more-wrap';
+  more.innerHTML = '<button class="btn btn-ghost" type="button">Load more</button>';
+  $('#armoryGrid').after(more);
+  function renderMore() {
+    const next = current.slice(shown, shown + PAGE);
+    $('#armoryGrid').insertAdjacentHTML('beforeend', next.map(AA.card).join(''));
+    shown += next.length;
+    const left = current.length - shown;
+    more.hidden = left <= 0;
+    more.querySelector('button').textContent = `Load more · ${left} left`;
+  }
+  more.querySelector('button').addEventListener('click', renderMore);
+  if ('IntersectionObserver' in window) new IntersectionObserver((es) => { if (es[0].isIntersecting && !more.hidden) renderMore(); }, { rootMargin: '600px 0px' }).observe(more);
+
   function update() {
     $$('[data-dept]', deptChips).forEach((b) => b.setAttribute('aria-pressed', b.dataset.dept === state.dept));
     renderCalibers();
     const r = results();
-    $('#armoryGrid').innerHTML = r.map(AA.card).join('');
+    current = r; shown = 0;
+    $('#armoryGrid').innerHTML = '';
+    renderMore();
+    // a filter change while scrolled down the list jumps back to the top of the results
+    const bar = document.querySelector('.results-bar');
+    if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start', behavior: AA.reduced ? 'auto' : 'smooth' });
     $('#emptyState').hidden = r.length > 0;
     $('#resultCount').textContent = `${r.length} ${r.length === 1 ? 'relic' : 'relics'} in range`;
     const d = AA.DEPTS[state.dept];
@@ -129,6 +152,24 @@
         </div>
       </div>`;
     if (!dlg.open) dlg.showModal();
+    // full copy + gallery arrive separately (assets/data/items/<id>.json)
+    if (it.more) {
+      fetch(`assets/data/items/${encodeURIComponent(it.id)}.json`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+        if (!d || !dlg.open || $('#detailTitle').textContent !== it.name) return;
+        const descEl = $('#detailInner .desc');
+        if (descEl && d.desc) descEl.textContent = d.desc;
+        const imgs = (d.images || []).filter(Boolean);
+        if (imgs.length > 1) {
+          const viz = $('#detailInner .viz-lg');
+          viz.insertAdjacentHTML('beforeend', `<div class="thumbs">${imgs.map((src, n) => `<button type="button" data-src="${esc(src)}" aria-label="Photo ${n + 1}"${n ? '' : ' aria-pressed="true"'}><img src="${esc(src)}" alt="" loading="lazy"></button>`).join('')}</div>`);
+          viz.querySelector('.thumbs').addEventListener('click', (e) => {
+            const b = e.target.closest('button'); if (!b) return;
+            viz.querySelector(':scope > img').src = b.dataset.src;
+            viz.querySelectorAll('.thumbs button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+          });
+        }
+      }).catch(() => { /* opened from disk, or offline: the summary stands */ });
+    }
     if (push !== false) {
       const p = new URLSearchParams(location.search); p.set('item', id);
       history.pushState({ item: id }, '', location.pathname + '?' + p);
