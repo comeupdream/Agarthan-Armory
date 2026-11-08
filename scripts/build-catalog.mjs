@@ -30,7 +30,7 @@
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { subOf, facetsOf } from './lib-facets.mjs';
+import { subOf, facetsOf, storePath } from './lib-facets.mjs';
 
 /* ---------- classification ---------- */
 const T = (s) => String(s || '').toLowerCase();
@@ -49,7 +49,17 @@ const RE = {
   pistolCal: /\b9 ?mm|\.380|\.40 ?(s&w|sw)|\b10 ?mm|\.45 ?(acp|auto)|\.357|\.38 ?(spl|special)|\.44 ?(mag|special)|\.22 ?lr|\b22 ?lr|5\.7 ?x ?28/,
   firearmCat: /\b(firearms?|guns?|handguns?|pistols?|revolvers?|rifles?|shotguns?|long ?guns?|used guns?|consignment guns?)\b/,
 };
+// Gearfire's own departments (Shooting Sports › Category › Subcategory) say exactly where a product goes
+const GF_DEPT = { handguns: 'sidearms', rifles: 'longarms', shotguns: 'shotguns', ammunition: 'ammo', 'reloading supplies': 'ammo',
+  optics: 'optics', 'nfa/suppressors': 'nfa', 'receivers & frames': 'longarms' };
 export function classify(p) {
+  const sp = storePath(p);
+  if (sp) {
+    const c = T(sp.cat), sc = T(sp.sub);
+    if (c === 'black powder guns & accessories') return /handgun/.test(sc) ? 'sidearms' : /rifle/.test(sc) ? 'longarms' : 'gear';
+    if (c === 'gear & accessories' && /suppressor/.test(sc)) return 'gear';
+    return GF_DEPT[c] || 'gear';
+  }
   const cats = (p.categories || []).join(' / ');
   const tags = (p.tags || []).join(' ');
   const name = p.name || '';
@@ -81,7 +91,7 @@ export function classify(p) {
   if (firearmCat) return 'longarms';
   return 'gear';
 }
-const FIREARM_DEPTS = new Set(['sidearms', 'longarms', 'shotguns']);
+const FIREARM_DEPTS = new Set(['sidearms', 'longarms', 'shotguns', 'nfa']);
 const BARREL_RE = /\b(\d{1,2}(?:\.\d{1,3})?)\s?(?:"|”|''|in\b|inch(?:es)?\b|-inch)/i;
 /** barrel length in inches from a listing name, or null */
 export const barrelIn = (s) => { const m = String(s || '').match(BARREL_RE); const n = m ? parseFloat(m[1]) : NaN; return n >= 2 && n <= 34 ? n : null; };
@@ -98,6 +108,7 @@ export function iconFor(dept, p) {
       return 'ar';
     case 'shotguns': return /semi|auto(loader)?\b|\b(benelli|m4|m2|a300|a400|1301|sbe|1100|11-87|sa-08|930|940|vr80)\b/.test(n) ? 'semishotgun' : 'shotgun';
     case 'ammo': return /\b(12|16|20|28)\s?(ga|gauge)\b|\.410|shotshell|buckshot|birdshot|slug/.test(n) ? 'shells' : 'ammo';
+    case 'nfa': return /short barrel+ed shotgun|\bsbs\b/.test(n) ? 'shotgun' : /short barrel+ed rifle|\bsbr\b|package/.test(n) ? 'ar' : /\baow\b|any other weapon/.test(n) ? 'pistol' : 'can';
     case 'optics':
       if (/thermal|night vision|nvg|monocular|binocular/.test(n)) return 'thermal';
       if (/\b(light|lumen|flashlight|tlr|surefire|streamlight|lasers?|peq|ngal|atpial|dbal)\b/.test(n)) return 'light';
@@ -128,18 +139,18 @@ export function specsFor(dept, p) {
   const firearm = FIREARM_DEPTS.has(dept);
   const text = `${p.name} ${p.shortDescription || ''}`;
   const s = {};
-  const cal = attr(p, /^(caliber|calibre|gauge|cartridge|chamber(ing)?)$/i) || (() => { for (const re of CALIBERS) { const m = text.match(new RegExp(re.source, 'i')); if (m) return titleCal(m[0].trim()); } return null; })();
+  const cal = attr(p, /caliber|calibre|gauge|cartridge|chamber(ing)?/i) || (() => { for (const re of CALIBERS) { const m = text.match(new RegExp(re.source, 'i')); if (m) return titleCal(m[0].trim()); } return null; })();
   if (cal && (firearm || dept === 'ammo' || dept === 'gear')) s.caliber = cal;
   if (firearm) {
-    const cap = attr(p, /^(capacity|magazine capacity|mag capacity|rounds?)$/i) || (text.match(/\b(\d{1,3})[\s-]?(?:\+\s?1\s?)?(?:rd|rds|round|shot)s?\b/i) || [])[1];
+    const cap = attr(p, /capacity|^rounds?$/i) || (text.match(/\b(\d{1,3})[\s-]?(?:\+\s?1\s?)?(?:rd|rds|round|shot)s?\b/i) || [])[1];
     if (cap) s.capacity = /^\d+$/.test(cap) ? `${cap} rounds` : cap;
-    const bar = attr(p, /^barrel( length)?$/i) || (barrelIn(text) && `${barrelIn(text)} in`);
+    const bar = attr(p, /^barrel( length)?$|barrel length/i) || (barrelIn(text) && `${barrelIn(text)} in`);
     if (bar) s.barrel = bar;
     const act = attr(p, /^(action|action type|operation)$/i);
     if (act) s.action = act;
   }
   if (dept === 'ammo') {
-    const b = attr(p, /^(bullet( weight| type)?|grain|load|projectile)$/i) || (text.match(/\b(\d{2,3})\s?(?:gr|grain)\b\.?\s*([A-Za-z][\w-]{1,14}(?:\s[A-Z]{2,4})?)?/i) || [])[0];
+    const b = (attr(p, /grain|bullet weight/i) && [attr(p, /grain|bullet weight/i), attr(p, /bullet type/i)].filter(Boolean).join(' ')) || attr(p, /^(bullet( weight| type)?|grain|load|projectile)$/i) || (text.match(/\b(\d{2,3})\s?(?:gr|grain)\b\.?\s*([A-Za-z][\w-]{1,14}(?:\s[A-Z]{2,4})?)?/i) || [])[0];
     if (b) s.bullet = b.replace(/\bgrain\b/i, 'gr');
     const c = attr(p, /^(rounds?|count|quantity|rounds per box|box (count|quantity))$/i) || (text.match(/\b(\d{1,4})\s?(?:rd|rds|rounds?|ct|count)\b/i) || [])[1];
     if (c) s.count = /^\d+$/.test(c) ? `${c} rounds` : c;
@@ -187,6 +198,30 @@ const brandOf0 = (p) => {
 };
 const clip = (s, n) => { s = String(s || '').trim(); if (s.length <= n) return s; const cut = s.slice(0, n); const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('\n')); return (end > n * 0.6 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, '') + '…').trim(); };
 
+// price per round, unless the listing contradicts itself ("1000 Round Box" at $9.99)
+const cprOf = (price, rounds) => { if (!price || !rounds) return undefined; const c = price / rounds; return c >= 0.04 && c <= 25 ? Math.round(c * 1000) / 1000 : undefined; };
+/** a Gearfire listing's rows are the distributor's spec sheet: shown as given in the detail view */
+export function sheetOf(p) {
+  if (p.source !== 'gearfire') return null;
+  const s = {};
+  for (const [k, v] of Object.entries(p.attributes || {})) if (v && !/^gfid$/i.test(k) && Object.keys(s).length < 18) s[k] = String(v);
+  if (p.noShipTo) s['Does not ship to'] = [].concat(p.noShipTo).join(', ');
+  return s;
+}
+/** a Gearfire line name ("LEVERevolution", "Custom") plus what sets this variant apart */
+export function displayName(p, dept, f) {
+  const base = String(p.name || '').trim();
+  if (p.source !== 'gearfire') return base;
+  const low = base.toLowerCase(); const bits = [];
+  const add = (v) => { v = v && String(v).trim(); if (v && !low.includes(v.toLowerCase()) && !bits.includes(v)) bits.push(v); };
+  if (dept === 'ammo') {
+    add(f.caliber); add(f.grain); add([].concat(f.bullet || [])[0]); add(f.shot); add(f.shell);
+    return bits.length ? `${base} ${bits.join(' ')}` : base;
+  }
+  for (const [k, v] of Object.entries(p.variant || {})) add(/capacity|rounds/i.test(k) && /^\d+$/.test(v) ? `${v} rounds` : v);
+  return bits.length ? `${base} — ${bits.join(', ')}` : base;
+}
+
 export function buildItems(scraped, overrides = {}, { remoteImages = false } = {}) {
   const items = [];
   for (const p of scraped) {
@@ -194,30 +229,39 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
     const o = overrides[p.id] || {};
     if (o.hide) continue;
     const dept = o.dept || classify(p);
-    const firearm = o.firearm ?? (FIREARM_DEPTS.has(dept) || RE.receiver.test(T(p.name)));
+    // the store's own flag when it has one (Gearfire: isFirearm / isNfa — black powder is neither)
+    const firearm = o.firearm ?? (typeof p.firearm === 'boolean' ? p.firearm || !!p.nfa : FIREARM_DEPTS.has(dept) || RE.receiver.test(T(p.name)));
     const images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
     const status = p.availability || (p.price != null ? 'in' : 'ask');
     const sub = o.sub || subOf(dept, p);
     const f = { ...facetsOf(dept, sub, p), ...(o.f || {}) };
+    const price = o.price !== undefined ? o.price : p.price ?? null;
+    const rounds = dept === 'ammo' && f.count ? parseInt(f.count, 10) : 0;
     items.push({
       id: p.id,
       dept,
       sub,
       f,
       type: o.type || iconFor(dept, p),
-      name: o.name || p.name,
+      name: o.name || displayName(p, dept, f),
       brand: o.brand || brandOf(p),
-      price: o.price !== undefined ? o.price : p.price ?? null,
+      price,
+      cpr: cprOf(price, rounds),   // ammo: price per round
       was: p.regularPrice ?? null,
       priceNote: o.priceNote || p.priceNote || null,
       status,
       firearm,
-      specs: { ...specsFor(dept, p), ...(o.specs || {}) },
+      // cards read a few canonical rows; a store spec sheet (Gearfire) rides along for the detail view
+      specs: p.source === 'gearfire'
+        ? Object.fromEntries(Object.entries({ caliber: f.caliber, capacity: f.capacity, barrel: f.barrel, count: f.count, magnification: f.mag, reticle: f.reticle, ...(o.specs || {}) }).filter(([, v]) => v))
+        : { ...specsFor(dept, p), ...(o.specs || {}) },
+      sheet: sheetOf(p) || undefined,
       desc: clip(o.desc || p.description || p.shortDescription || '', 6000),
       lore: o.lore || null,
       images: images.slice(0, 6),
       url: p.permalink || null,
       sku: p.sku || null,
+      shelf: p.storeStock || undefined,   // on the store's own shelf (not a distributor's)
       featured: Boolean(o.featured),
       rank: p.rank ?? items.length,
     });
@@ -281,12 +325,18 @@ async function main() {
   if (path.basename(DETAILS) === 'items' && DETAILS.startsWith(process.cwd() + path.sep)) await rm(DETAILS, { recursive: true, force: true });
   await mkdir(DETAILS, { recursive: true });
   let detailFiles = 0;
+  // the grid needs little per product; the full copy, photos, spec sheet and store link load when one is opened
+  const CARD_SPECS = ['caliber', 'capacity', 'barrel', 'count', 'magnification', 'reticle'];
   for (const it of items) {
-    if (it.desc.length > SUMMARY || it.images.length > 1) {
-      await writeFile(path.join(DETAILS, `${it.id}.json`), JSON.stringify({ desc: it.desc, images: it.images }));
+    const extraSpecs = Object.keys(it.specs).some((k) => !CARD_SPECS.includes(k));
+    if (it.desc.length > SUMMARY || it.images.length > 1 || extraSpecs || it.url || it.sheet) {
+      // the store's sheet replaces the derived rows in the detail view (sheet: true says so)
+      await writeFile(path.join(DETAILS, `${it.id}.json`), JSON.stringify({ desc: it.desc, images: it.images, specs: it.sheet || it.specs, sheet: !!it.sheet || undefined, url: it.url || undefined }));
       detailFiles++;
       it.desc = clip(it.desc, SUMMARY);
       it.images = it.images.slice(0, 1);
+      it.specs = Object.fromEntries(Object.entries(it.specs).filter(([k]) => CARD_SPECS.includes(k)));
+      delete it.url; delete it.sheet;
       it.more = true;
     }
   }

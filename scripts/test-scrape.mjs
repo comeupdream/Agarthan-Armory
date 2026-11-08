@@ -285,6 +285,102 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
   const merged = await loadScraped(md);
   eq(merged.products.map((p) => [p.id, p.name]), [['a', 'Main A'], ['dup', 'Main wins'], ['b', 'Shop B']], 'merge: main site first, shared id kept once');
 
+  /* ---------- 6. Gearfire (SvelteKit storefront, data inline in each page) ---------- */
+  console.log('gearfire store');
+  const { parseLiteral, productsFromPage } = await import('./lib-gearfire.mjs');
+  eq(parseLiteral('{a:1,"b c":[1,,"x\\u003Cy"],d:void 0,e:new Date("2020"),f:__sk.defer(1),g:-2.5e3}').value,
+    { a: 1, 'b c': [1, null, 'x<y'], d: null, e: '2020', f: null, g: -2500 }, 'gearfire: JS literal read without eval');
+  const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  // devalue-style literal: bare keys, like the real pages
+  const lit = (v) => v === null ? 'null' : Array.isArray(v) ? `[${v.map(lit).join(',')}]` : typeof v === 'object'
+    ? `{${Object.entries(v).map(([k, x]) => `${/^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k)}:${x && x.raw ? x.raw : lit(x)}`).join(',')}}` : JSON.stringify(v);
+  const NAV = { navList: [{ departmentId: U(1), departmentName: 'Shooting Sports', categories: [
+    { categoryId: U(2), categoryName: 'Handguns', subCategories: [{ subCategoryId: U(3), subCategoryName: 'Semi-Automatic' }] },
+    { categoryId: U(4), categoryName: 'Ammunition', subCategories: [{ subCategoryId: U(5), subCategoryName: 'Rifle Ammo' }] }] }] };
+  const kitPage = (route, links = '') => page('<link href="./_app/immutable/assets/0.css" rel="stylesheet">',
+    `${links}<script>{ __sveltekit_t3st = { base: "" }; const element = document.currentScript.parentElement;
+      Promise.all([import("./_app/immutable/entry/start.js")]).then(([kit, app]) => { kit.start(app, element, {
+        node_ids: [0, 4], data: [${lit({ type: 'data', data: { isPreview: false, initData: NAV }, uses: {} })},${route ? lit({ type: 'data', data: route }) : 'null'}], form: null, error: null }); }); }</script>`);
+  const vm = (o) => ({ storeId: U(99), fullPrice: o.full, salePrice: o.sale, addToCartToSeePrice: !!o.hidden, quantityOnHand: o.qty, isStoreInventory: !!o.store, doNotShipToStates: o.noship || [] });
+  const sub = (id, o) => ({ isFirearm: !!o.gun, isNfa: false, subProductId: U(id), description: o.desc, imageUrls: [`https://img.example/${id}`], upc: o.upc, manufacturerPartNumber: o.mpn,
+    attributes: Object.entries(o.attrs || {}).map(([attributeName, valueName]) => ({ attributeName, valueName })), optionalAttributes: [],
+    storeSubProductDataVms: o.vm ? [vm(o.vm)] : [] });
+  const LINES = {
+    [U(10)]: { name: 'G19 Gen6', brand: 'Glock', cat: ['Handguns', 'Semi-Automatic'], subs: [
+      sub(11, { gun: true, desc: 'Glock, G19 Gen6, 9mm, 4.02", 15 Rounds', upc: '764503000011', mpn: 'PA1950203', attrs: { 'Handgun Caliber': '9mm', 'Barrel Length': '4.02"', Capacity: '15 Rounds' }, vm: { full: 620, sale: 620, qty: 3, store: true } }),
+      sub(12, { gun: true, desc: 'Glock, G19 Gen6, 9mm, 4.02", 10 Rounds', upc: '764503000012', mpn: 'PA1950201', attrs: { 'Handgun Caliber': '9mm', 'Barrel Length': '4.02"', Capacity: '10 Rounds' }, vm: { full: 620, sale: 620, qty: 0, store: true } })] },
+    [U(20)]: { name: 'P365', brand: 'SIG Sauer', cat: ['Handguns', 'Semi-Automatic'], subs: [sub(21, { gun: true, desc: 'SIG, P365', upc: '798681000021', attrs: { 'Handgun Caliber': '9mm' }, vm: { full: 499, sale: 499, qty: 1, store: true } })] },
+    [U(30)]: { name: 'LEVERevolution', brand: 'Hornady', cat: ['Ammunition', 'Rifle Ammo'], subs: [
+      sub(31, { desc: 'Hornady, LeverEvolution, 30-30 Win, 160 Grain', upc: '090255000031', attrs: { 'Rifle Caliber': '30-30 Winchester', 'Bullet Grain Weight': '160 Grains', 'Rounds Per Box': '20' }, vm: { full: 24.99, sale: 20.99, qty: 50, noship: ['CA'] } }),
+      sub(32, { desc: 'Hornady, LeverEvolution, 45-70, 325 Grain', upc: '090255000032', attrs: { 'Rifle Caliber': '45-70 Government', 'Bullet Grain Weight': '325 Grains', 'Rounds Per Box': '20' }, vm: { full: 40, sale: 40, qty: 10, hidden: true } }),
+      sub(33, { desc: 'not sold here', upc: '090255000033', attrs: { 'Rifle Caliber': '308 Winchester' } })] },
+    [U(40)]: { name: 'Home Only', brand: 'Acme', cat: ['Ammunition', 'Rifle Ammo'], subs: [sub(41, { desc: 'x', upc: '000000000041', vm: { full: 5, sale: 5, qty: 5 } })] },
+    [U(50)]: { name: 'Sitemap Only', brand: 'Acme', cat: ['Ammunition', 'Rifle Ammo'], subs: [sub(51, { desc: 'y', upc: '000000000051', vm: { full: 6, sale: 6, qty: 0 } })] },
+  };
+  const productRoute = (pid, sid) => { const L = LINES[pid]; return { product: { productId: pid, modelName: L.name, modelDescription: `<p>The ${L.name}.</p>`, manufacturerName: L.brand, subProducts: L.subs,
+    departmentInfos: [{ departmentName: 'Shooting Sports', isPrimary: true, categoryName: L.cat[0], subCategoryName: L.cat[1] }] },
+    recommendedProducts: { raw: '__sveltekit_t3st.defer(1)' }, selectedSubProductId: sid, dealerProfiles: [{ storeId: U(99) }], inStockOnly: true }; };
+  const href = (pid, sid, slugs = 'shooting-sports/handguns/semi-automatic') => `<a href="/${slugs}/x/detail/${pid}/${sid}">p</a>`;
+  const gfRoutes = {
+    '/': kitPage(null, href(U(40), U(41), 'shooting-sports/ammunition/rifle-ammo')),
+    '/robots.txt': { body: 'User-agent: *\nDisallow: /cart\nSitemap: SITE/sitemap.xml\n', type: 'text/plain' },
+  };
+  const gf = await serve({});
+  gf.server.removeAllListeners('request');
+  const gb = gf.url;
+  const L1 = `/shooting-sports/handguns/semi-automatic/${U(1)}/${U(2)}/${U(3)}`, L2 = `/shooting-sports/ammunition/rifle-ammo/${U(1)}/${U(4)}/${U(5)}`;
+  gf.server.on('request', (req, res) => {
+    const u = new URL(req.url, 'http://x'); const send = (body, type = 'text/html') => { res.writeHead(200, { 'Content-Type': type }); res.end(body); };
+    if (u.pathname === '/robots.txt') return send(gfRoutes['/robots.txt'].body.replace('SITE', gb), 'text/plain');
+    if (u.pathname === '/sitemap.xml') return send(`<?xml version="1.0"?><urlset><url><loc>${gb}/shooting-sports/ammunition/rifle-ammo/a/detail/${U(30)}/${U(31)}</loc></url><url><loc>${gb}/shooting-sports/ammunition/rifle-ammo/b/detail/${U(50)}/${U(51)}</loc></url></urlset>`, 'application/xml');
+    if (u.pathname === '/') return send(gfRoutes['/']);
+    const pg = +(u.searchParams.get('page') || 1);
+    if (u.pathname === L1) return send(pg === 2 ? kitPage({ items: [{ productId: U(20), modelName: 'P365', subProductId: U(21) }] }) : kitPage({ items: [] }, href(U(10), U(11))));
+    if (u.pathname === L2) return send(kitPage({}, href(U(30), U(32), 'shooting-sports/ammunition/rifle-ammo')));
+    const d = u.pathname.match(/\/detail\/([0-9a-f-]{36})\/([0-9a-f-]{36})$/);
+    if (d && LINES[d[1]]) return send(kitPage(productRoute(d[1], d[2])));
+    res.writeHead(404); res.end('nope');
+  });
+  d = tmp();
+  r = await run(gb, ['--max-images', '0', '--save-html', path.join(d, 'pages')], d);
+  ok(r.code === 0, 'gearfire run exits 0\n' + r.out);
+  if (r.code === 0) {
+    const c = read(d); const by = (n) => c.find((p) => p.id === U(n));
+    eq(JSON.parse(readFileSync(path.join(d, 'scraped', 'report.json'), 'utf8')).platform, 'gearfire', 'gearfire: recognised and used');
+    eq(c.map((p) => p.id).sort(), [11, 12, 21, 31, 32, 41, 51].map(U).sort(), 'gearfire: every line (listings, page 2, home, sitemap), every variant sold here');
+    eq(by(11) && [by(11).name, by(11).brand, by(11).attributes['Handgun Caliber'], by(11).attributes.UPC], ['G19 Gen6', 'Glock', '9mm', '764503000011'], 'gearfire: name, maker, attributes, UPC');
+    eq(by(11) && by(11).variant, { Capacity: '15 Rounds' }, 'gearfire: the attribute that tells variants apart');
+    eq(by(11) && [by(11).availability, by(11).firearm, by(11).storeStock], ['in', true, true], 'gearfire: own shelf stock, firearm flag');
+    eq(by(12) && by(12).availability, 'out', 'gearfire: none on hand → out');
+    eq(by(11) && by(11).categories, ['Shooting Sports', 'Handguns', 'Semi-Automatic'], 'gearfire: categories');
+    eq(by(31) && [by(31).price, by(31).regularPrice, by(31).availability, by(31).noShipTo], [20.99, 24.99, 'ship', ['CA']], 'gearfire: sale price, distributor stock ships, ship limits');
+    eq(by(32) && [by(32).price, by(32).priceNote], [null, 'Call for price'], 'gearfire: add-to-cart-for-price is never shown');
+    eq(by(31) && by(31).description, 'The LEVERevolution.', 'gearfire: description as text');
+    ok(by(31) && /\/detail\/0+-0000-4000-8000-000000000030\/0+-0000-4000-8000-000000000031$/.test(by(31).permalink), 'gearfire: each variant has its own link');
+    ok(existsSync(path.join(d, 'pages', 'list-handguns-semi-automatic-p1.html')) && existsSync(path.join(d, 'pages', 'list-handguns-semi-automatic-p2-page.html')), 'gearfire: --save-html keeps listing pages');
+  }
+  // a trial on some listings writes to .scrape-trial/, never over the catalog
+  const trial = await new Promise((resolve) => {
+    const c = spawn(process.execPath, [SCRAPE, '--site', gb, '--delay', '0', '--out', path.join(d, 'scraped'), '--only', 'Semi', '--img-dir', path.join(d, 'img')], { cwd: d });
+    let out = ''; c.stdout.on('data', (x) => { out += x; }); c.stderr.on('data', (x) => { out += x; });
+    c.on('close', (code) => resolve({ code, out }));
+  });
+  ok(trial.code === 0, 'gearfire trial exits 0\n' + trial.out);
+  const tc = existsSync(path.join(d, '.scrape-trial', 'catalog.json')) ? JSON.parse(readFileSync(path.join(d, '.scrape-trial', 'catalog.json'), 'utf8')) : [];
+  eq(tc.map((p) => p.id).sort(), [11, 12, 21].map(U).sort(), 'gearfire: --only reads just those listings');
+  eq(read(d).length, 7, 'gearfire: a trial leaves the real catalog alone');
+  // a real page saved from the shop (npm run save-pages): the parser must keep reading it
+  const realPage = path.join(HERE, '..', 'assets', 'data', 'scraped', 'shop', 'pages', '000c9c4e-ec05-4333-858c-7b2c65298e7a.html');
+  if (existsSync(realPage)) {
+    const rp = productsFromPage(readFileSync(realPage, 'utf8'), 'https://shop.agarthanarmory.com/shooting-sports/ammunition/rifle-ammo/leverevolution/detail/80b377ef-064a-4a13-8acc-1fe1ba42e283/000c9c4e-ec05-4333-858c-7b2c65298e7a');
+    const lv = rp && rp.find((p) => p.id === '000c9c4e-ec05-4333-858c-7b2c65298e7a');
+    eq(rp && rp.length, 11, 'real Gearfire page: every variant the store sells');
+    eq(lv && [lv.attributes['Rifle Caliber'], lv.attributes['Bullet Grain Weight'], lv.attributes['Rounds Per Box'], lv.price, lv.brand], ['45-70 Government', '250 Grains', '20', 58.99, 'Hornady'], 'real Gearfire page: the variant\'s own rows and price');
+  }
+  // a page with no inline data → null (the scraper falls back to the page text)
+  eq(productsFromPage(page('', '<h1>x</h1>'), gb + '/x'), null, 'gearfire: no inline data → null');
+  gf.server.close();
+
   [woo, sm, cr, sh, wall].forEach((s) => s.server.close());
   console.log(`\n${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

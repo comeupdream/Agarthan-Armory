@@ -36,7 +36,8 @@
  *
  * USAGE
  *   node scripts/scrape.mjs --site https://agarthanarmory.com
- *     [--platform auto|woo|shopify|sitemap|crawl]  [--concurrency 3]
+ *     [--platform auto|woo|shopify|gearfire|sitemap|crawl]  [--concurrency 3]
+ *     [--only "Handguns,Magazines"]  [--save-html dir]   (Gearfire: a trial on some listings; keep listing pages)
  *     [--max-images 6]  [--max-pages 8000]  [--limit 0]  [--delay 250]
  *     (over 400 products and no --max-images: 1 photo each, to keep the repo light)
  *     [--ignore-robots]  [--allow-shrink]  [--out assets/data/scraped]
@@ -48,6 +49,7 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { isGearfire, navOf, listingsOf, linesOn, crawlListings, productsFromPage } from './lib-gearfire.mjs';
 
 /* ---------- args (free-text workflow inputs arrive verbatim: validate) ---------- */
 const argv = process.argv.slice(2);
@@ -58,7 +60,7 @@ const num = (name, def, min) => { const v = parseInt(arg(name, String(def)), 10)
 
 const SITE = String(arg('site', 'https://agarthanarmory.com')).trim().replace(/\/+$/, '');
 if (!/^https?:\/\/[^/]+/i.test(SITE)) { console.error(`✗ --site must be a URL, got "${SITE}"`); process.exit(1); }
-const PLATFORM = ['auto', 'woo', 'shopify', 'sitemap', 'crawl'].includes(arg('platform', 'auto')) ? arg('platform', 'auto') : 'auto';
+const PLATFORM = ['auto', 'woo', 'shopify', 'gearfire', 'sitemap', 'crawl'].includes(arg('platform', 'auto')) ? arg('platform', 'auto') : 'auto';
 const CONCURRENCY = num('concurrency', 3, 1);
 let MAX_IMAGES = num('max-images', 6, 0);
 const IMAGES_GIVEN = argv.includes('--max-images');
@@ -69,8 +71,12 @@ const LIMIT = num('limit', 0, 0);
 const DELAY = num('delay', 250, 0);
 const MAX_IMAGE_BYTES = num('max-image-bytes', 4_000_000, 10_000);
 const IGNORE_ROBOTS = flag('ignore-robots');
+// Gearfire: only the listings whose name contains one of these (a trial run), and where to keep listing pages for a look
+const ONLY = (arg('only', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
+const SAVE_HTML = arg('save-html', '') ? path.resolve(arg('save-html', '')) : null;
 const ALLOW_SHRINK = flag('allow-shrink');
-const OUT = path.resolve(arg('out', 'assets/data/scraped'));
+// a trial on a few listings (--only) never overwrites the real catalog: it always goes to .scrape-trial/
+const OUT = path.resolve(arg('only', '') ? '.scrape-trial' : arg('out', 'assets/data/scraped'));
 const IMG_DIR = path.resolve(arg('img-dir', 'assets/img/products'));
 const IMG_REL = path.relative(process.cwd(), IMG_DIR).split(path.sep).join('/');
 const ORIGIN = new URL(SITE).origin;
@@ -478,6 +484,56 @@ export function readProductPage(html, url) {
     permalink: url,
   };
 }
+/* =============================================================================
+ * ADAPTER — Gearfire (SvelteKit storefront: data rides inline in each page)
+ * Every category listing is walked for product lines; the sitemap and the
+ * home page add any it missed; then one page per line gives all its variants.
+ * ===========================================================================*/
+async function gearfireAdapter(home) {
+  if (!isGearfire(home)) throw new Error('not a Gearfire storefront');
+  const nav = navOf(home);
+  const lists = listingsOf(ORIGIN, nav);
+  console.log(`  Gearfire storefront: ${nav.length} department(s), ${lists.length} category listings${ONLY.length ? ` (only: ${ONLY.join(', ')})` : ''}`);
+  const politeGet = async (u) => { if (!robotsAllowed(u)) throw new Error('robots.txt disallows ' + u); const r = await get(u, { tries: 2 }); if (DELAY) await sleep(DELAY); return r; };
+  const save = SAVE_HTML ? async (l, n, html, param) => {
+    await mkdir(SAVE_HTML, { recursive: true });
+    await writeFile(path.join(SAVE_HTML, `list-${slugify(l.label)}-p${n}${param ? '-' + param : ''}.html`), html);
+  } : null;
+  const lines = new Map();   // product line id → a page of it
+  const found = await crawlListings(politeGet, ORIGIN, nav, { log: (m) => console.log(m), only: ONLY.length ? ONLY : null, onPage: save });
+  for (const [pid, v] of found) lines.set(pid, v.url);
+  const fromLists = lines.size;
+  if (!ONLY.length) {
+    try {
+      for (const u of await discoverFromSitemaps()) { const d = u.match(/\/detail\/([0-9a-f-]{36})\/[0-9a-f-]{36}/i); if (d && !lines.has(d[1])) lines.set(d[1], u); }
+    } catch (e) { warn(`sitemap: ${e.message}`); }
+    for (const [pid, u] of linesOn(home, SITE + '/')) if (!lines.has(pid)) lines.set(pid, u);
+  }
+  console.log(`  ${lines.size} product lines (${fromLists} from listings, ${lines.size - fromLists} more from the sitemap and home page)`);
+  let urls = [...lines.values()];
+  if (LIMIT) urls = urls.slice(0, LIMIT);
+  console.log(`  reading ${urls.length} product pages (concurrency ${CONCURRENCY})…`);
+  let done = 0, failed = 0, fallback = 0;
+  const got = await pool(urls, CONCURRENCY, async (u) => {
+    const r = await get(u, { tries: 2 });
+    if (++done % 100 === 0) console.log(`    ${done}/${urls.length}`);
+    const ps = productsFromPage(r.text, r.url || u);
+    if (ps) return ps;
+    if (!isProductPage(r.text)) return [];
+    fallback++; return [readProductPage(r.text, r.url || u)];
+  });
+  for (const g of got) if (g && g.error) failed++;
+  if (failed) warn(`${failed} product pages failed to load`);
+  if (fallback) warn(`${fallback} pages had no inline product data — read from the page text instead`);
+  const products = got.filter(Array.isArray).flat().filter((p) => p && p.name);
+  const categories = [];
+  for (const d of nav) for (const c of d.categories || []) {
+    categories.push({ name: c.categoryName });
+    for (const sc of c.subCategories || []) categories.push({ name: sc.subCategoryName, parent: c.categoryName });
+  }
+  return { products, categories };
+}
+
 async function pagesAdapter(mode, home) {
   let pages = [];
   if (mode === 'sitemap') {
@@ -556,18 +612,19 @@ if (isMain) (async () => {
     woo: /woocommerce|wp-content\/plugins\/woocommerce|wc-block/i.test(home),
     wordpress: /wp-content|wp-includes/i.test(home),
     shopify: /cdn\.shopify\.com|Shopify\.theme|myshopify\.com/i.test(home),
+    gearfire: isGearfire(home) || /gearfire/i.test(home.slice(-20000)),
     bigcommerce: /cdn11\.bigcommerce|bigcommerce\.com|stencil-utils/i.test(home),
   };
   report.fingerprints = fp;
   console.log(`  fingerprints: ${Object.entries(fp).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none recognised'}`);
 
   // the exact feeds are cheap to ask for (a 404 costs one request), so they go first
-  const order = PLATFORM !== 'auto' ? [PLATFORM] : fp.shopify ? ['shopify', 'woo', 'sitemap', 'crawl'] : ['woo', 'shopify', 'sitemap', 'crawl'];
+  const order = PLATFORM !== 'auto' ? [PLATFORM] : fp.gearfire ? ['gearfire', 'sitemap', 'crawl'] : fp.shopify ? ['shopify', 'woo', 'sitemap', 'crawl'] : ['woo', 'shopify', 'sitemap', 'crawl'];
   let result = null;
   for (const mode of [...new Set(order)]) {
     console.log(`\n→ trying ${mode}…`);
     try {
-      result = mode === 'woo' ? await wooAdapter() : mode === 'shopify' ? await shopifyAdapter() : await pagesAdapter(mode, home);
+      result = mode === 'woo' ? await wooAdapter() : mode === 'shopify' ? await shopifyAdapter() : mode === 'gearfire' ? await gearfireAdapter(home) : await pagesAdapter(mode, home);
       report.tried.push({ mode, products: result.products.length });
       if (result.products.length) { report.platform = mode; break; }
       console.log('  (no products this way)');

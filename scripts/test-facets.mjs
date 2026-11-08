@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /* test-facets.mjs — categories and filter values from lib-facets.mjs, and the
  * maker names build-catalog.mjs merges.   node scripts/test-facets.mjs */
-import { caliberOf, subOf, facetsOf } from './lib-facets.mjs';
-import { normBrand } from './build-catalog.mjs';
+import { caliberOf, subOf, facetsOf, normCaliber } from './lib-facets.mjs';
+import { normBrand, classify, displayName, buildItems } from './build-catalog.mjs';
 
 let pass = 0, fail = 0;
+const ok = (c, m) => { if (c) pass++; else { fail++; console.log(`  ✗ ${m}`); } };
 const eq = (a, b, m) => { if (JSON.stringify(a) === JSON.stringify(b)) pass++; else { fail++; console.log(`  ✗ ${m}: got ${JSON.stringify(a)}, want ${JSON.stringify(b)}`); } };
 const P = (name, extra = {}) => ({ name, attributes: {}, categories: [], ...extra });
 
@@ -74,6 +75,47 @@ eq(normBrand('Winchester Ammunition'), 'Winchester', 'Winchester Ammunition');
 eq(normBrand('L3 Harris'), 'L3Harris', 'L3 Harris');
 eq(normBrand('Fiocchi Ammunition'), 'Fiocchi', 'Fiocchi');
 eq(normBrand('Trijicon'), 'Trijicon', 'unlisted makers pass through');
+
+/* Gearfire spec rows (values as the shop's pages give them) */
+eq(normCaliber('45-70 Government'), '.45-70 Govt', 'bare 45-70 gets its dot');
+eq(normCaliber('22 Long Rifle'), '.22 LR', '22 Long Rifle');
+eq(normCaliber('7.62x39mm'), '7.62x39', '7.62x39mm');
+eq(normCaliber('30-30 Winchester'), '.30-30 Win', '30-30 Winchester');
+eq(normCaliber('12 Gauge'), '12 Gauge', 'gauges keep no dot');
+eq(normCaliber('9mm'), '9mm Luger', '9mm');
+eq(normCaliber('35 Remington'), '.35 Remington', 'an unlisted cartridge keeps the store\'s words, dotted');
+const GF = (cat, sub, name, attributes, extra = {}) => ({ source: 'gearfire', name, attributes, categories: ['Shooting Sports', cat, sub], ...extra });
+const lever = GF('Ammunition', 'Rifle Ammo', 'LEVERevolution', { UPC: '090255827415', 'Manufacturer Part Number': '82741', 'Bullet Grain Weight': '250 Grains', 'Bullet Type': 'MonoFlex', 'Rifle Caliber': '45-70 Government', 'Rounds Per Box': '20', 'Case Type': 'Brass', 'Muzzle Velocity': '2025 FPS' }, { description: 'Available in 30-30, 308 Win and more. FTX and MonoFlex bullets.' });
+f = facetsOf('ammo', 'Rifle', lever);
+eq([f.caliber, f.grain, f.count, f.bullet, f.casing], ['.45-70 Govt', '250 gr', '20 rds', ['MonoFlex'], 'Brass'], 'gearfire ammo: caliber, grain, count, bullet, case from spec rows');
+eq(displayName(lever, 'ammo', f), 'LEVERevolution .45-70 Govt 250 gr MonoFlex', 'gearfire ammo: a name that says the variant');
+const shells = GF('Ammunition', 'Shotgun Ammo', 'AA Shotshell', { 'Shell Length': '2-3/4"', 'Shot Type': 'Bird Shot', 'Rounds Per Box': '25', Cartridge: '12 Gauge', 'Shot Size': '#8-1/2' });
+f = facetsOf('ammo', 'Shotgun', shells);
+eq([f.caliber, f.shell, f.shot, f.bullet, f.count], ['12 Gauge', '2-3/4"', '#8-1/2', ['Birdshot'], '25 rds'], 'gearfire shotshells');
+f = facetsOf('optics', 'Riflescopes', GF('Optics', 'Scopes', 'ACOG 2x20', { 'Illuminated Reticle': 'Yes', Magnification: '2x', 'Optics Focal Plane': 'Fixed', 'Objective Lens Size': '20mm', 'Reticle Type': 'BDC', 'Tube Size': 'Other' }));
+eq([f.mag, f.objective, f.illum, f.reticle, f.tube, f.focal], ['2x', '20 mm', 'Illuminated', 'BDC', undefined, undefined], 'gearfire scope: "Other" and "Fixed" are not filter values');
+f = facetsOf('optics', 'Red Dot Mounts', GF('Optics', 'Red Dot Mounts', 'DOGTAG Optic Plate', { 'Fit / Used For': 'Holosun EPS', Color: 'Black' }));
+ok(f.footprint.includes('Holosun EPS'), 'gearfire mount: the footprint it fits');
+f = facetsOf('sidearms', 'Semi-Auto Pistols', GF('Handguns', 'Semi-Automatic', 'G19 Gen6', { 'Handgun Caliber': '9mm', 'Barrel Length': '4.02"', Capacity: '15 Rounds', Finish: 'Black' }));
+eq([f.caliber, f.barrel, f.capacity, f.action, f.color], ['9mm Luger', '4.02"', '15 rounds', undefined, 'Black'], 'gearfire pistol: caliber, barrel, capacity (the action is the category)');
+
+/* Gearfire departments and categories */
+const C = (cat, sub) => classify({ name: 'x', categories: ['Shooting Sports', cat, sub] });
+eq([C('Handguns', 'Semi-Automatic'), C('Rifles', 'Bolt Action'), C('Shotguns', 'Pump Action'), C('NFA/Suppressors', 'Suppressors'), C('Magazines', 'Rifle'),
+  C('Reloading Supplies', 'Primers'), C('Black Powder Guns & Accessories', 'Rifles'), C('Black Powder Guns & Accessories', 'Black Powder Accessories'), C('Agarthan Merch', 'Agarthan Merch')],
+  ['sidearms', 'longarms', 'shotguns', 'nfa', 'gear', 'ammo', 'longarms', 'gear', 'gear'], 'gearfire: departments from the store\'s categories');
+const S = (dept, cat, sub) => subOf(dept, { name: 'x', categories: ['Shooting Sports', cat, sub] });
+eq([S('sidearms', 'Handguns', 'Semi-Automatic'), S('sidearms', 'Handguns', 'Revolvers'), S('nfa', 'NFA/Suppressors', 'Firearms / Suppressor Packages'), S('gear', 'Holster & Magazine Pouches', 'Holsters'), S('ammo', 'Reloading Supplies', 'Primers')],
+  ['Semi-Auto Pistols', 'Revolvers', 'Suppressor Packages', 'Holsters & Pouches', 'Reloading'], 'gearfire: categories');
+eq(facetsOf('gear', 'Holsters & Pouches', GF('Holster & Magazine Pouches', 'Holsters', 'X', {})).kind, 'Holsters', 'gearfire gear: the store subcategory is a Type filter');
+const [bp] = buildItems([GF('Black Powder Guns & Accessories', 'Rifles', 'Hawken', {}, { id: 'bp', price: 400, firearm: false, nfa: false })]);
+eq([bp.dept, bp.firearm], ['longarms', false], 'gearfire: black powder is shelved with rifles but is not a firearm (the store says so)');
+const [can] = buildItems([GF('NFA/Suppressors', 'Suppressors', 'Obsidian 45', {}, { id: 'can', price: 900, firearm: false, nfa: true })]);
+eq([can.dept, can.firearm, can.type], ['nfa', true, 'can'], 'gearfire: a suppressor goes through the FFL, with its own icon');
+const [box] = buildItems([{ ...lever, id: 'lv', price: 58.99 }]);
+eq(box.cpr, 2.95, 'price per round');
+const [bad] = buildItems([GF('Ammunition', 'Rifle Ammo', 'Rifle Ammo', { 'Rifle Caliber': '7.62x39mm', 'Rounds Per Box': '1000' }, { id: 'tula', price: 9.99 })]);
+eq(bad.cpr, undefined, 'no price per round when the listing contradicts itself');
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

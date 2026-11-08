@@ -9,3 +9,4 @@ node_modules/
 # the posters, the score and each film's sound are committed
 media/films/*.mp4
 media/films/*.wav
+.scrape-trial/

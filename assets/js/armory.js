@@ -16,18 +16,20 @@
   /* ---------- facets: which filters each department shows, in order ---------- */
   const FACETS = {
     '': ['brand'],
-    ammo: ['caliber', 'use', 'bullet', 'grain', 'count', 'shot', 'shell', 'brand'],
-    optics: ['footprint', 'mag', 'objective', 'tube', 'focal', 'illum', 'sensor', 'phosphor', 'laser', 'brand'],
-    sidearms: ['caliber', 'barrel', 'action', 'capacity', 'brand'],
-    longarms: ['caliber', 'barrel', 'action', 'capacity', 'brand'],
-    shotguns: ['caliber', 'barrel', 'action', 'capacity', 'brand'],
-    gear: ['brand'],
+    ammo: ['caliber', 'use', 'bullet', 'grain', 'count', 'casing', 'shot', 'shell', 'kind', 'brand'],
+    optics: ['footprint', 'mag', 'objective', 'tube', 'height', 'focal', 'illum', 'reticle', 'dot', 'sensor', 'phosphor', 'laser', 'platform', 'color', 'brand'],
+    sidearms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
+    longarms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
+    shotguns: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
+    gear: ['kind', 'caliber', 'capacity', 'fits', 'color', 'brand'],
+    nfa: ['caliber', 'barrel', 'capacity', 'color', 'brand'],
   };
   const LABEL = {
     brand: 'Manufacturer', caliber: 'Caliber / gauge', use: 'Use', bullet: 'Bullet type', grain: 'Bullet weight', count: 'Rounds per box',
     shot: 'Shot size', shell: 'Shell length', barrel: 'Barrel length', action: 'Action', capacity: 'Capacity', mag: 'Magnification',
     objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
-    sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser',
+    sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color / finish',
+    height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits',
   };
   const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag']);
   const valsOf = (i, k) => (k === 'brand' ? (i.brand ? [i.brand] : []) : [].concat((i.f || {})[k] || []));
@@ -100,7 +102,7 @@
   function passes(i, skip) {
     if (state.dept && i.dept !== state.dept) return false;
     if (state.sub && i.sub !== state.sub && skip !== 'sub') return false;
-    if (state.stock && !(i.status === 'in' || i.status === 'low')) return false;
+    if (state.stock && !(i.status === 'in' || i.status === 'low' || i.status === 'ship')) return false;
     const lo = parseFloat(state.pmin), hi = parseFloat(state.pmax);
     if (!isNaN(lo) && !(i.price >= lo)) return false;
     if (!isNaN(hi) && !(i.price != null && i.price <= hi)) return false;
@@ -145,7 +147,7 @@
   }
 
   /* ---------- sort ---------- */
-  const rank = { in: 0, low: 1, order: 2, ask: 2, out: 3 };
+  const rank = { in: 0, low: 1, ship: 2, order: 3, ask: 3, out: 4 };
   function results() {
     const r = items.filter((i) => passes(i));
     const byPrice = (dir) => (a, b) => (a.price == null) - (b.price == null) || dir * ((a.price || 0) - (b.price || 0));
@@ -153,6 +155,8 @@
       featured: (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || (rank[a.status] || 0) - (rank[b.status] || 0) || (a.rank ?? 1e9) - (b.rank ?? 1e9),
       'price-asc': byPrice(1), 'price-desc': byPrice(-1),
       name: (a, b) => a.name.localeCompare(b.name),
+      // ammo by price per round; anything without one after
+      cpr: (a, b) => (a.cpr ?? Infinity) - (b.cpr ?? Infinity) || (a.price ?? Infinity) - (b.price ?? Infinity),
     };
     return r.sort(sorters[state.sort] || sorters.featured);
   }
@@ -212,12 +216,15 @@
     magnification: 'Magnification', objective: 'Objective', reticle: 'Reticle', tube: 'Tube', power: 'Power', mount: 'Mount',
     sensor: 'Sensor', detection: 'Detection range', display: 'Display', output: 'Output', battery: 'Battery', fits: 'Fits',
     interior: 'Interior', locks: 'Locks', wheels: 'Wheels', includes: 'Includes', fire: 'Fire rating', lock: 'Lock' };
+  const DETAILS = new Map();   // id → { desc, images, specs, url } from assets/data/items/<id>.json
   function openItem(id, push) {
-    const it = AA.items.get(id); if (!it) return;
+    const base = AA.items.get(id); if (!base) return;
+    const it = { ...base, ...(DETAILS.get(id) || {}) };
     const st = AA.STATUS[it.status] || AA.STATUS.in;
     const specs = Object.entries(it.specs || {}).filter(([, v]) => v);
     const shown = new Set(specs.map(([k]) => k));
-    for (const [k, v] of Object.entries(it.f || {})) if (!shown.has(k) && LABEL[k]) specs.push([k, [].concat(v).join(', ')]);
+    // a store spec sheet already says it all; only what was read from the copy (use, footprint) is added
+    for (const [k, v] of Object.entries(it.f || {})) if (!shown.has(k) && LABEL[k] && (!it.sheet || k === 'use' || k === 'footprint')) specs.push([k, [].concat(v).join(', ')]);
     const shop = AA.cfg.storeUrl && it.url;
     const ask = AA.cfg.email
       ? `mailto:${esc(AA.cfg.email)}?subject=${encodeURIComponent('Question: ' + it.name)}`
@@ -240,22 +247,22 @@
         </div>
       </div>`;
     if (!dlg.open) dlg.showModal();
-    // full copy + gallery arrive separately (assets/data/items/<id>.json)
-    if (it.more) {
-      fetch(`assets/data/items/${encodeURIComponent(it.id)}.json`).then((r) => (r.ok ? r.json() : null)).then((d) => {
-        if (!d || !dlg.open || $('#detailTitle').textContent !== it.name) return;
-        const descEl = $('#detailInner .desc');
-        if (descEl && d.desc) descEl.textContent = d.desc;
-        const imgs = (d.images || []).filter(Boolean);
-        if (imgs.length > 1) {
-          const viz = $('#detailInner .viz-lg');
-          viz.insertAdjacentHTML('beforeend', `<div class="thumbs">${imgs.map((src, n) => `<button type="button" data-src="${esc(src)}" aria-label="Photo ${n + 1}"${n ? '' : ' aria-pressed="true"'}><img src="${esc(src)}" alt="" loading="lazy"></button>`).join('')}</div>`);
-          viz.querySelector('.thumbs').addEventListener('click', (e) => {
-            const b = e.target.closest('button'); if (!b) return;
-            viz.querySelector(':scope > img').src = b.dataset.src;
-            viz.querySelectorAll('.thumbs button').forEach((x) => x.setAttribute('aria-pressed', x === b));
-          });
-        }
+    // full copy, gallery, spec sheet and store link arrive separately (assets/data/items/<id>.json)
+    const imgs = (it.images || []).filter(Boolean);
+    if (imgs.length > 1) {
+      const viz = $('#detailInner .viz-lg');
+      viz.insertAdjacentHTML('beforeend', `<div class="thumbs">${imgs.map((src, n) => `<button type="button" data-src="${esc(src)}" aria-label="Photo ${n + 1}"${n ? '' : ' aria-pressed="true"'}><img src="${esc(src)}" alt="" loading="lazy"></button>`).join('')}</div>`);
+      viz.querySelector('.thumbs').addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return;
+        viz.querySelector(':scope > img').src = b.dataset.src;
+        viz.querySelectorAll('.thumbs button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      });
+    }
+    if (it.more && !DETAILS.has(id)) {
+      fetch(`assets/data/items/${encodeURIComponent(id)}.json`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+        if (!d) return;
+        DETAILS.set(id, d);
+        if (dlg.open && $('#detailTitle') && $('#detailTitle').textContent === it.name) openItem(id, false);
       }).catch(() => { /* opened from disk, or offline: the summary stands */ });
     }
     if (push !== false) {

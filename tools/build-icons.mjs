@@ -840,8 +840,28 @@ ICONS.safe = icon((T) => {
   return { hf, hl };
 }, 104, 100);
 
+// =====================================================================
+// CAN — suppressor: tube, end caps, baffle stack, threaded mount (design px)
+// =====================================================================
+ICONS.can = icon((T) => {
+  const hf = [
+    T.rect(34, 14, 172, 40, 9),          // tube
+    T.rect(28, 17, 10, 34, 3),           // rear cap
+    T.rect(202, 17, 10, 34, 3),          // front cap
+    T.rect(14, 26, 14, 16, 2),           // mount / thread adapter
+  ];
+  const hl = [
+    ...range(52, 196, 12).map((x) => T.line(x, 19, x, 49)),        // baffles
+    T.line(40, 22, 200, 22),                                        // highlight
+    ...range(16, 27, 2.5).map((x) => T.line(x, 27, x, 41)),        // threads
+    T.circle(212, 34, 3),                                           // bore
+    T.rect(96, 29, 48, 10, 2),                                      // serial plate
+  ];
+  return { hf, hl };
+}, 214, 52);
+
 // ---------- emit ----------
-const ORDER = ['pistol', 'revolver', 'ar', 'bolt', 'lever', 'rimfire', 'battle', 'shotgun', 'semishotgun', 'ammo', 'shells', 'reddot', 'scope', 'thermal', 'light', 'mag', 'case', 'kit', 'safe'];
+const ORDER = ['pistol', 'revolver', 'ar', 'bolt', 'lever', 'rimfire', 'battle', 'shotgun', 'semishotgun', 'ammo', 'shells', 'reddot', 'scope', 'thermal', 'light', 'mag', 'case', 'kit', 'safe', 'can'];
 let js = `/* Agarthan Armory — hologram product schematics.
  * window.AA_ICONS[type] -> inline SVG string (viewBox 0 0 240 120).
  * Styling is all CSS via currentColor: .hf = body silhouettes (filled
