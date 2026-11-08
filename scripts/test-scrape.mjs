@@ -325,6 +325,7 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
     '/': kitPage(null, href(U(40), U(41), 'shooting-sports/ammunition/rifle-ammo')),
     '/robots.txt': { body: 'User-agent: *\nDisallow: /cart\nSitemap: SITE/sitemap.xml\n', type: 'text/plain' },
   };
+  const gfState = { block: 0, gone: new Set(), hits: 0 };
   const gf = await serve({});
   gf.server.removeAllListeners('request');
   const gb = gf.url;
@@ -338,6 +339,9 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
     if (u.pathname === L1) return send(pg === 2 ? kitPage({ items: [{ productId: U(20), modelName: 'P365', subProductId: U(21) }] }) : kitPage({ items: [] }, href(U(10), U(11))));
     if (u.pathname === L2) return send(kitPage({}, href(U(30), U(32), 'shooting-sports/ammunition/rifle-ammo')));
     const d = u.pathname.match(/\/detail\/([0-9a-f-]{36})\/([0-9a-f-]{36})$/);
+    if (d) gfState.hits++;
+    if (d && gfState.block > 0) { gfState.block--; res.writeHead(403, { 'Content-Type': 'text/html' }); return res.end('<h1>403 ERROR</h1>The request could not be satisfied. Request blocked.'); }
+    if (d && gfState.gone.has(d[1])) { res.writeHead(404); return res.end('gone'); }
     if (d && LINES[d[1]]) return send(kitPage(productRoute(d[1], d[2])));
     res.writeHead(404); res.end('nope');
   });
@@ -369,6 +373,25 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
   const tc = existsSync(path.join(d, '.scrape-trial', 'catalog.json')) ? JSON.parse(readFileSync(path.join(d, '.scrape-trial', 'catalog.json'), 'utf8')) : [];
   eq(tc.map((p) => p.id).sort(), [11, 12, 21].map(U).sort(), 'gearfire: --only reads just those listings');
   eq(read(d).length, 7, 'gearfire: a trial leaves the real catalog alone');
+  // the firewall refuses for a while: pause, slow down, carry on — nothing lost
+  d = tmp(); gfState.block = 3;
+  r = await run(gb, ['--max-images', '0', '--block-pause', '50'], d);
+  ok(r.code === 0 && /pausing/.test(r.out), 'gearfire: refusals pause and retry\n' + r.out);
+  eq(r.code === 0 && read(d).length, 7, 'gearfire: every product read after the store lets up');
+  // a page that fails is reported by cause; --resume then reads only what is missing
+  d = tmp(); gfState.gone = new Set([U(50)]);
+  r = await run(gb, ['--max-images', '0'], d);
+  ok(/HTTP 404 × 1/.test(r.out), 'gearfire: failures counted by cause\n' + r.out);
+  eq(read(d).length, 6, 'gearfire: the rest is written');
+  gfState.gone = new Set(); gfState.hits = 0;
+  r = await run(gb, ['--max-images', '0', '--resume'], d);
+  eq([r.code, gfState.hits, read(d).length], [0, 1, 7], 'gearfire: --resume fetches only the missing line, keeps the rest');
+  ok(/reusing the 5 product lines/.test(r.out), 'gearfire: --resume reuses the list of lines\n' + r.out);
+  // a store that never lets up: stop, keep what was read
+  d = tmp(); gfState.block = 1e9;
+  r = await run(gb, ['--max-images', '0', '--block-pause', '20', '--max-blocked-ms', '300'], d);
+  ok(/kept refusing|still to read/.test(r.out) || r.code !== 0, 'gearfire: gives up cleanly when the store never lets up\n' + r.out.slice(-600));
+  gfState.block = 0;
   // a real page saved from the shop (npm run save-pages): the parser must keep reading it
   const realPage = path.join(HERE, '..', 'assets', 'data', 'scraped', 'shop', 'pages', '000c9c4e-ec05-4333-858c-7b2c65298e7a.html');
   if (existsSync(realPage)) {

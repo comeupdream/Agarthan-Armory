@@ -10,3 +10,5 @@ node_modules/
 media/films/*.mp4
 media/films/*.wav
 .scrape-trial/
+assets/data/scraped/**/progress.json*
+assets/data/scraped/**/lines.json

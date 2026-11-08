@@ -1,65 +1,557 @@
 [
   {
-    "name": "Shooting Sports"
+    "name": "Handguns"
+  },
+  {
+    "name": "Bolt Action",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Break Action",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Derringer",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Large Format Pistols",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Lever Action",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Revolvers",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Semi-Automatic",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Single Shot",
+    "parent": "Handguns"
+  },
+  {
+    "name": "Rifles"
+  },
+  {
+    "name": "Bolt Action",
+    "parent": "Rifles"
+  },
+  {
+    "name": "Lever Action",
+    "parent": "Rifles"
+  },
+  {
+    "name": "Pump Action",
+    "parent": "Rifles"
+  },
+  {
+    "name": "Revolver",
+    "parent": "Rifles"
+  },
+  {
+    "name": "Semi-Automatic",
+    "parent": "Rifles"
+  },
+  {
+    "name": "Single Shot",
+    "parent": "Rifles"
+  },
+  {
+    "name": "Shotguns"
+  },
+  {
+    "name": "Bolt Action",
+    "parent": "Shotguns"
+  },
+  {
+    "name": "Combos",
+    "parent": "Shotguns"
+  },
+  {
+    "name": "Lever Action",
+    "parent": "Shotguns"
+  },
+  {
+    "name": "Over-Under",
+    "parent": "Shotguns"
+  },
+  {
+    "name": "Pump Action",
+    "parent": "Shotguns"
+  },
+  {
+    "name": "Semi-Automatic",
+    "parent": "Shotguns"
+  },
+  {
+    "name": "Side By Side",
+    "parent": "Shotguns"
+  },
+  {
+    "name": "Single Shot",
+    "parent": "Shotguns"
   },
   {
     "name": "Ammunition"
   },
   {
-    "name": "Rifle Ammo"
+    "name": "Handgun Ammo",
+    "parent": "Ammunition"
+  },
+  {
+    "name": "Rifle Ammo",
+    "parent": "Ammunition"
+  },
+  {
+    "name": "Rimfire Ammo",
+    "parent": "Ammunition"
+  },
+  {
+    "name": "Shotgun Ammo",
+    "parent": "Ammunition"
+  },
+  {
+    "name": "Magazines"
+  },
+  {
+    "name": "Handgun",
+    "parent": "Magazines"
+  },
+  {
+    "name": "Magazine Accessories",
+    "parent": "Magazines"
+  },
+  {
+    "name": "Magazine Loader",
+    "parent": "Magazines"
+  },
+  {
+    "name": "Magazine Parts",
+    "parent": "Magazines"
+  },
+  {
+    "name": "Rifle",
+    "parent": "Magazines"
+  },
+  {
+    "name": "Shotgun",
+    "parent": "Magazines"
   },
   {
     "name": "Optics"
   },
   {
-    "name": "Bases"
+    "name": "Bases",
+    "parent": "Optics"
   },
   {
-    "name": "Shotgun Ammo"
+    "name": "Binoculars",
+    "parent": "Optics"
   },
   {
-    "name": "Red Dot Mounts"
+    "name": "Lasers",
+    "parent": "Optics"
   },
   {
-    "name": "Handgun Ammo"
+    "name": "Magnifiers",
+    "parent": "Optics"
   },
   {
-    "name": "Optical Accessories"
+    "name": "Night Vision Optics",
+    "parent": "Optics"
   },
   {
-    "name": "Scopes"
+    "name": "Optical Accessories",
+    "parent": "Optics"
   },
   {
-    "name": "Rimfire Ammo"
+    "name": "Rangefinders",
+    "parent": "Optics"
   },
   {
-    "name": "Red Dots & Holographic"
+    "name": "Red Dot Mounts",
+    "parent": "Optics"
   },
   {
-    "name": "Thermal Optics"
+    "name": "Red Dots / Holographic",
+    "parent": "Optics"
   },
   {
-    "name": "Sights"
+    "name": "Scope Mounts",
+    "parent": "Optics"
   },
   {
-    "name": "Lasers"
+    "name": "Scopes",
+    "parent": "Optics"
   },
   {
-    "name": "Scope Mounts"
+    "name": "Sights",
+    "parent": "Optics"
   },
   {
-    "name": "Binoculars"
+    "name": "Spotting Scopes",
+    "parent": "Optics"
   },
   {
-    "name": "Night Vision Optics"
+    "name": "Thermal Optics",
+    "parent": "Optics"
   },
   {
-    "name": "Spotting Scopes"
+    "name": "Knives & Tools"
   },
   {
-    "name": "Rangefinders"
+    "name": "Auto/Assist Knives",
+    "parent": "Knives & Tools"
   },
   {
-    "name": "Magnifiers"
+    "name": "Fixed Blade",
+    "parent": "Knives & Tools"
+  },
+  {
+    "name": "Folding Blade",
+    "parent": "Knives & Tools"
+  },
+  {
+    "name": "Knife Accessories",
+    "parent": "Knives & Tools"
+  },
+  {
+    "name": "Multi-Tools",
+    "parent": "Knives & Tools"
+  },
+  {
+    "name": "Saws, Machetes & Axes",
+    "parent": "Knives & Tools"
+  },
+  {
+    "name": "Shovels",
+    "parent": "Knives & Tools"
+  },
+  {
+    "name": "Tools",
+    "parent": "Knives & Tools"
+  },
+  {
+    "name": "Agarthan Merch"
+  },
+  {
+    "name": "Agarthan Merch",
+    "parent": "Agarthan Merch"
+  },
+  {
+    "name": "Black Powder Guns & Accessories"
+  },
+  {
+    "name": "Black Powder Accessories",
+    "parent": "Black Powder Guns & Accessories"
+  },
+  {
+    "name": "Handguns",
+    "parent": "Black Powder Guns & Accessories"
+  },
+  {
+    "name": "Rifles",
+    "parent": "Black Powder Guns & Accessories"
+  },
+  {
+    "name": "Cleaning Equipment"
+  },
+  {
+    "name": "Accessories",
+    "parent": "Cleaning Equipment"
+  },
+  {
+    "name": "Brushes",
+    "parent": "Cleaning Equipment"
+  },
+  {
+    "name": "Cleaning Kits",
+    "parent": "Cleaning Equipment"
+  },
+  {
+    "name": "Jags & Patch Holders",
+    "parent": "Cleaning Equipment"
+  },
+  {
+    "name": "Patches & Mops",
+    "parent": "Cleaning Equipment"
+  },
+  {
+    "name": "Rods & BoreSnakes",
+    "parent": "Cleaning Equipment"
+  },
+  {
+    "name": "Solvents & Lubricants",
+    "parent": "Cleaning Equipment"
+  },
+  {
+    "name": "Gear & Accessories"
+  },
+  {
+    "name": "Airguns & Airgun Accessories",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Backpacks",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Batteries",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "BI-Pods, TRI-Pods, & Shooting Sticks",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Dry Boxes",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Electronics",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Flashlights",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Miscellaneous Accessories",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Miscellaneous Bags",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Non-Lethal Defense",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Purses",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Range Bags",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Safety/Protection",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Shooting Rests & Bags",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Slings/Swivels",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Snap Caps, Action Dummies & Dry Fire Blocks",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Suppressor Accessories",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Survival Gear & Food",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Targets",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Tools",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Weapon Mounted Lights",
+    "parent": "Gear & Accessories"
+  },
+  {
+    "name": "Gun Storage"
+  },
+  {
+    "name": "Hard Cases",
+    "parent": "Gun Storage"
+  },
+  {
+    "name": "Locks",
+    "parent": "Gun Storage"
+  },
+  {
+    "name": "Safe Accessories",
+    "parent": "Gun Storage"
+  },
+  {
+    "name": "Safes/Security",
+    "parent": "Gun Storage"
+  },
+  {
+    "name": "Soft Cases",
+    "parent": "Gun Storage"
+  },
+  {
+    "name": "Holster & Magazine Pouches"
+  },
+  {
+    "name": "Accessories",
+    "parent": "Holster & Magazine Pouches"
+  },
+  {
+    "name": "Belts",
+    "parent": "Holster & Magazine Pouches"
+  },
+  {
+    "name": "Chest Rigs",
+    "parent": "Holster & Magazine Pouches"
+  },
+  {
+    "name": "Holsters",
+    "parent": "Holster & Magazine Pouches"
+  },
+  {
+    "name": "Mag Pouches",
+    "parent": "Holster & Magazine Pouches"
+  },
+  {
+    "name": "NFA/Suppressors"
+  },
+  {
+    "name": "AOW",
+    "parent": "NFA/Suppressors"
+  },
+  {
+    "name": "Firearms / Suppressor Packages",
+    "parent": "NFA/Suppressors"
+  },
+  {
+    "name": "Short Barreled Rifles",
+    "parent": "NFA/Suppressors"
+  },
+  {
+    "name": "Short Barreled Shotguns",
+    "parent": "NFA/Suppressors"
+  },
+  {
+    "name": "Suppressors",
+    "parent": "NFA/Suppressors"
+  },
+  {
+    "name": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Barrels",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Choke Tubes",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Conversion Kits",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "General Gunsmith Tools",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Grips/Pads/Stocks",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Handgun Parts",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Handgun Tools",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Long Gun Parts",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Long Gun Tools",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Miscellaneous Parts",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Muzzle Devices & Accessories",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Rails & Handguards",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Small Hardware",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Stock Work & Finishing",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Triggers",
+    "parent": "Parts & Gunsmithing"
+  },
+  {
+    "name": "Receivers & Frames"
+  },
+  {
+    "name": "Bolt Action",
+    "parent": "Receivers & Frames"
+  },
+  {
+    "name": "Frame",
+    "parent": "Receivers & Frames"
+  },
+  {
+    "name": "Lower",
+    "parent": "Receivers & Frames"
+  },
+  {
+    "name": "Upper",
+    "parent": "Receivers & Frames"
+  },
+  {
+    "name": "Reloading Supplies"
+  },
+  {
+    "name": "Ammunition Box",
+    "parent": "Reloading Supplies"
+  },
+  {
+    "name": "Cases",
+    "parent": "Reloading Supplies"
+  },
+  {
+    "name": "Equipment",
+    "parent": "Reloading Supplies"
+  },
+  {
+    "name": "Primers",
+    "parent": "Reloading Supplies"
+  },
+  {
+    "name": "Projectiles",
+    "parent": "Reloading Supplies"
+  },
+  {
+    "name": "Reloading Press, Dies & Accessories",
+    "parent": "Reloading Supplies"
   }
 ]

@@ -36,6 +36,7 @@
  * ===========================================================================*/
 import { readFile, writeFile, readdir, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { readCatalog, writeCatalog, catalogExists } from './lib-store.mjs';
 import { pathToFileURL } from 'node:url';
 
 const argv = process.argv.slice(2);
@@ -113,7 +114,7 @@ async function main() {
   const files = [path.join(CAT_DIR, 'catalog.json')];
   try { for (const e of await readdir(CAT_DIR, { withFileTypes: true })) if (e.isDirectory()) files.push(path.join(CAT_DIR, e.name, 'catalog.json')); } catch { /* none */ }
   const cats = [];
-  for (const f of files) { try { cats.push({ f, list: JSON.parse(await readFile(f, 'utf8')) }); } catch { /* missing */ } }
+  for (const f of files) { try { if (catalogExists(f)) cats.push({ f, list: await readCatalog(f) }); } catch { /* unreadable */ } }
   const byUpc = new Map(); let total = 0, noUpc = 0;
   for (const c of cats) for (const p of c.list) { total++; const u = upcOf(p); if (!u) { noUpc++; continue; } (byUpc.get(u) || byUpc.set(u, []).get(u)).push(p); }
   console.log(`  ${total} products in ${cats.length} catalog(s), ${byUpc.size} distinct UPCs${noUpc ? `, ${noUpc} without a UPC` : ''}`);
@@ -185,7 +186,7 @@ async function main() {
     }
   };
   await Promise.all(Array.from({ length: CONC }, work));
-  for (const c of cats) await writeFile(c.f, JSON.stringify(c.list, null, 2) + '\n');
+  for (const c of cats) await writeCatalog(c.f, c.list);
   const withPhotos = cats.reduce((a, c) => a + c.list.filter((p) => (p.localImages || []).length).length, 0);
   console.log(`\n✓ ${saved} photos saved (${(bytes / 1e6).toFixed(1)} MB), ${failed} failed · ${withPhotos} of ${total} products now have photos`);
   console.log('  next: npm run build:catalog');

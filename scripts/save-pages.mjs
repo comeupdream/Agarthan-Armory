@@ -20,6 +20,7 @@
  * ===========================================================================*/
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { readCatalog } from './lib-store.mjs';
 import { pathToFileURL } from 'node:url';
 import { stripHtml, specTable } from './scrape.mjs';
 
@@ -93,7 +94,7 @@ export function digest(html) {
 }
 
 async function main() {
-  const cat = JSON.parse(await readFile(SRC, 'utf8'));
+  const cat = await readCatalog(SRC);
   let pick;
   if (IDS.length) pick = cat.filter((p) => IDS.includes(p.id));
   else {
