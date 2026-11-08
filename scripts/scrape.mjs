@@ -50,7 +50,8 @@ import { pathToFileURL } from 'node:url';
 
 /* ---------- args (free-text workflow inputs arrive verbatim: validate) ---------- */
 const argv = process.argv.slice(2);
-const arg = (name, def) => { const i = argv.indexOf('--' + name); return i >= 0 && argv[i + 1] != null && !argv[i + 1].startsWith('--') ? argv[i + 1] : def; };
+// the LAST occurrence wins, so `npm run scrape -- --site X` overrides the default baked into package.json
+const arg = (name, def) => { const i = argv.lastIndexOf('--' + name); return i >= 0 && argv[i + 1] != null && !argv[i + 1].startsWith('--') ? argv[i + 1] : def; };
 const flag = (name) => argv.includes('--' + name);
 const num = (name, def, min) => { const v = parseInt(arg(name, String(def)), 10); return Number.isFinite(v) && v >= min ? v : def; };
 

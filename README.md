@@ -75,7 +75,7 @@ through, for example `npm run scrape -- --limit 20`.
 folder, and `build-catalog` merges every folder under `assets/data/scraped/`:
 
 ```bash
-npm run scrape -- --site https://shop.agarthanarmory.com --out assets/data/scraped/shop
+npm run scrape:shop
 ```
 
 The Gearfire shop sits behind a CloudFront firewall that refuses GitHub's
