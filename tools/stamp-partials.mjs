@@ -4,7 +4,7 @@
  *   <!-- partial:NAME --> … <!-- /partial:NAME -->
  * so the header, footer and age gate live in one place while the pages stay
  * plain static HTML (no build needed to serve them). Also stamps every local
- * stylesheet/script link with ?v=<content hash>. Run after editing a partial,
+ * stylesheet/script link (the catalog included) with ?v=<content hash>. Run after editing a partial,
  * a stylesheet or a script:  node tools/stamp-partials.mjs  (npm run stamp)
  */
 import fs from 'node:fs';
@@ -28,7 +28,8 @@ for (const page of fs.readdirSync(ROOT).filter((f) => f.endsWith('.html'))) {
   // version every local stylesheet/script link by its content, so a changed
   // file is a new URL and no browser can keep serving a stale copy
   let v = 0;
-  html = html.replace(/((?:href|src)=")(\/?assets\/(?:css|js)\/[\w.-]+\.(?:css|js))(?:\?v=[0-9a-f]+)?"/g, (m, attr, ref) => {
+  // the catalog too: browsers that kept an old copy (an earlier server allowed a day) fetch the new one at once
+  html = html.replace(/((?:href|src)=")(\/?assets\/(?:css|js|data)\/[\w.-]+\.(?:css|js))(?:\?v=[0-9a-f]+)?"/g, (m, attr, ref) => {
     const f = path.join(ROOT, ref.replace(/^\//, ''));
     if (!fs.existsSync(f)) return m;
     v++;
