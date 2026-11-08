@@ -1,0 +1,30 @@
+{
+  "site": "https://agarthanarmory.com",
+  "startedAt": "2026-11-08T05:38:40.096Z",
+  "platform": "woo",
+  "tried": [
+    {
+      "mode": "woo",
+      "products": 14
+    }
+  ],
+  "warnings": [],
+  "counts": {
+    "images": 56,
+    "imageFailures": 0,
+    "products": 14,
+    "withPrice": 9,
+    "callForPrice": 0,
+    "withDescription": 14,
+    "withSpecs": 14,
+    "withImages": 14
+  },
+  "sitemapsDeclared": [],
+  "fingerprints": {
+    "woo": true,
+    "wordpress": true,
+    "shopify": false,
+    "bigcommerce": false
+  },
+  "finishedAt": "2026-11-08T05:38:52.651Z"
+}

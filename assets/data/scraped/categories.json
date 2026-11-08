@@ -1,0 +1,80 @@
+[
+  {
+    "name": "ATPIAL High Power (LA5)",
+    "slug": "atpial-high-power-la5",
+    "count": 1,
+    "url": "https://agarthanarmory.com/product-category/lasers/atpial-high-power-la5/"
+  },
+  {
+    "name": "ATPIAL Standard Power (AN/PEQ-15)",
+    "slug": "atpial-standard-power-an-peq-15",
+    "count": 1,
+    "url": "https://agarthanarmory.com/product-category/lasers/atpial-standard-power-an-peq-15/"
+  },
+  {
+    "name": "BNVD-1531",
+    "slug": "bnvd-1531",
+    "count": 1,
+    "url": "https://agarthanarmory.com/product-category/nvgs/l3harris-night-vision/bnvd-1531/"
+  },
+  {
+    "name": "CNVD",
+    "slug": "cnvd",
+    "count": 1,
+    "url": "https://agarthanarmory.com/product-category/nvgs/l3harris-night-vision/cnvd/"
+  },
+  {
+    "name": "Helmet Accessories",
+    "slug": "helmet-accessories",
+    "count": 3,
+    "url": "https://agarthanarmory.com/product-category/helmet-accessories/"
+  },
+  {
+    "name": "Helmets",
+    "slug": "helmets",
+    "count": 4,
+    "url": "https://agarthanarmory.com/product-category/helmets/"
+  },
+  {
+    "name": "L3Harris Night Vision",
+    "slug": "l3harris-night-vision",
+    "count": 2,
+    "url": "https://agarthanarmory.com/product-category/nvgs/l3harris-night-vision/"
+  },
+  {
+    "name": "LAC-PVS-14",
+    "slug": "lac-pvs-14",
+    "count": 1,
+    "url": "https://agarthanarmory.com/product-category/licentia-arms-co-night-vision/lac-pvs-14/"
+  },
+  {
+    "name": "LAC-RNVG-VG",
+    "slug": "lac-rnvg-vg",
+    "count": 1,
+    "url": "https://agarthanarmory.com/product-category/licentia-arms-co-night-vision/lac-rnvg-vg/"
+  },
+  {
+    "name": "Lasers",
+    "slug": "lasers",
+    "count": 3,
+    "url": "https://agarthanarmory.com/product-category/lasers/"
+  },
+  {
+    "name": "Licentia Arms Co. Night Vision",
+    "slug": "licentia-arms-co-night-vision",
+    "count": 2,
+    "url": "https://agarthanarmory.com/product-category/licentia-arms-co-night-vision/"
+  },
+  {
+    "name": "NGAL",
+    "slug": "ngal",
+    "count": 1,
+    "url": "https://agarthanarmory.com/product-category/lasers/ngal/"
+  },
+  {
+    "name": "Night Vision Goggles",
+    "slug": "nvgs",
+    "count": 3,
+    "url": "https://agarthanarmory.com/product-category/nvgs/"
+  }
+]
