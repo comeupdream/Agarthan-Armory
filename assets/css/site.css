@@ -994,9 +994,15 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
    THE EYE IN THE WALL (assets/js/eye.js) — the client's geode eye, animated in a
    shader, pinned to the gate in the ice wall; it opens the forbidden knowledge
    ===================================================================== */
-.hero-eye { position: absolute; z-index: 1; display: block; width: 360px; aspect-ratio: 882 / 520; transform: translate(-50%, -50%); cursor: pointer; border-radius: 50%; outline-offset: 12px; }
-.hero-eye { transform: translate(-50%, -50%); }
+/* on the home page it is frozen into the ice: small, off to the side, its rim fading into the
+   wall and half lit, until you find it */
+.hero-eye { position: absolute; z-index: 1; display: block; width: 180px; aspect-ratio: 882 / 520; transform: translate(-50%, -50%); cursor: pointer; border-radius: 50%; outline-offset: 10px;
+  opacity: .5; transition: opacity .6s ease; }
+.hero-eye:hover, .hero-eye:focus-visible { opacity: 1; }
+.hero-eye img { -webkit-mask-image: radial-gradient(closest-side, #000 55%, rgba(0,0,0,.55) 82%, transparent 100%); mask-image: radial-gradient(closest-side, #000 55%, rgba(0,0,0,.55) 82%, transparent 100%); }
+.hero-eye .eye-gl { -webkit-mask-image: radial-gradient(closest-side, #000 40%, rgba(0,0,0,.55) 60%, transparent 76%); mask-image: radial-gradient(closest-side, #000 40%, rgba(0,0,0,.55) 60%, transparent 76%); }
 [data-eye] img { display: block; width: 100%; height: 100%; filter: drop-shadow(0 0 22px rgba(var(--accent-rgb), .45)); transition: opacity .5s ease; }
+.hero-eye img { filter: none; }
 [data-eye].eye-live img { opacity: 0; }
 .eye-gl { position: absolute; left: -18%; top: -18%; width: 136%; height: 136%; pointer-events: none; }
 [data-eye].eye-still img { animation: eye-glow 5s ease-in-out infinite; }

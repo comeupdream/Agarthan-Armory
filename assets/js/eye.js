@@ -182,28 +182,28 @@
   }
 
   /* ---------- the hero's eye sits on the gate in the ice wall ---------- */
-  function pinToGate(host) {
+  // the eye is frozen into the ice wall, off to the right of the gate rather than on it:
+  // at 78% of the wall's visible width (a phone crops the wall's sides, so the share is
+  // of what shows), at the wall art's y 300, sized with the art
+  function pinToWall(host) {
     const hero = host.closest('.hero'), wall = hero && hero.querySelector('.wall');
     if (!wall) return;
-    const VB = [1600, 516], GATE = [800, 330], WIDTH = 330;
+    const VB = [1600, 516], AT = 0.78, Y = 300, WIDTH = 150;
     function place() {
       const hr = hero.getBoundingClientRect(), wr = wall.getBoundingClientRect();
       if (!wr.width || !wr.height) return;
       // the wall is drawn object-fit: cover, anchored at its bottom centre
       const s = Math.max(wr.width / VB[0], wr.height / VB[1]);
-      const x0 = wr.left + (wr.width - VB[0] * s) / 2, y0 = wr.bottom - VB[1] * s;
-      let w = Math.max(120, WIDTH * s), y = y0 + GATE[1] * s - hr.top;
-      // the gate rides up on a short, wide screen; the eye must not sit on the buttons
+      const y0 = wr.bottom - VB[1] * s;
+      const left = Math.max(wr.left, hr.left), right = Math.min(wr.right, hr.right);
+      const w = Math.max(84, WIDTH * s);
+      let y = y0 + Y * s - hr.top;
+      // a short, wide screen lifts the wall; the eye must not ride up onto the buttons
       const cta = hero.querySelector('.hero-cta');
-      const floor = cta ? cta.getBoundingClientRect().bottom - hr.top + 22 : 0;
-      const ceil = hr.height - 56;                       // clear of the scroll cue
-      if (y - (w * 520 / 882) / 2 < floor) {
-        const room = Math.max(60, ceil - floor);
-        w = Math.min(w, Math.max(120, room * 882 / 520));
-        y = floor + (w * 520 / 882) / 2;
-      }
+      const floor = cta ? cta.getBoundingClientRect().bottom - hr.top + 18 : 0;
+      y = Math.min(Math.max(y, floor + (w * 520 / 882) / 2), hr.height - 64);
       host.style.width = w + 'px';
-      host.style.left = (x0 + GATE[0] * s - hr.left) + 'px';
+      host.style.left = (left - hr.left + AT * (right - left)) + 'px';
       host.style.top = y + 'px';
     }
     place();
@@ -213,7 +213,7 @@
 
   function boot() {
     document.querySelectorAll('[data-eye]').forEach((host) => {
-      if (host.dataset.eye === 'gate') pinToGate(host);
+      if (host.dataset.eye === 'wall') pinToWall(host);
       try { mount(host); } catch (e) { host.classList.add('eye-still'); if (window.console) console.warn('eye:', e && e.message); }
     });
   }

@@ -10,10 +10,10 @@
  *
  * The peak is the loop mirrored into a kaleidoscope; a tunnel of light carries the
  * camera back up out of the earth, and the come-down is the camera pulling out of the
- * eye in the ice wall, back on the home page in Polar. In the calm the seal rises out
- * of the eye's pupil, up the gate's light, and settles as the hero's star, the eye
- * watching it go; the name phase-shifts its script on glitch slices — Future, a flash
- * of Old World, Runic — and the page turns away into the dark. No Ancient Tech.
+ * gate in the ice wall, back on the home page in Polar. In the calm the seal rises out
+ * of the gate, up its light, and settles as the hero's star; the name phase-shifts its
+ * script on glitch slices — Future, a flash of Old World, Runic — and the page turns
+ * away into the dark. No Ancient Tech, and (like every film) no geode eye.
  */
 
 // the calm's changes of script, in film seconds: [t, font]
@@ -23,15 +23,20 @@ function act(t, S) {
   const { at } = S;
   const realm = (v) => { const b = document.querySelector(`.prefs-opt[data-k="theme"][data-v="${v}"]`); if (b) b.click(); };
   if (S.page() === 'index.html' && t >= 28.3) {
-    /* ---------- the outro: back on the home page, out of the eye ---------- */
+    /* ---------- the outro: back on the home page, out of the gate ---------- */
     at('home', 28.3, () => { realm('polar'); scrollTo(0, 0); });
     scrollTo(0, 0);
     // (the act runs inside the page, so it carries its own copy of OUTRO_FONTS)
     const FONTS = [[31.8, 'future'], [33.2, 'oldworld'], [33.9, 'runic']];
     for (const [tc, f] of FONTS) at('font-' + tc, tc, () => { const b = document.querySelector(`.prefs-opt[data-k="font"][data-v="${f}"]`); if (b) b.click(); });
     const W = innerWidth, H = innerHeight;
-    const [ex, ey] = S.memo('eye', () => S.mid('.hero-eye'));
-    // the seal comes up out of the pupil and climbs the gate's light to the hero's star
+    // the gate in the wall: the wall art is 1600x516, pinned to the hero's foot and
+    // scaled to cover it, with the gate at (800, 330)
+    const [ex, ey] = S.memo('gate', () => {
+      const r = S.rect('.hero .wall'), k = Math.max(r.width / 1600, r.height / 516);
+      return [r.left + r.width / 2, r.bottom - 516 * k + 330 * k];
+    });
+    // the seal comes up out of the gate and climbs its light to the hero's star
     const rise = S.ease.inOut(S.seg(t, 31.2, 34.6));
     const sx = ex, sy = S.lerp(ey, H * 0.137, rise) + Math.sin(t * 1.4) * 3 * rise;
     const size = S.lerp(30, 84, S.ease.out(S.seg(t, 31.2, 32.6)));
@@ -47,11 +52,6 @@ function act(t, S) {
       el.style.opacity = String(S.seg(t, 31.0, 31.6));
       el.style.filter = `drop-shadow(0 0 ${12 + 26 * (1 - rise) + 5 * Math.sin(t * 2.4)}px rgba(var(--accent-rgb), .85))`;
     }
-    // the eye looks up after it, and then back out at us (a pointer only the eye hears:
-    // the real mouse would light the buttons the seal climbs past)
-    const look = S.seg(t, 31.0, 31.6) * (1 - S.seg(t, 35.0, 35.8));
-    const py = Math.min(sy, ey - 150);
-    window.dispatchEvent(new PointerEvent('pointermove', { clientX: S.lerp(W * 0.5, sx, look), clientY: S.lerp(ey - 40, py, look) }));
     S.mouse = [W - 4, 4];
     return;
   }
@@ -140,11 +140,11 @@ function lens(t) {
     const up = sm(seg(27.6, 28.2));
     u.tunnel = [up, (t - 27.6) * 5.0, -0.5, 0.5 + 1.8 * up];
   } else {
-    // COME DOWN 28.8-31.0: the tunnel lets go and the camera pulls back out of the eye in the wall
+    // COME DOWN 28.8-31.0: the tunnel lets go and the camera pulls back out of the gate in the wall
     const out = sm(seg(28.8, 31.0));
     const tun = 1 - sm(seg(28.8, 29.6));
     u.tunnel = [tun, (t - 27.6) * 5.0 * (1 - 0.5 * out), -0.5, 2.3 * tun];
-    // the eye sits at the page's centre line, 79% of the way down: pan [0, 0.294] centres it
+    // the gate sits on the page's centre line, 79% of the way down: pan [0, 0.294] centres it
     u.zoom = 1 + 3.2 * (1 - out) * (1 - out);
     u.pan = [0, 0.294 * (1 - out)];
     // the hue keeps turning the way it was going and comes round to where it started

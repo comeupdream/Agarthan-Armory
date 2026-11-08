@@ -115,7 +115,8 @@ async function stageA(_, base, film, frames) {
   const open = async (url) => {
     await page.goto(base + url, { waitUntil: 'networkidle' });
     await page.evaluate(() => window.__stage.ready());
-    await page.addStyleTag({ content: 'html{scroll-behavior:auto!important} ::-webkit-scrollbar{display:none} .reveal{opacity:1!important;transform:none!important}' });
+    // the films never show the geode eye in the wall (the client's call: it is the site's, not the films')
+    await page.addStyleTag({ content: 'html{scroll-behavior:auto!important} ::-webkit-scrollbar{display:none} .reveal{opacity:1!important;transform:none!important} [data-eye]{display:none!important}' });
     await page.evaluate((src) => { window.__act = (0, eval)('(' + src + ')'); }, film.act.toString());
   };
   await open(film.url);
