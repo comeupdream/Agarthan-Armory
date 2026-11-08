@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=63e558e7c2">
+<link rel="stylesheet" href="assets/css/site.css?v=9a69483129">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -85,6 +85,10 @@
   <section class="hero" aria-label="Agarthan Armory">
     <canvas id="sky" data-sky aria-hidden="true"></canvas>
     <img class="wall" src="assets/img/ice-wall.svg" alt="" aria-hidden="true">
+    <a class="hero-eye" data-eye="gate" href="forbidden.html" aria-label="The eye in the wall: forbidden knowledge">
+      <img src="assets/img/eye/geode-eye-600.webp" srcset="assets/img/eye/geode-eye-600.webp 1x, assets/img/eye/geode-eye.webp 2x" alt="" width="441" height="260">
+      <span class="eye-label">Forbidden knowledge</span>
+    </a>
     <svg class="ufo" viewBox="0 0 160 150" role="button" aria-label="Unidentified flying object" tabindex="-1">
       <defs>
         <linearGradient id="ufoHull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2fcff"/><stop offset=".55" stop-color="#7fb3d1"/><stop offset="1" stop-color="#1c3550"/></linearGradient>
@@ -395,6 +399,7 @@
 <script src="assets/js/prefs.js?v=bc09182041"></script>
 <script src="assets/js/map-data.js?v=55d7e4b3b6"></script>
 <script src="assets/js/map.js?v=654ab17ce1"></script>
+<script src="assets/js/eye.js?v=5c711f62fa"></script>
 <script src="assets/js/home.js?v=ecfacdf00b"></script>
 </body>
 </html>
