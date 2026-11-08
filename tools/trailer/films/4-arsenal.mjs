@@ -112,7 +112,7 @@ function lens(t) {
     u.white = 0.55 * Math.exp(-Math.max(0, t - 21.2) * 2.5) * (t > 21.2 ? 1 : 0) * 1;
     u.sky = [0.9 * out, 1, 1.1];
     const e = sm(seg(21.2, 22.6));
-    u.plates = [{ i: 0, x: 0, y: 0.02, h: lerp(0.22, 0.34, sm(seg(21.2, 24))), a: e, glow: 0.5 }];
+    u.plates = [{ i: 0, x: 0, y: 0.02, h: lerp(0.3, 0.42, sm(seg(21.2, 24))), a: e, glow: 0.3 }];
   }
   return u;
 }

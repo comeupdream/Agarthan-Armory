@@ -69,7 +69,7 @@ function plan() {
   const cuts = CUTS.map((c) => { const start = b * beat; if (c.beats) b += c.beats; return { ...c, start }; });
   // the edit must stay on the music: each cut starts inside the section it names
   for (const c of cuts) {
-    const sec = [...map.sections].reverse().find((s) => c.start + 1e-6 >= s.start);
+    const sec = [...map.sections].reverse().find((s) => c.start + 1e-3 >= s.start);   // the map is rounded to 0.1 ms
     if (sec.name !== c.section) throw new Error(`cut ${c.film}@${c.at} starts at ${c.start.toFixed(2)}s in ${sec.name}, not ${c.section}`);
   }
   const last = cuts[cuts.length - 1];

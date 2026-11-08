@@ -72,6 +72,8 @@ function lens(t) {
     u.cam = [1, -4 * Math.sin(t * 0.3), 3 * Math.sin(t * 0.25)];
     u.zoom = lerp(1.0, 1.1, sm(seg(16, 21.5)));
     u.warp = 0.004; u.trails = 0.3; u.hue = 0;
+    // the client's piece is a light image: keep the glow off it so it reads
+    u.bloom = 0.08; u.glow = 0.22 + 0.4 * (1 - open);
     u.accent = [0.78, 0.61, 1.0]; u.accent2 = [1.0, 0.82, 0.48];
   } else {
     // the last shift, to the checkpoint monitor, and into the loop
@@ -85,6 +87,7 @@ function lens(t) {
     u.trails = 0.35 + 0.3 * push; u.warp = 0.004 + 0.006 * push; u.chroma = 0.002 + 0.004 * push;
     u.hue = 20 * push * Math.sin(t * 0.7);
     u.white = sm(seg(27.3, 28.0));
+    u.bloom = 0.08; u.glow = 0.22 + 0.5 * sm(seg(26.0, 27.6));
     u.accent = [0.78, 0.61, 1.0]; u.accent2 = [1.0, 0.82, 0.48];
   }
   return u;
