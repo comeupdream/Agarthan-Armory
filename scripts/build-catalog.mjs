@@ -31,7 +31,7 @@ import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { readCatalog, catalogExists } from './lib-store.mjs';
 import { pathToFileURL } from 'node:url';
-import { subOf, facetsOf, storePath } from './lib-facets.mjs';
+import { subOf, facetsOf, storePath, isRifleCartridge } from './lib-facets.mjs';
 
 /* ---------- classification ---------- */
 const T = (s) => String(s || '').toLowerCase();
@@ -93,6 +93,7 @@ export function classify(p) {
   return 'gear';
 }
 const FIREARM_DEPTS = new Set(['sidearms', 'longarms', 'shotguns', 'nfa']);
+export const ARP = 'AR & Rifle-Caliber Pistols';
 const BARREL_RE = /\b(\d{1,2}(?:\.\d{1,3})?)\s?(?:"|”|''|in\b|inch(?:es)?\b|-inch)/i;
 /** barrel length in inches from a listing name, or null */
 export const barrelIn = (s) => { const m = String(s || '').match(BARREL_RE); const n = m ? parseFloat(m[1]) : NaN; return n >= 2 && n <= 34 ? n : null; };
@@ -229,13 +230,22 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
     if (!p || !p.name) continue;
     const o = overrides[p.id] || {};
     if (o.hide) continue;
-    const dept = o.dept || classify(p);
+    let dept = o.dept || classify(p);
     // the store's own flag when it has one (Gearfire: isFirearm / isNfa — black powder is neither)
     const firearm = o.firearm ?? (typeof p.firearm === 'boolean' ? p.firearm || !!p.nfa : FIREARM_DEPTS.has(dept) || RE.receiver.test(T(p.name)));
     const images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
     const status = p.availability || (p.price != null ? 'in' : 'ask');
-    const sub = o.sub || subOf(dept, p);
+    let sub = o.sub || subOf(dept, p);
     const f = { ...facetsOf(dept, sub, p), ...(o.f || {}) };
+    let type = o.type || null;
+    // a pistol in a rifle round (5.56, .300 BLK, 7.62, .308, .45-70…) is not shopped with the handguns:
+    // it goes to its own category with the rifles; its action stays a filter
+    if (dept === 'sidearms' && !o.dept && !o.sub && isRifleCartridge(f.caliber)) {
+      const was = sub;
+      dept = 'longarms'; sub = ARP;
+      if (!f.action) f.action = /semi|large format/i.test(was) ? 'Semi-Auto' : /^revolvers?$/i.test(was) ? 'Revolver' : was;
+      type = type || (/revolver/i.test(was) ? 'revolver' : /bolt|single shot|break/i.test(was) ? 'bolt' : /lever/i.test(was) ? 'lever' : 'ar');
+    }
     const price = o.price !== undefined ? o.price : p.price ?? null;
     const rounds = dept === 'ammo' && f.count ? parseInt(f.count, 10) : 0;
     items.push({
@@ -243,7 +253,7 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       dept,
       sub,
       f,
-      type: o.type || iconFor(dept, p),
+      type: type || iconFor(dept, p),
       name: o.name || displayName(p, dept, f),
       brand: o.brand || brandOf(p),
       price,

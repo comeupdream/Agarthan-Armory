@@ -49,7 +49,7 @@
 
   const hay = (i) => [i.name, i.brand, i.sub, (AA.DEPTS[i.dept] || {}).name, i.desc, i.sku,
     ...Object.values(i.specs || {}), ...Object.values(i.f || {}).flat()].filter(Boolean).join(' ').toLowerCase();
-  items.forEach((i) => { i._hay = hay(i); });
+  items.forEach((i) => { i._hay = hay(i) + (i.sub === 'AR & Rifle-Caliber Pistols' ? ' arp ar pistol' : ''); });
   // the default order: the store's own shelf first, then what ships, then the rest; departments take
   // turns (one of each, then the next of each) so the first screen shows the whole store, photos first
   const DEPT_ORDER = Object.keys(AA.DEPTS);
@@ -125,7 +125,16 @@
   });
 
   /* ---------- filter: everything but one facet (for that facet's counts), or everything ---------- */
-  const words = () => state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  // a short word matches the start of a word ("arp" finds ARP, not .21 Sharp); a longer one matches anywhere
+  let qCache = [null, []];
+  const matchers = () => {
+    if (qCache[0] === state.q) return qCache[1];
+    const ms = state.q.toLowerCase().split(/\s+/).filter(Boolean).map((w) => (w.length <= 3 && /^[a-z]+$/.test(w)
+      ? ((re) => (h) => re.test(h))(new RegExp(`(?:^|[^a-z0-9])${w}`))
+      : (h) => h.includes(w)));
+    qCache = [state.q, ms];
+    return ms;
+  };
   function passes(i, skip) {
     if (state.dept && i.dept !== state.dept) return false;
     if (state.sub && i.sub !== state.sub && skip !== 'sub') return false;
@@ -137,7 +146,7 @@
       if (k === skip || !set.size) continue;
       if (!valsOf(i, k).some((v) => set.has(v))) return false;
     }
-    return words().every((w) => i._hay.includes(w));
+    return matchers().every((m) => m(i._hay));
   }
 
   function renderSubs() {
