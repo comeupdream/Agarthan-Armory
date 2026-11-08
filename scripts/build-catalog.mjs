@@ -30,6 +30,7 @@
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { subOf, facetsOf } from './lib-facets.mjs';
 
 /* ---------- classification ---------- */
 const T = (s) => String(s || '').toLowerCase();
@@ -160,7 +161,22 @@ export function specsFor(dept, p) {
 
 /* ---------- build ---------- */
 const BRANDS = ['Licentia Arms Co.', 'Team Wendy', 'Ops-Core', 'L3Harris', 'B.E. Meyers', 'Crye Precision', 'Gentex', 'Wilcox', 'Smith & Wesson', 'Springfield Armory', 'Sig Sauer', 'SIG Sauer', 'Daniel Defense', 'Heckler & Koch', 'Palmetto State Armory', 'Sellier & Bellot', 'Primary Arms', 'Shadow Systems', 'Aero Precision', 'Kel-Tec', 'Glock', 'Ruger', 'CZ', 'Taurus', 'Beretta', 'Mossberg', 'Remington', 'Winchester', 'Benelli', 'Henry', 'Savage', 'Tikka', 'Browning', 'Colt', 'Kimber', 'Walther', 'HK', 'FN', 'BCM', 'Canik', 'Staccato', 'Stoeger', 'Marlin', 'Bergara', 'Howa', 'Federal', 'Hornady', 'CCI', 'PMC', 'Fiocchi', 'Magtech', 'Aguila', 'Speer', 'Barnes', 'Nosler', 'Blazer', 'Holosun', 'Vortex', 'Trijicon', 'EOTech', 'Aimpoint', 'Leupold', 'Burris', 'Bushnell', 'Swampfox', 'Streamlight', 'SureFire', 'Olight', 'Magpul', 'Pelican', 'Liberty', 'Hoppe’s', "Hoppe's", 'Otis', 'Pulsar', 'AGM', 'ATN', 'Steiner', 'Nightforce', 'Zeiss', 'Swarovski'];
-const brandOf = (p) => {
+// one name per maker in the Manufacturer filter ("Winchester Ammunition" and "Winchester" are the same shelf)
+const BRAND_ALIAS = [
+  [/^winchester(?: ammunition| ammo)?$/i, 'Winchester'], [/^fiocchi(?: ammunition| usa)?$/i, 'Fiocchi'],
+  [/^aguila(?: ammunition)?$/i, 'Aguila'], [/^l3 ?harris(?: technologies)?$/i, 'L3Harris'],
+  [/^talley(?: manufacturing)?$/i, 'Talley'], [/^federal(?: premium)?(?: ammunition)?$/i, 'Federal'],
+  [/^remington(?: ammunition| arms)?$/i, 'Remington'], [/^hornady(?: manufacturing)?$/i, 'Hornady'],
+  [/^cor-?bon$/i, 'CorBon'], [/^truglo$/i, 'TRUGLO'], [/^eotech$/i, 'EOTech'],
+];
+export const normBrand = (b) => {
+  if (!b) return b;
+  const t = String(b).replace(/\s+/g, ' ').trim();
+  for (const [re, name] of BRAND_ALIAS) if (re.test(t)) return name;
+  return t;
+};
+const brandOf = (p) => normBrand(brandOf0(p));
+const brandOf0 = (p) => {
   if (p.brand) return p.brand;
   const a = attr(p, /^(brand|manufacturer|make|mfg)$/i); if (a) return a;
   const n = p.name || '';
@@ -181,9 +197,13 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
     const firearm = o.firearm ?? (FIREARM_DEPTS.has(dept) || RE.receiver.test(T(p.name)));
     const images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
     const status = p.availability || (p.price != null ? 'in' : 'ask');
+    const sub = o.sub || subOf(dept, p);
+    const f = { ...facetsOf(dept, sub, p), ...(o.f || {}) };
     items.push({
       id: p.id,
       dept,
+      sub,
+      f,
       type: o.type || iconFor(dept, p),
       name: o.name || p.name,
       brand: o.brand || brandOf(p),

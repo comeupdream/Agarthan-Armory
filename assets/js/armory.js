@@ -1,7 +1,10 @@
 /* =============================================================================
- * armory.js — the catalog page: department / caliber / brand / stock
- * filters, free-text query, sort, and the item detail dialog. State lives in
- * the URL (?dept=ammo&q=9mm&item=glock-19-gen5) so every view is linkable.
+ * armory.js — the catalog page: department and category chips, faceted
+ * filters (caliber, use, bullet, magnification, footprint, manufacturer…,
+ * each with live counts), price range, stock, free-text query, sort, and the
+ * item detail dialog. State lives in the URL
+ * (?dept=ammo&sub=Rifle&f.use=Hunting&f.brand=Hornady|Federal) so every view
+ * is linkable.
  * ===========================================================================*/
 (function () {
   'use strict';
@@ -9,64 +12,142 @@
   const { $, $$, esc } = AA;
   const items = (AA.catalog.items || []).slice();
   const params = new URLSearchParams(location.search);
+
+  /* ---------- facets: which filters each department shows, in order ---------- */
+  const FACETS = {
+    '': ['brand'],
+    ammo: ['caliber', 'use', 'bullet', 'grain', 'count', 'shot', 'shell', 'brand'],
+    optics: ['footprint', 'mag', 'objective', 'tube', 'focal', 'illum', 'sensor', 'phosphor', 'laser', 'brand'],
+    sidearms: ['caliber', 'barrel', 'action', 'capacity', 'brand'],
+    longarms: ['caliber', 'barrel', 'action', 'capacity', 'brand'],
+    shotguns: ['caliber', 'barrel', 'action', 'capacity', 'brand'],
+    gear: ['brand'],
+  };
+  const LABEL = {
+    brand: 'Manufacturer', caliber: 'Caliber / gauge', use: 'Use', bullet: 'Bullet type', grain: 'Bullet weight', count: 'Rounds per box',
+    shot: 'Shot size', shell: 'Shell length', barrel: 'Barrel length', action: 'Action', capacity: 'Capacity', mag: 'Magnification',
+    objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
+    sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser',
+  };
+  const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag']);
+  const valsOf = (i, k) => (k === 'brand' ? (i.brand ? [i.brand] : []) : [].concat((i.f || {})[k] || []));
+  const numOf = (v) => parseFloat(String(v).replace(/^[^\d]*/, '')) || 0;
+
   const state = {
     dept: AA.DEPTS[params.get('dept')] ? params.get('dept') : '',
+    sub: params.get('sub') || '',
     q: params.get('q') || '',
-    cal: params.get('cal') || '',
-    brand: params.get('brand') || '',
     stock: params.get('stock') === '1',
     sort: params.get('sort') || 'featured',
+    pmin: params.get('pmin') || '', pmax: params.get('pmax') || '',
+    f: {},
   };
+  for (const [k, v] of params) if (k.startsWith('f.') && LABEL[k.slice(2)]) state.f[k.slice(2)] = new Set(v.split('|').filter(Boolean));
+  if (params.get('brand')) state.f.brand = new Set([params.get('brand')]);         // older links
 
-  const calOf = (i) => {
-    const c = i.specs && i.specs.caliber;
-    return c ? String(c).split(/\s*[,/]\s*|\s+\(/)[0].trim() : '';
-  };
-  const hay = (i) => [i.name, i.brand, i.dept, (AA.DEPTS[i.dept] || {}).name, i.desc, i.sku,
-    ...Object.values(i.specs || {})].filter(Boolean).join(' ').toLowerCase();
-  items.forEach((i) => { i._hay = hay(i); i._cal = calOf(i); });
+  const hay = (i) => [i.name, i.brand, i.sub, (AA.DEPTS[i.dept] || {}).name, i.desc, i.sku,
+    ...Object.values(i.specs || {}), ...Object.values(i.f || {}).flat()].filter(Boolean).join(' ').toLowerCase();
+  items.forEach((i) => { i._hay = hay(i); });
 
   /* ---------- controls ---------- */
-  const deptChips = $('#deptChips'), calChips = $('#calChips'), brandSel = $('#brandSel');
-  const q = $('#q'), sortSel = $('#sortSel'), inStock = $('#inStock');
-  deptChips.innerHTML = [['', 'All']].concat(Object.entries(AA.DEPTS).map(([k, d]) => [k, d.name]))
-    .map(([k, n]) => `<button type="button" class="chip" data-dept="${k}" aria-pressed="false">${esc(n)}</button>`).join('');
-  const brands = [...new Set(items.map((i) => i.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  brandSel.innerHTML += brands.map((b) => `<option>${esc(b)}</option>`).join('');
-  q.value = state.q; sortSel.value = state.sort; inStock.checked = state.stock; brandSel.value = state.brand;
+  const deptChips = $('#deptChips'), subChips = $('#subChips'), facetsBox = $('#facets');
+  const q = $('#q'), sortSel = $('#sortSel'), inStock = $('#inStock'), pmin = $('#pmin'), pmax = $('#pmax');
+  // empty departments stay out of the chips (unless a link asked for one)
+  deptChips.innerHTML = [['', 'All', items.length]].concat(Object.entries(AA.DEPTS).map(([k, d]) => [k, d.name, items.filter((i) => i.dept === k).length]))
+    .filter(([k, , n]) => !k || n || k === state.dept)
+    .map(([k, name, n]) => `<button type="button" class="chip" data-dept="${k}" aria-pressed="false">${esc(name)}<small>${n}</small></button>`).join('');
+  q.value = state.q; sortSel.value = state.sort; inStock.checked = state.stock; pmin.value = state.pmin; pmax.value = state.pmax;
 
-  function renderCalibers() {
-    const scope = items.filter((i) => !state.dept || i.dept === state.dept);
-    const counts = {};
-    scope.forEach((i) => { if (i._cal) counts[i._cal] = (counts[i._cal] || 0) + 1; });
-    const cals = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([c]) => c);
-    if (state.cal && !cals.includes(state.cal)) state.cal = '';
-    $('#calSet').hidden = !cals.length;
-    calChips.innerHTML = cals.map((c) => `<button type="button" class="chip" data-cal="${esc(c)}" aria-pressed="${c === state.cal}">${esc(c)}</button>`).join('');
-  }
-
-  deptChips.addEventListener('click', (e) => { const b = e.target.closest('[data-dept]'); if (!b) return; state.dept = b.dataset.dept; state.cal = ''; update(); });
-  calChips.addEventListener('click', (e) => { const b = e.target.closest('[data-cal]'); if (!b) return; state.cal = state.cal === b.dataset.cal ? '' : b.dataset.cal; update(); });
-  brandSel.addEventListener('change', () => { state.brand = brandSel.value; update(); });
+  deptChips.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-dept]'); if (!b) return;
+    state.dept = b.dataset.dept; state.sub = ''; state.f = {}; update();
+  });
+  subChips.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sub]'); if (!b) return;
+    state.sub = state.sub === b.dataset.sub ? '' : b.dataset.sub; update();
+  });
+  facetsBox.addEventListener('change', (e) => {
+    const c = e.target.closest('input[type="checkbox"][data-k]'); if (!c) return;
+    const set = state.f[c.dataset.k] || (state.f[c.dataset.k] = new Set());
+    if (c.checked) set.add(c.value); else set.delete(c.value);
+    if (!set.size) delete state.f[c.dataset.k];
+    update();
+  });
+  facetsBox.addEventListener('click', (e) => {
+    const more = e.target.closest('[data-more]');
+    if (more) { const fs = more.closest('.facet'); fs.classList.toggle('all'); more.textContent = fs.classList.contains('all') ? 'Show fewer' : more.dataset.more; return; }
+    const clr = e.target.closest('[data-clear]');
+    if (clr) { delete state.f[clr.dataset.clear]; update(); }
+  });
+  facetsBox.addEventListener('input', (e) => {
+    const s = e.target.closest('[data-find]'); if (!s) return;
+    const w = s.value.toLowerCase();
+    s.closest('.facet').classList.toggle('all', !!w);
+    $$('.fopt', s.closest('.facet')).forEach((l) => { l.hidden = !!w && !l.dataset.v.toLowerCase().includes(w); });
+  });
   inStock.addEventListener('change', () => { state.stock = inStock.checked; update(); });
   sortSel.addEventListener('change', () => { state.sort = sortSel.value; update(); });
+  let pt; [pmin, pmax].forEach((el) => el.addEventListener('input', () => { clearTimeout(pt); pt = setTimeout(() => { state.pmin = pmin.value; state.pmax = pmax.value; update(); }, 250); }));
   let qt; q.addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(() => { state.q = q.value.trim(); update(); }, 120); });
   $('#resetFilters').addEventListener('click', () => {
-    Object.assign(state, { dept: '', q: '', cal: '', brand: '', stock: false, sort: 'featured' });
-    q.value = ''; brandSel.value = ''; inStock.checked = false; sortSel.value = 'featured';
+    Object.assign(state, { dept: '', sub: '', q: '', stock: false, sort: 'featured', pmin: '', pmax: '', f: {} });
+    q.value = ''; inStock.checked = false; sortSel.value = 'featured'; pmin.value = ''; pmax.value = '';
     update();
   });
 
-  /* ---------- filter + sort + render ---------- */
-  const rank = { in: 0, low: 1, order: 2, out: 3 };
+  /* ---------- filter: everything but one facet (for that facet's counts), or everything ---------- */
+  const words = () => state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  function passes(i, skip) {
+    if (state.dept && i.dept !== state.dept) return false;
+    if (state.sub && i.sub !== state.sub && skip !== 'sub') return false;
+    if (state.stock && !(i.status === 'in' || i.status === 'low')) return false;
+    const lo = parseFloat(state.pmin), hi = parseFloat(state.pmax);
+    if (!isNaN(lo) && !(i.price >= lo)) return false;
+    if (!isNaN(hi) && !(i.price != null && i.price <= hi)) return false;
+    for (const [k, set] of Object.entries(state.f)) {
+      if (k === skip || !set.size) continue;
+      if (!valsOf(i, k).some((v) => set.has(v))) return false;
+    }
+    return words().every((w) => i._hay.includes(w));
+  }
+
+  function renderSubs() {
+    const scope = items.filter((i) => passes(i, 'sub'));
+    const counts = {};
+    scope.forEach((i) => { if (i.sub) counts[i.sub] = (counts[i.sub] || 0) + 1; });
+    const subs = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    $('#subSet').hidden = !state.dept || subs.length < 2;
+    subChips.innerHTML = subs.map(([s, n]) => `<button type="button" class="chip" data-sub="${esc(s)}" aria-pressed="${s === state.sub}">${esc(s)}<small>${n}</small></button>`).join('');
+  }
+
+  function renderFacets() {
+    const keys = FACETS[state.dept] || FACETS[''];
+    const open = new Set($$('.facet.all', facetsBox).map((f) => f.dataset.k));
+    facetsBox.innerHTML = keys.map((k) => {
+      const counts = new Map();
+      for (const i of items) if (passes(i, k)) for (const v of valsOf(i, k)) counts.set(v, (counts.get(v) || 0) + 1);
+      const chosen = state.f[k] || new Set();
+      chosen.forEach((v) => { if (!counts.has(v)) counts.set(v, 0); });
+      if (counts.size < 1 || (counts.size < 2 && !chosen.size && k !== 'brand')) return '';
+      let vals = [...counts.entries()];
+      vals.sort(NUMERIC.has(k) ? (a, b) => numOf(a[0]) - numOf(b[0]) : (a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+      const LIMIT = 8, many = vals.length > LIMIT;
+      return `<fieldset class="facet${open.has(k) ? ' all' : ''}" data-k="${k}">
+        <legend>${esc(LABEL[k])}${chosen.size ? ` <button type="button" class="facet-clear" data-clear="${k}">clear</button>` : ''}</legend>
+        ${vals.length > 14 ? `<input class="facet-find" type="search" data-find placeholder="Find ${esc(LABEL[k].toLowerCase())}…" aria-label="Find ${esc(LABEL[k])}">` : ''}
+        <div class="facet-opts">${vals.map(([v, n], idx) => `<label class="fopt${idx >= LIMIT && !chosen.has(v) ? ' extra' : ''}" data-v="${esc(v)}">
+          <input type="checkbox" data-k="${k}" value="${esc(v)}"${chosen.has(v) ? ' checked' : ''}${n === 0 && !chosen.has(v) ? ' disabled' : ''}>
+          <span>${esc(v)}</span><i>${n}</i></label>`).join('')}</div>
+        ${many ? `<button type="button" class="facet-more" data-more="Show all ${vals.length}">${open.has(k) ? 'Show fewer' : `Show all ${vals.length}`}</button>` : ''}
+      </fieldset>`;
+    }).join('');
+    $('#facetsNote').hidden = !(state.dept === 'ammo' && !items.some((i) => i.dept === 'ammo' && (i.f || {}).caliber));
+  }
+
+  /* ---------- sort ---------- */
+  const rank = { in: 0, low: 1, order: 2, ask: 2, out: 3 };
   function results() {
-    const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
-    let r = items.filter((i) =>
-      (!state.dept || i.dept === state.dept) &&
-      (!state.cal || i._cal === state.cal) &&
-      (!state.brand || i.brand === state.brand) &&
-      (!state.stock || i.status === 'in' || i.status === 'low') &&
-      words.every((w) => i._hay.includes(w)));
+    const r = items.filter((i) => passes(i));
     const byPrice = (dir) => (a, b) => (a.price == null) - (b.price == null) || dir * ((a.price || 0) - (b.price || 0));
     const sorters = {
       featured: (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || (rank[a.status] || 0) - (rank[b.status] || 0) || (a.rank ?? 1e9) - (b.rank ?? 1e9),
@@ -95,7 +176,8 @@
 
   function update() {
     $$('[data-dept]', deptChips).forEach((b) => b.setAttribute('aria-pressed', b.dataset.dept === state.dept));
-    renderCalibers();
+    renderSubs();
+    renderFacets();
     const r = results();
     current = r; shown = 0;
     $('#armoryGrid').innerHTML = '';
@@ -104,15 +186,19 @@
     const bar = document.querySelector('.results-bar');
     if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start', behavior: AA.reduced ? 'auto' : 'smooth' });
     $('#emptyState').hidden = r.length > 0;
-    $('#resultCount').textContent = `${r.length} ${r.length === 1 ? 'relic' : 'relics'} in range`;
+    $('#resultCount').textContent = `${r.length.toLocaleString()} ${r.length === 1 ? 'relic' : 'relics'} in range`;
     const d = AA.DEPTS[state.dept];
-    $('#armoryTitle').textContent = d ? d.title : 'The Armory';
-    document.title = `${d ? d.title : 'The Armory'} — Agarthan Armory`;
+    $('#armoryTitle').textContent = state.sub || (d ? d.title : 'The Armory');
+    document.title = `${state.sub || (d ? d.title : 'The Armory')} — Agarthan Armory`;
+    const n = Object.values(state.f).reduce((a, s2) => a + s2.size, 0) + (state.sub ? 1 : 0) + (state.stock ? 1 : 0) + (state.pmin || state.pmax ? 1 : 0);
+    const ft2 = $('.filters-toggle'); if (ft2 && !$('.filters').classList.contains('open')) ft2.textContent = n ? `More filters · ${n} on` : 'More filters';
     const p = new URLSearchParams();
     if (state.dept) p.set('dept', state.dept);
+    if (state.sub) p.set('sub', state.sub);
     if (state.q) p.set('q', state.q);
-    if (state.cal) p.set('cal', state.cal);
-    if (state.brand) p.set('brand', state.brand);
+    for (const [k, set] of Object.entries(state.f)) if (set.size) p.set('f.' + k, [...set].join('|'));
+    if (state.pmin) p.set('pmin', state.pmin);
+    if (state.pmax) p.set('pmax', state.pmax);
     if (state.stock) p.set('stock', '1');
     if (state.sort !== 'featured') p.set('sort', state.sort);
     const cur = new URLSearchParams(location.search).get('item');
@@ -130,6 +216,8 @@
     const it = AA.items.get(id); if (!it) return;
     const st = AA.STATUS[it.status] || AA.STATUS.in;
     const specs = Object.entries(it.specs || {}).filter(([, v]) => v);
+    const shown = new Set(specs.map(([k]) => k));
+    for (const [k, v] of Object.entries(it.f || {})) if (!shown.has(k) && LABEL[k]) specs.push([k, [].concat(v).join(', ')]);
     const shop = AA.cfg.storeUrl && it.url;
     const ask = AA.cfg.email
       ? `mailto:${esc(AA.cfg.email)}?subject=${encodeURIComponent('Question: ' + it.name)}`
@@ -137,11 +225,11 @@
     $('#detailInner').innerHTML = `
       <div class="viz-lg${it.images && it.images[0] ? ' photo' : ''}">${AA.viz(it, true)}</div>
       <div class="detail-body">
-        <div class="card-top"><span>${esc((AA.DEPTS[it.dept] || {}).title || '')}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
+        <div class="card-top"><span>${esc([(AA.DEPTS[it.dept] || {}).title, it.sub].filter(Boolean).join(' › '))}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
         <h2 id="detailTitle">${esc(it.name)}</h2>
         <div class="brandline">${[it.brand ? esc(it.brand) : '', it.sku ? `<span style="color:var(--muted)">SKU ${esc(it.sku)}</span>` : ''].filter(Boolean).join(' · ')}</div>
         <div style="margin:18px 0 4px">${AA.priceHtml(it)}</div>
-        ${specs.length ? `<table class="spec-table"><tbody>${specs.map(([k, v]) => `<tr><th scope="row">${esc(LABELS[k] || k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>` : ''}
+        ${specs.length ? `<table class="spec-table"><tbody>${specs.map(([k, v]) => `<tr><th scope="row">${esc(LABELS[k] || LABEL[k] || k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>` : ''}
         ${it.desc ? `<p class="desc">${esc(it.desc)}</p>` : ''}
         ${it.lore ? `<p class="card lore" style="padding:0;display:block">“${esc(it.lore)}”</p>` : ''}
         ${it.firearm ? `<p class="ffl-note">Firearm: completed in person with photo ID, ATF Form 4473 and a background check. ${AA.cfg.ageMin || 21}+ for handguns, 18+ for long guns. Subject to federal, state and local law.</p>` : ''}

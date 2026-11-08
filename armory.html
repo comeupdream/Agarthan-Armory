@@ -15,7 +15,7 @@
 <meta property="og:image" content="https://agarthanarmory.com/assets/img/og-card.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/cinzel-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=34534c12a8">
+<link rel="stylesheet" href="assets/css/site.css?v=6061ac9e44">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font&&p.font!=='ancient')d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -103,14 +103,16 @@
           <legend>Department</legend>
           <div class="chips" id="deptChips"></div>
         </fieldset>
-        <div id="moreFilters">
-        <fieldset id="calSet">
-          <legend>Caliber / gauge</legend>
-          <div class="chips" id="calChips"></div>
+        <fieldset id="subSet" hidden>
+          <legend>Category</legend>
+          <div class="chips" id="subChips"></div>
         </fieldset>
+        <div id="moreFilters">
+        <div id="facets"></div>
+        <p class="form-note" id="facetsNote" hidden>Caliber, grain and round-count filters fill in once the store's variant details are synced.</p>
         <fieldset>
-          <legend>Brand</legend>
-          <div class="field"><select id="brandSel" aria-label="Brand"><option value="">All brands</option></select></div>
+          <legend>Price</legend>
+          <div class="price-range"><label class="field"><span class="sr-only">Minimum price</span><input id="pmin" type="number" min="0" inputmode="decimal" placeholder="$ min"></label><span>–</span><label class="field"><span class="sr-only">Maximum price</span><input id="pmax" type="number" min="0" inputmode="decimal" placeholder="$ max"></label></div>
         </fieldset>
         <fieldset>
           <legend>Availability</legend>
@@ -196,8 +198,8 @@
 <script src="assets/js/config.js?v=8a46efc61b"></script>
 <script src="assets/data/catalog.js"></script>
 <script src="assets/js/icons.js?v=ae50191c0a"></script>
-<script src="assets/js/site.js?v=3946e061ad"></script>
+<script src="assets/js/site.js?v=62643d4ccb"></script>
 <script src="assets/js/prefs.js?v=22d5d73fe8"></script>
-<script src="assets/js/armory.js?v=3bda67a1d5"></script>
+<script src="assets/js/armory.js?v=dff23b51f5"></script>
 </body>
 </html>

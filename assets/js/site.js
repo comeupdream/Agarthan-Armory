@@ -201,7 +201,7 @@
     const inReq = AA.req.has(item.id);
     const sold = item.status === 'out';
     return `<article class="card hud brackets" data-id="${esc(item.id)}">
-      <div class="card-top"><span>${esc((DEPTS[item.dept] || {}).name || '')}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
+      <div class="card-top"><span>${esc(item.sub || (DEPTS[item.dept] || {}).name || '')}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
       <div class="viz scan${item.images && item.images[0] ? ' photo' : ''}">${AA.viz(item)}</div>
       <div class="brandline">${esc(item.brand || '')}</div>
       <h3>${esc(item.name)}</h3>

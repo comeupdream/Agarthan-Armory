@@ -957,3 +957,25 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
   background: linear-gradient(180deg, rgba(var(--accent-rgb), .75), rgba(var(--accent-rgb), 0)); clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
   animation: beamfx .55s ease-out forwards; }
 @keyframes beamfx { from { opacity: 1; transform: scaleY(.2); transform-origin: top; } to { opacity: 0; transform: scaleY(1); transform-origin: top; } }
+
+/* =====================================================================
+   FACETED FILTERS (armory.js)
+   ===================================================================== */
+.chip small { margin-left: 6px; color: var(--muted); font-size: 10px; letter-spacing: .06em; }
+.chip[aria-pressed="true"] small { color: var(--on-accent); opacity: .7; }
+.facet { border-top: 1px solid var(--line) !important; padding-top: 14px !important; }
+.facet legend { display: flex; align-items: center; gap: 8px; width: 100%; }
+.facet-clear { margin-left: auto; background: none; border: 0; padding: 0; color: var(--cyan); font: 400 10px/1 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; cursor: pointer; }
+.facet-opts { display: grid; gap: 2px; }
+.fopt { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 8px; padding: 5px 4px; cursor: pointer; font-size: 14px; color: var(--text); border-radius: 2px; }
+.fopt:hover { background: rgba(var(--accent-rgb), .07); color: var(--frost); }
+.fopt input { accent-color: var(--cyan); width: 15px; height: 15px; margin: 0; }
+.fopt input:disabled + span { opacity: .4; }
+.fopt i { font: 400 11px/1 var(--f-mono); color: var(--muted); font-style: normal; }
+.fopt input:checked + span { color: var(--frost); font-weight: 600; }
+.facet:not(.all) .fopt.extra { display: none; }
+.facet-more { margin-top: 6px; background: none; border: 0; padding: 4px; color: var(--cyan); font: 400 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
+.facet-find { width: 100%; margin-bottom: 8px; padding: 8px 10px; background: rgba(var(--field-rgb), .7); color: var(--frost); border: 1px solid var(--line-strong); font: 400 13px/1.2 var(--f-ui); }
+.price-range { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; color: var(--muted); }
+.price-range input { padding: 9px 10px; }
+#subSet { margin-top: 0; }
