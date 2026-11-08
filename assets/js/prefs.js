@@ -4,7 +4,7 @@
  * the inline head script applies theme + font before first paint.
  *
  *   themes   html[data-theme]  polar (default) · inner-earth · mono · crystal · vril
- *   fonts    html[data-font]   ancient (default) · future · oldworld · runic
+ *   fonts    html[data-font]   future (default) · ancient · oldworld · runic
  *   cursors  html[data-cursor] + --cursor/--cursor-hot (SVG data URIs tinted
  *            to the current theme; the tractor-beam tip is the click point)
  * ===========================================================================*/
@@ -24,8 +24,8 @@
     { id: 'vril', name: 'Vril', sw: ['#5dff9c', '#d6ff5d', '#0b2e1c'] },
   ];
   const FONTS = [
-    { id: 'ancient', name: 'Ancient Tech', family: "'Cinzel', serif" },
     { id: 'future', name: 'Future Tech', family: "'Orbitron', sans-serif" },
+    { id: 'ancient', name: 'Ancient Tech', family: "'Cinzel', serif" },
     { id: 'oldworld', name: 'Old World', family: "'Uncial Antiqua', serif" },
     { id: 'runic', name: 'Runic', family: "'Cinzel Decorative', serif" },
   ];
@@ -74,10 +74,10 @@
   let prefs = load();
   function apply() {
     const t = THEMES.some((x) => x.id === prefs.theme) ? prefs.theme : 'polar';
-    const f = FONTS.some((x) => x.id === prefs.font) ? prefs.font : 'ancient';
+    const f = FONTS.some((x) => x.id === prefs.font) ? prefs.font : 'future';
     const c = CURSORS.find((x) => x.id === prefs.cursor) || CURSORS[0];
     if (t === 'polar') delete root.dataset.theme; else root.dataset.theme = t;
-    if (f === 'ancient') delete root.dataset.font; else root.dataset.font = f;
+    root.dataset.font = f;   // "ancient" has no rules of its own: the base styles are Ancient Tech
     if (c.svg) {
       const [a, h] = colors();
       root.dataset.cursor = c.id;
