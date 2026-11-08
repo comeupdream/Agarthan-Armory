@@ -123,6 +123,16 @@ const hl = links(home.text, home.url || site);
 const uniq = [...new Map(hl.map((l) => [l.href, l])).values()];
 say(`  internal links: ${uniq.length} · shapes: ${JSON.stringify(shapes(uniq.map((l) => l.href)))}`);
 say(`  nav sample:\n    ${uniq.slice(0, 40).map((l) => `${l.text || '(img)'} → ${l.href.replace(origin, '')}`).join('\n    ')}`);
+// links that leave the site: where "Shop" really goes when the store lives
+// on another platform or domain (a Gearfire store, a gunbroker page…)
+const ext = {};
+for (const m of home.text.matchAll(/<a\b[^>]*href=["'](https?:[^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+  let u; try { u = new URL(m[1]); } catch { continue; }
+  if (u.origin === origin) continue;
+  const e = (ext[u.host] = ext[u.host] || { n: 0, samples: [] });
+  e.n++; if (e.samples.length < 3) e.samples.push(`${squash(m[2].replace(/<[^>]*>/g, ' ')).slice(0, 40) || '(img)'} → ${u.href.slice(0, 90)}`);
+}
+say(`  external link hosts: ${Object.keys(ext).length ? '' : '—'}${Object.entries(ext).sort((a, b) => b[1].n - a[1].n).slice(0, 12).map(([h, e]) => `\n    ${h} (${e.n}): ${e.samples.join(' | ')}`).join('')}`);
 
 /* a category page: the first internal link that is not the home page and
  * looks like a section, then the product links on it */
