@@ -37,7 +37,8 @@
  * USAGE
  *   node scripts/scrape.mjs --site https://agarthanarmory.com
  *     [--platform auto|woo|shopify|sitemap|crawl]  [--concurrency 3]
- *     [--max-images 6]  [--max-pages 3000]  [--limit 0]  [--delay 250]
+ *     [--max-images 6]  [--max-pages 8000]  [--limit 0]  [--delay 250]
+ *     (over 400 products and no --max-images: 1 photo each, to keep the repo light)
  *     [--ignore-robots]  [--allow-shrink]  [--out assets/data/scraped]
  *
  * Node 18+ (built-in fetch). Zero npm dependencies.
@@ -57,8 +58,11 @@ const SITE = String(arg('site', 'https://agarthanarmory.com')).trim().replace(/\
 if (!/^https?:\/\/[^/]+/i.test(SITE)) { console.error(`✗ --site must be a URL, got "${SITE}"`); process.exit(1); }
 const PLATFORM = ['auto', 'woo', 'shopify', 'sitemap', 'crawl'].includes(arg('platform', 'auto')) ? arg('platform', 'auto') : 'auto';
 const CONCURRENCY = num('concurrency', 3, 1);
-const MAX_IMAGES = num('max-images', 6, 0);
-const MAX_PAGES = num('max-pages', 3000, 1);
+let MAX_IMAGES = num('max-images', 6, 0);
+const IMAGES_GIVEN = argv.includes('--max-images');
+// big catalogs: one photo each unless told otherwise (12,000 photos won't fit a repo)
+const BIG_CATALOG = num('big-catalog', 400, 1);
+const MAX_PAGES = num('max-pages', 8000, 1);
 const LIMIT = num('limit', 0, 0);
 const DELAY = num('delay', 250, 0);
 const MAX_IMAGE_BYTES = num('max-image-bytes', 4_000_000, 10_000);
@@ -599,6 +603,10 @@ if (isMain) (async () => {
   } catch { /* no previous run */ }
 
   /* images */
+  if (!IMAGES_GIVEN && products.length > BIG_CATALOG && MAX_IMAGES > 1) {
+    MAX_IMAGES = 1;
+    console.log(`\n  ${products.length} products: saving 1 photo each to keep the repo light (--max-images N to change)`);
+  }
   await mkdir(IMG_DIR, { recursive: true });
   const jobs = [];
   for (const p of products) { p.localImages = []; if (MAX_IMAGES) p.images.slice(0, MAX_IMAGES).forEach((src, n) => jobs.push({ p, src, n })); }

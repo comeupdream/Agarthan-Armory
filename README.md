@@ -78,6 +78,11 @@ folder, and `build-catalog` merges every folder under `assets/data/scraped/`:
 npm run scrape -- --site https://shop.agarthanarmory.com --out assets/data/scraped/shop
 ```
 
+The Gearfire shop sits behind a CloudFront firewall that refuses GitHub's
+servers, so run that one from a normal home or office connection (Node 18+),
+then `npm run build:catalog` and push. Catalogs over 400 products save one
+photo each unless you pass `--max-images`.
+
 **How it reads the store, cheapest and most exact first:**
 
 1. The WooCommerce Store API (`/wp-json/wc/store/v1/products`).
