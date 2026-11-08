@@ -75,7 +75,9 @@ eq(imgs('hornady-lever').length, 2, 'products that already have photos are left 
 eq(readdirSync(path.join(d, 'img')).length, 4, 'four photo files written');
 
 /* ---------- find-images.mjs against a mock image-search API ---------- */
-const { scoreResult } = await import('./find-images.mjs');
+const { scoreResult, queriesFor } = await import('./find-images.mjs');
+eq(queriesFor({ brand: 'Hornady', name: 'LEVERevolution', sku: '82741', variant: { 'Rifle Caliber': '45-70 Government', 'Rounds Per Box': '20' } }, '090255827415'),
+  ['Hornady LEVERevolution 45-70 Government', 'Hornady 090255827415', 'Hornady 82741'], 'queries: line + variant, then UPC, then part number');
 eq(scoreResult({ host: 'www.hornady.com', title: 'LEVERevolution 30-30', image: 'x.jpg', width: 1200, height: 900 }, { brand: 'Hornady', name: 'LEVERevolution' }, '90255827415') >
    scoreResult({ host: 'www.amazon.com', title: 'LEVERevolution 30-30', image: 'x.jpg', width: 1200, height: 900 }, { brand: 'Hornady', name: 'LEVERevolution' }, '90255827415'), true, 'manufacturer site outranks a marketplace');
 let searches = 0;
@@ -100,7 +102,8 @@ const api = await new Promise((res) => { const s2 = http.createServer((q, w) => 
 const fd = mkdtempSync(path.join(tmpdir(), 'aa-find-'));
 mkdirSync(path.join(fd, 'scraped'), { recursive: true });
 writeFileSync(path.join(fd, 'scraped', 'catalog.json'), JSON.stringify([
-  { id: 'federal-hst-9', name: 'HST 9mm 147gr', brand: 'Federal', attributes: { UPC: '029465064549' } },
+  { id: 'federal-hst-9', line: 'hst', name: 'HST 9mm 147gr', brand: 'Federal', attributes: { UPC: '029465064549' } },
+  { id: 'federal-hst-40', line: 'hst', name: 'HST 9mm 147gr', brand: 'Federal', attributes: { UPC: '029465064550' } },
   { id: 'nothing-found', name: 'Obscure Widget', brand: 'Acme', attributes: { UPC: '012345678912' } },
   { id: 'has-photo', name: 'Already', brand: 'Federal', attributes: { UPC: '029465000000' }, localImages: ['x.jpg'] },
 ]));
@@ -117,6 +120,8 @@ let fc = JSON.parse(readFileSync(path.join(fd, 'scraped', 'catalog.json'), 'utf8
 const byId = (id) => fc.find((p) => p.id === id);
 eq(byId('federal-hst-9').localImages, ['img/federal-hst-9-1.jpg'], 'photo saved for the product');
 eq(byId('federal-hst-9').photoSource && byId('federal-hst-9').photoSource.page, 'https://www.federalpremium.com/hst2', 'blocked best result skipped; next manufacturer image used (not the marketplace)');
+eq(byId('federal-hst-40').localImages, ['img/federal-hst-9-1.jpg'], 'a variant of the same line shares the photo (one search)');
+eq(byId('federal-hst-40').photoSource && byId('federal-hst-40').photoSource.sharedFrom, 'federal-hst-9', '…and says where it came from');
 eq(byId('nothing-found').photoSearch.result, 'none', 'no acceptable result is marked none');
 eq(byId('has-photo').localImages, ['x.jpg'], 'products with photos are left alone');
 eq(existsSync(path.join(fd, 'scraped', 'photo-review.html')), true, 'review sheet written');

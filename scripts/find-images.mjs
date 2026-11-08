@@ -33,12 +33,25 @@
  *   --rps N        searches per second (default 1, the basic plan's limit)
  *   --size 1000    resize longest side (needs `npm i sharp`; otherwise saved as-is)
  *   --retry        search again for products marked "none" earlier
+ *   --per-variant  search each variant on its own (default: one search per product
+ *                  line, shared by its variants — several times fewer searches)
  *   --dry-run      search and score, download nothing
  * ===========================================================================*/
 import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { upcOf, isImage, extOf } from './match-images.mjs';
+
+/** what to search for: maker + line + what sets the variant apart, then maker + UPC, then maker + part number */
+export function queriesFor(p, upc) {
+  const variant = Object.values(p.variant || {}).filter((v) => !/^\d+$/.test(String(v))).slice(0, 2).join(' ');
+  const mpn = p.sku && p.sku !== upc ? p.sku : (p.attributes && p.attributes['Manufacturer Part Number']) || null;
+  return [...new Set([
+    [p.brand, p.name, variant].filter(Boolean).join(' ').trim(),
+    upc ? `${p.brand || ''} ${upc}`.trim() : null,
+    mpn ? `${p.brand || ''} ${mpn}`.trim() : null,
+  ].filter(Boolean))];
+}
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.lastIndexOf('--' + n); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -93,7 +106,7 @@ async function main() {
   const API = process.env.BRAVE_API_BASE || 'https://api.search.brave.com';
   if (!KEY) { console.error('✗ set BRAVE_API_KEY first (PowerShell: $env:BRAVE_API_KEY="…") — see the header of this file'); process.exit(1); }
   const BUDGET = num('budget', 300, 1), LIMIT = num('limit', 0, 0), RPS = num('rps', 1, 0.1), SIZE = num('size', 1000, 200);
-  const RETRY = flag('retry'), DRY = flag('dry-run');
+  const RETRY = flag('retry'), DRY = flag('dry-run'), PER_VARIANT = flag('per-variant');
   const CAT_DIR = path.resolve(arg('catalog-dir', 'assets/data/scraped'));
   const IMG_DIR = path.resolve(arg('img-dir', 'assets/img/products'));
   const IMG_REL = path.relative(process.cwd(), IMG_DIR).split(path.sep).join('/');
@@ -104,10 +117,14 @@ async function main() {
   const cats = [];
   for (const f of files) { try { cats.push({ f, list: JSON.parse(await readFile(f, 'utf8')) }); } catch { /* missing */ } }
   const todo = cats.flatMap((c) => c.list).filter((p) => !(p.localImages || []).length && (RETRY || !(p.photoSearch && p.photoSearch.result === 'none')));
-  const work = LIMIT ? todo.slice(0, LIMIT) : todo;
-  console.log(`→ ${work.length} products to find photos for (budget ${BUDGET} searches${sharp ? `, resizing to ${SIZE}px` : ', sharp not installed: saving as-is'})`);
+  // one search per product LINE: the variants of a line (calibers, colors) share its photo unless --per-variant
+  const groups = new Map();
+  for (const p of todo) { const k = PER_VARIANT ? p.id : (p.line || `${p.brand || ''}|${p.name}`); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+  const allGroups = [...groups.values()];
+  const work = LIMIT ? allGroups.slice(0, LIMIT) : allGroups;
+  console.log(`→ ${todo.length} products without a photo, ${allGroups.length} ${PER_VARIANT ? 'searches' : 'product lines'} to look up; this run: ${work.length} (budget ${BUDGET} searches${sharp ? `, resizing to ${SIZE}px` : ', sharp not installed: saving as-is'})`);
 
-  let calls = 0, found = 0, none = 0, last = 0;
+  let calls = 0, found = 0, none = 0, last = 0, looked = 0;
   const search = async (q) => {
     const wait = 1000 / RPS - (Date.now() - last); if (wait > 0) await sleep(wait);
     last = Date.now(); calls++;
@@ -136,10 +153,12 @@ async function main() {
 
   await mkdir(IMG_DIR, { recursive: true });
   try {
-    for (const p of work) {
+    for (const group of work) {
       if (calls >= BUDGET) { console.log(`  budget of ${BUDGET} searches reached — run again to continue`); break; }
+      // the variant the store shows first stands for the line
+      const p = group[0];
       const upc = upcOf(p);
-      const queries = [[p.brand, p.name, upc].filter(Boolean).join(' '), upc ? `${p.brand || ''} ${upc}`.trim() : null].filter(Boolean);
+      const queries = queriesFor(p, upc);
       let chosen = null;
       for (const q of queries) {
         if (calls >= BUDGET) break;
@@ -157,12 +176,15 @@ async function main() {
         }
         if (chosen) break;
       }
+      const at = new Date().toISOString();
       if (chosen) {
-        found++;
-        if (!DRY) { p.localImages = [chosen.file]; p.photoSource = { image: chosen.r.image, page: chosen.r.page, score: chosen.r.score }; }
-        p.photoSearch = { at: new Date().toISOString(), result: 'found' };
-      } else { none++; p.photoSearch = { at: new Date().toISOString(), result: 'none' }; }
-      if ((found + none) % 25 === 0) console.log(`    ${found + none}/${work.length} · ${found} found · ${calls} searches`);
+        found += group.length;
+        group.forEach((q, n) => {
+          if (!DRY) { q.localImages = [chosen.file]; q.photoSource = { image: chosen.r.image, page: chosen.r.page, score: chosen.r.score, ...(n ? { sharedFrom: p.id } : {}) }; }
+          q.photoSearch = { at, result: 'found' };
+        });
+      } else { none += group.length; group.forEach((q) => { q.photoSearch = { at, result: 'none' }; }); }
+      if (++looked % 25 === 0) console.log(`    ${looked}/${work.length} looked up · ${found} products with a photo · ${calls} searches`);
     }
   } catch (e) {
     console.error('✗ ' + e.message); if (!e.fatal) console.error(e.stack);

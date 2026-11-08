@@ -175,12 +175,22 @@
     ammo: { name: 'Ammunition', code: 'DEPT 04', title: 'Ammunition Caches' },
     optics: { name: 'Optics & Tech', code: 'DEPT 05', title: 'Optics & Advanced Tech' },
     gear: { name: 'Gear', code: 'DEPT 06', title: 'Expedition Gear' },
+    nfa: { name: 'NFA & Suppressors', code: 'DEPT 07', title: 'The Silent Vault' },
   });
   const STATUS = (AA.STATUS = {
-    in: ['In the vault', ''], low: ['Few left', 'low'], order: ['Special order', 'order'], out: ['Out of stock', 'order'],
+    in: ['In the vault', ''], low: ['Few left', 'low'], ship: ['Ready to ship', ''], order: ['Special order', 'order'], out: ['Out of stock', 'order'],
     ask: ['Call for availability', 'order'],
   });
   AA.icon = (type) => (window.AA_ICONS && (window.AA_ICONS[type] || window.AA_ICONS.case)) || '';
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.closest('.viz, .viz-lg') || img.dataset.failed) return;
+    img.dataset.failed = '1';
+    const box = img.closest('.viz, .viz-lg'); const card = img.closest('[data-id]');
+    const item = card && AA.items && AA.items.get(card.dataset.id);
+    box.classList.remove('photo');
+    img.outerHTML = `<span class="holo-glow" style="display:contents">${AA.icon((item && item.type) || box.dataset.type || 'case')}</span>`;
+  }, true);
   AA.viz = (item, big) => {
     const img = item.images && item.images[0];
     if (img) return `<img src="${esc(img)}" alt="${esc(item.name)}" loading="lazy" decoding="async">`;
@@ -190,7 +200,8 @@
     const p = AA.money(item.price);
     if (p == null) return `<span class="price">${esc(item.priceNote || 'Call for price')}</span>`;
     const was = item.was && item.was > item.price ? ` <s style="color:var(--muted);font-size:.6em">${esc(AA.money(item.was))}</s>` : '';
-    return `<span class="price">${esc(p)}${was}<small>${esc(item.priceNote || (item.firearm ? 'Transfer in store' : 'Pickup or ship'))}</small></span>`;
+    const per = item.cpr ? `${AA.money(item.cpr < 1 ? Math.round(item.cpr * 100) / 100 : item.cpr)}/rd · ` : '';
+    return `<span class="price">${esc(p)}${was}<small>${esc(per + (item.priceNote || (item.firearm ? 'Transfer in store' : 'Pickup or ship')))}</small></span>`;
   };
   AA.specLine = (item) => {
     const s = item.specs || {};
