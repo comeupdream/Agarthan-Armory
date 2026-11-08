@@ -115,8 +115,22 @@ const fp = {
   duda: /dudaone|multiscreensite|irp\.cdn-website/i.test(home.text), webflow: /webflow/i.test(home.text),
 };
 say(`  fingerprints: ${JSON.stringify(fp)}`);
+// is the page built in the browser (an app shell) rather than served as HTML?
+const fw = {
+  next: /__NEXT_DATA__|\/_next\/static/.test(home.text), nuxt: /__NUXT__|\/_nuxt\//.test(home.text),
+  react: /id=["'](root|app|__next)["']/.test(home.text), angular: /ng-version=|ng-app/.test(home.text),
+  vue: /data-v-[0-9a-f]{6,}/.test(home.text), gatsby: /___gatsby/.test(home.text),
+};
+const textLen = squash(home.text.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ')).length;
+say(`  framework hints: ${JSON.stringify(fw)} · visible text ${textLen} chars of ${home.text.length}`);
+const nd = home.text.match(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
+if (nd) say(`  __NEXT_DATA__ (first ${CHARS}): ${squash(nd[1]).slice(0, CHARS)}`);
+// API endpoints the page's own code mentions — an app shell loads products from one of these
+const apis = [...new Set([...home.text.matchAll(/["'`]((?:https?:\/\/[^"'`\s]+)?\/(?:api|graphql|v1|v2|v3|rest|services|catalog|search)[^"'`\s]{0,80})["'`]/gi)].map((m) => m[1]))].slice(0, 15);
+say(`  API endpoints mentioned: ${apis.length ? '\n    ' + apis.join('\n    ') : '—'}`);
 const scripts = [...home.text.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
 say(`  script hosts: ${[...new Set(scripts.map((s) => { try { return new URL(s, site).host; } catch { return s.slice(0, 30); } }))].slice(0, 10).join(', ')}`);
+say(`  script files: ${scripts.slice(0, 8).map((s) => s.slice(0, 100)).join(' · ') || '—'}`);
 const imgs = [...home.text.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
 say(`  image hosts: ${[...new Set(imgs.map((s) => { try { return new URL(s, site).host; } catch { return s.slice(0, 30); } }))].slice(0, 8).join(', ')} · ${imgs.length} images`);
 const hl = links(home.text, home.url || site);
