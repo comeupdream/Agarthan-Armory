@@ -15,7 +15,7 @@
 <meta property="og:image" content="https://agarthanarmory.com/assets/img/og-card.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/cinzel-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css">
+<link rel="stylesheet" href="assets/css/site.css?v=2">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font&&p.font!=='ancient')d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -98,7 +98,7 @@
       <figure class="relic feed hud brackets" data-art-frame>
         <div class="relic-bar"><span>Checkpoint feed · Agartha</span><b data-art-state>Live</b></div>
         <div class="relic-screen square">
-          <video data-art src="assets/video/agarthan-tech.mp4" poster="assets/video/agarthan-tech.jpg" width="348" height="354" muted loop playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>
+          <video data-art src="assets/video/agarthan-tech.mp4" poster="assets/video/agarthan-tech.jpg" width="348" height="354" muted loop autoplay playsinline disablepictureinpicture aria-hidden="true"></video>
         </div>
         <figcaption class="relic-foot"><span>Peace through discipline</span><button class="relic-hold" type="button" data-art-hold>Hold</button></figcaption>
       </figure>
@@ -255,11 +255,11 @@
 </footer>
 <!-- /partial:footer -->
 
-<script src="assets/js/config.js"></script>
-<script src="assets/data/catalog.js"></script>
-<script src="assets/js/icons.js"></script>
-<script src="assets/js/site.js"></script>
-<script src="assets/js/prefs.js"></script>
+<script src="assets/js/config.js?v=2"></script>
+<script src="assets/data/catalog.js?v=2"></script>
+<script src="assets/js/icons.js?v=2"></script>
+<script src="assets/js/site.js?v=2"></script>
+<script src="assets/js/prefs.js?v=2"></script>
 <script>
   document.getElementById('requestFfl').addEventListener('click', function () {
     var AA = window.AA, email = AA.cfg.email;
