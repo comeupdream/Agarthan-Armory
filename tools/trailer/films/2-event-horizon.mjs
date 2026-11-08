@@ -5,7 +5,8 @@
  * search, and the vault answers with its holo schematics (no store photos, as in every
  * film). The page tips back into space as a deck, a black hole opens over it, and the
  * catalogue is lensed, wound into the accretion disk and swallowed. A beat of dark,
- * then a white hole pours out the wordmark.
+ * then a white hole pours out the brand's seal and name in Runic; the light peaks and
+ * settles, and the name falls through a tiny hole and is born again in each script.
  */
 
 function act(t, S) {
@@ -36,7 +37,7 @@ function lens(t) {
   const feed = sm(seg(8.0, 14.0));             // it feeds
   const fall = sm(seg(13.6, 16.2));            // and takes everything
   const dark = seg(16.2, 16.4) * (1 - seg(17.25, 17.3));
-  const born = seg(17.3, 24);
+  const born = seg(17.3, 31);
   const burst = Math.max(0, 1 - (t - 17.3) / 1.1) * (t >= 17.3 ? 1 : 0);
   const rs = t < 17.3 ? lerp(0, 0.075, form) + 0.05 * feed + 0.95 * fall * fall : 0;
   const out = {
@@ -61,15 +62,35 @@ function lens(t) {
     plates: [],
   };
   if (t >= 17.3) {
-    // the white hole: the name comes out of the light
+    // the white hole: the name comes out of the light (Runic), the light peaks as a star-burst,
+    // comes down, and in the calm the name falls through a tiny hole and is born again in
+    // each script — Future, a flash of Old World, Future
     const e = sm(seg(17.3, 19.2));
-    out.page = 0; out.bh = [0, 0, 0, 0]; out.swirl = 0; out.trails = 0.55 * (1 - seg(20, 23)); out.chroma = 0.002;
+    const burstK = sm(seg(17.4, 18.2)) * (1 - sm(seg(19.6, 21.6)));
+    out.page = 0; out.swirl = 0; out.chroma = 0.002 + 0.003 * burstK;
+    out.trails = 0.55 * (1 - seg(20, 23)) + 0.2 * burstK;
+    out.kaleido = 0.6 * burstK; out.kalN = 8;
     out.sky = [0.9 * e, 1.0, 1.2]; out.glow = 0.35; out.bloom = 0.2;
-    out.kaleido = 0.0;
+    const SWAPS = [[23.6, 0, 1], [26.2, 1, 2], [27.9, 2, 1]];   // [t, from plate, to plate]
+    let cur = 0, k = 1, rot = 0, hole = 0;
+    for (const [tc, a, b] of SWAPS) {
+      if (t >= tc + 1.1) cur = b;
+      else if (t >= tc) {
+        const p = (t - tc) / 1.1;
+        hole = Math.sin(Math.PI * p);
+        if (p < 0.5) { cur = a; const q = sm(p / 0.5); k = 1 - q; rot = q * 3.2; }
+        else { cur = b; const q = sm((p - 0.5) / 0.5); k = q; rot = -(1 - q) * 3.2; }
+      }
+    }
+    const h = lerp(0.3, 0.62, sm(seg(17.3, 21))) + 0.03 * born;
+    const y = 0.04 - 0.02 * born;
+    out.bh = hole > 0.001 ? [0, y, 0.024 * hole, 0.07 * hole] : [0, 0, 0, 0];
+    out.disk = [0.9 * hole, 0.3, t * 4, 3.4];
     out.plates = [
-      { i: 0, x: 0, y: 0.04 - 0.02 * born, h: lerp(0.3, 0.62, sm(seg(17.3, 21))) + 0.03 * born, a: e, glow: 0.35 * (1 - 0.5 * born) },
-      { i: 1, x: 0, y: -0.36, h: 0.1, a: sm(seg(20.4, 21.6)), glow: 0.15 },
+      { i: cur, x: 0, y, h: h * Math.max(k, 0.001), rot, a: e * Math.min(1, 0.2 + k * 1.2), glow: 0.35 * (1 - 0.5 * born) + 0.4 * hole },
+      { i: 3, x: 0, y: -0.36, h: 0.1, a: sm(seg(29.0, 30.0)), glow: 0.15 },
     ];
+    out.black = sm(seg(31.2, 32));
   }
   return out;
 }
@@ -78,15 +99,16 @@ export default {
   key: 'event-horizon',
   poster: 10.6,
   title: 'Event Horizon — the Armory falls into a black hole and comes back out as the name',
-  dur: 24,
+  dur: 32,
   url: '/armory.html',
-  prefs: { theme: 'crystal', cursor: 'disc' },
+  prefs: { theme: 'crystal', cursor: 'disc', font: 'future' },
   act,
   lens,
-  plates: ['wordmark', 'url'],
+  plates: ['wordmark@runic@crystal', 'wordmark@future@crystal', 'wordmark@oldworld@crystal', 'url@future@crystal'],
   cues: [
     { t: 1.05, kind: 'click' }, ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ t: 1.35 + i * 0.156, kind: 'type' })),
     { t: 3.0, kind: 'deck' }, { t: 5.0, kind: 'hole' }, { t: 8.0, kind: 'feed' }, { t: 13.6, kind: 'fall' },
-    { t: 16.3, kind: 'silence' }, { t: 17.3, kind: 'white' }, { t: 20.4, kind: 'url' },
+    { t: 16.3, kind: 'silence' }, { t: 17.3, kind: 'white' }, { t: 17.4, kind: 'peak' }, { t: 20.0, kind: 'down' }, { t: 22.6, kind: 'calm' },
+    { t: 23.6, kind: 'swap', font: 'future' }, { t: 26.2, kind: 'swap', font: 'oldworld' }, { t: 27.9, kind: 'swap', font: 'future' }, { t: 29.0, kind: 'url' },
   ],
 };

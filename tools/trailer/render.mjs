@@ -183,9 +183,9 @@ async function plate(browser, base, name) {
   if (!fs.existsSync(file)) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const p = await browser.newPage({ viewport: { width: 2400, height: 1400 }, deviceScaleFactor: 1 });
-    await p.goto(`${base}/tools/trailer/plates.html#${name}`, { waitUntil: 'networkidle' });
+    await p.goto(`${base}/tools/trailer/plates.html#${encodeURIComponent(name)}`, { waitUntil: 'networkidle' });
     await p.evaluate(() => document.fonts.ready);
-    await p.locator(`#${name}`).screenshot({ path: file, omitBackground: true });
+    await p.locator(`#${name.split('@')[0]}`).screenshot({ path: file, omitBackground: true });
     await p.close();
   }
   return `/.trailer-cache/plates/${name}.png`;

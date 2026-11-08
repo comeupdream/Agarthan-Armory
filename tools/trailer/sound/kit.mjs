@@ -72,7 +72,7 @@ export function vacuum(mix, t0, t1, fade = 0.02) {
 }
 
 /** Sum the stems and the returns, set the loudness, limit the peaks. */
-export function master(mix, { lufs = -14, ceiling = -1.0, hallGain = 1, delayGain = 0.6 } = {}) {
+export function master(mix, { lufs = -14, ceiling = -1.0, hallGain = 1, delayGain = 0.6, fade = null } = {}) {
   const N = mix.N;
   const out = D.stereo(N);
   for (const st of mix.stems.values()) for (let i = 0; i < N; i++) { out.L[i] += st.L[i]; out.R[i] += st.R[i]; }
@@ -86,6 +86,11 @@ export function master(mix, { lufs = -14, ceiling = -1.0, hallGain = 1, delayGai
   const g = isFinite(before.integrated) ? D.undb(lufs - before.integrated) : 1;
   for (let i = 0; i < N; i++) { out.L[i] *= g; out.R[i] *= g; }
   D.limit(out, D.undb(ceiling - 0.3), 0.0015, 0.08);
+  // a film's own fade-out [t0, t1]: the music lets go over the last seconds instead of stopping
+  if (fade) {
+    const a = D.idx(fade[0]), z = Math.min(N, D.idx(fade[1]));
+    for (let i = a; i < N; i++) { const k = i >= z ? 0 : 0.5 + 0.5 * Math.cos(Math.PI * (i - a) / (z - a)); out.L[i] *= k; out.R[i] *= k; }
+  }
   // a 40 ms fade at both ends, so a film never starts or stops on a click
   const nf = D.idx(0.04);
   for (let i = 0; i < nf; i++) { const k = i / nf; out.L[i] *= k; out.R[i] *= k; out.L[N - 1 - i] *= k; out.R[N - 1 - i] *= k; }

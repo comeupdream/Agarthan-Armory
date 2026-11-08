@@ -6,13 +6,18 @@ method is EVRITHNG's brand kit (`comeupdream/evrithng`, `frontend/brandkit/`): e
 is a pure function of its time, rendered one at a time into ffmpeg, so a slow machine
 costs time and never drops a frame, and the same source renders the same film twice.
 
-| film | length | what happens |
-|---|---|---|
-| `realm-shift.mp4` | 32 s | The home page arrives out of space. The pointer opens **Realm** and clicks every realm (each repaints on a scan line), every script (glitch slices) and every cursor. The trip begins: the Tic Tac, the Black Triangle and the Foo Fighter arrive at full size and beam the hero up piece by piece, the saucer pointer grows into the mothership and takes the name letter by letter, and the empty hero goes white. |
-| `event-horizon.mp4` | 24 s | Agarthan Crystal realm. The pointer types *tactical* into the archive and reads the cards; the page tips back into space as a deck, a black hole opens over it, the catalogue is lensed, wound into the accretion disk and swallowed. A beat of dark, then a white hole pours out the wordmark. |
-| `phase-shift.mp4` | 28 s | The ice wall phase-shifts through every realm, the lens dives through the gate onto the polar map, zooms to Agartha at the pole and falls down it into the inner sun. Agartha is the Crystal realm: the client's static piece plays once on its pedestal, then a last shift to the gate in the wall, where the client's looping piece runs on the checkpoint monitor, and the lens goes into it. |
-| `arsenal.mp4` | 24 s | Vril realm. The pointer sweeps the six vaults (the real hover: lift and scan). The site's holo schematics assemble at full size, line by line, turning on a pedestal with each department's name and words; the last is mirrored into a mandala, then a crystal tunnel walled with the featured cards, and the site's tagline. |
-| `trailer-wide.mp4` / `trailer-tall.mp4` | 52 s | The four films cut on the beats of the score: intro, build, the drop on 0:24.8, the end card on the final hit at 0:43.4. Tall is 1080×1920 for Reels, TikTok and Shorts. |
+| film | length | what happens | score |
+|---|---|---|---|
+| `realm-shift.mp4` | 42 s | The home page arrives out of space. The pointer opens **Realm** and clicks every realm (each repaints on a scan line), the scripts (glitch slices) and every cursor. The trip begins: the Tic Tac, the Black Triangle and the Foo Fighter beam the hero up piece by piece, and the saucer pointer grows into the mothership and takes the name letter by letter. **Peak:** the name's echoes mirrored round the empty hero. **Come-down:** the mothership gives the letters back. **Calm:** it lets the seal down above the name and lifts away; the name changes script — Runic, a flash of Old World, Future, Runic — each change leaving an echo, and the page drifts back out into space. | E minor, 124 BPM, four on the floor; a lead over the peak, bells for each script |
+| `event-horizon.mp4` | 32 s | Agarthan Crystal realm. The pointer types *tactical* into the archive and reads the cards; the page tips back into space as a deck, a black hole opens over it, and the catalogue is lensed, wound into the accretion disk and swallowed. A beat of dark, then a white hole pours out the seal and the name in Runic. **Peak:** a star-burst. **Come-down and calm:** the name falls through a tiny black hole and is born again in each script — Future, a flash of Old World, Future — and the address comes up. | C sharp minor, 84 BPM, a heartbeat; resolves to C sharp major for the name |
+| `phase-shift.mp4` | 37 s | The ice wall phase-shifts through every realm, the lens dives through the gate onto the polar map, zooms to Agartha at the pole and falls down it into the inner sun. Agartha is the Crystal realm: the client's static piece plays once on its pedestal, then a last shift to the gate in the wall, where the client's looping piece runs on the checkpoint monitor. **Peak:** the loop folds into a kaleidoscope. **Come-down:** a tunnel of light carries the camera back up and out of the eye in the ice wall. **Calm:** the seal rises out of the eye's pupil, up the gate's light, and becomes the hero's star while the eye watches it go; the name phase-shifts its script — Future, a flash of Old World, Runic — and the page turns away into the dark. | A Dorian, 132 BPM, a breakbeat; a warm harp section for Agartha, a harp up the scale for the seal |
+| `arsenal.mp4` | 32 s | Vril realm. The pointer sweeps the six vaults (the real hover: lift and scan). The site's holo schematics assemble at full size, line by line, turning on a pedestal with each department's name and words; the last is mirrored into a mandala, then a crystal tunnel walled with the featured cards, and the site's tagline. **Peak:** the line burns at its brightest and goes back into the dark. **Calm:** the brand is projected onto the pedestal as a hologram, scanned up out of its light — seal, name, licence line — and re-scanned through the scripts: Future, Runic, a flash of Old World, Future. | G minor, 100 BPM, march toms; resolves to G major on the last scan |
+| `trailer-wide.mp4` / `trailer-tall.mp4` | 52 s | The four films cut on the beats of the score: intro, build, the drop on 0:24.8, the end card on the final hit at 0:43.4. Tall is 1080×1920 for Reels, TikTok and Shorts. | *Beyond the Wall*, D minor, 116 BPM |
+
+Every film ends the same way in outline and differently in detail: a peak, a come-down, a
+calm with the brand's seal and name on screen, the name walking through the scripts, and a
+fade to black under a musical fade-out. No film uses the Ancient Tech typeface: they are
+set in Runic and Future, with Old World shown briefly.
 
 **No product photos.** The store's few real photos never appear: `stage.js` strips them
 from the catalogue before a page draws, so every card shows its holo schematic.
@@ -59,8 +64,9 @@ broadcast quality they are tens of megabytes each, and every deploy clones this 
   tagline and address set in the site's own type, `plates.html`), bloom and grain. The
   film's `lens(t)` turns the knobs. Out to H.264 High@4.1, yuv420p, BT.709, faststart.
 - **Sound** (`sound/`). `score.mjs` writes the trailer's score, *Beyond the Wall* — D minor,
-  116 BPM, 24 bars — and its beat map; `soundtrack.mjs` scores each film to its `cues` in the
-  same key. No samples: oscillators, noise and filters from `sound/dsp.mjs`, EVRITHNG's sound
+  116 BPM, 24 bars — and its beat map; `soundtrack.mjs` writes each film its own score
+  (`MUSIC`: key, tempo, groove, chords, the peak's melody, the calm's harmony, a fade) and
+  scores its `cues` in that key. No samples: oscillators, noise and filters from `sound/dsp.mjs`, EVRITHNG's sound
   library, vendored unchanged. Mixed by measurement, not by ear (-14 LUFS trailer, -16 LUFS
   films, -1 dBTP) — listen before you publish.
 - **The trailer** (`trailer.mjs`). Cuts are data, in beats; every cut lands on a beat and the
