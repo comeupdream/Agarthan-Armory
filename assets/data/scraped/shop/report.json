@@ -1,33 +1,23 @@
 {
   "site": "https://shop.agarthanarmory.com",
-  "startedAt": "2026-11-08T06:11:38.165Z",
-  "platform": "sitemap",
+  "startedAt": "2026-11-08T08:22:02.834Z",
+  "platform": "gearfire",
   "tried": [
     {
-      "mode": "woo",
-      "error": "HTTP 404 for https://shop.agarthanarmory.com/wp-json/wc/store/v1/products?per_page=100&page=1"
-    },
-    {
-      "mode": "shopify",
-      "error": "HTTP 404 for https://shop.agarthanarmory.com/products.json?limit=250&page=1"
-    },
-    {
-      "mode": "sitemap",
-      "products": 2825
+      "mode": "gearfire",
+      "products": 9232
     }
   ],
   "warnings": [
-    "1 pages failed to load"
+    "19671 product pages failed to load"
   ],
   "counts": {
-    "images": 0,
-    "imageFailures": 2825,
-    "products": 2825,
-    "withPrice": 2825,
+    "products": 9232,
+    "withPrice": 9232,
     "callForPrice": 0,
-    "withDescription": 2825,
-    "withSpecs": 2825,
-    "withImages": 2825
+    "withDescription": 9232,
+    "withSpecs": 9232,
+    "withImages": 9230
   },
   "sitemapsDeclared": [
     "https://shop.agarthanarmory.com/sitemap.xml"
@@ -36,7 +26,8 @@
     "woo": false,
     "wordpress": false,
     "shopify": false,
+    "gearfire": true,
     "bigcommerce": false
   },
-  "finishedAt": "2026-11-08T06:46:15.593Z"
+  "finishedAt": "2026-11-08T09:10:01.713Z"
 }
