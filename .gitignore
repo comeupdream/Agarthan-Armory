@@ -1,3 +1,11 @@
 node_modules/
 .DS_Store
 *.log
+
+# trailer frame cache (tools/trailer/render.mjs)
+.trailer-cache/
+
+# rendered films (npm run films): tens of MB each, so they are made, not committed;
+# the posters, the score and each film's sound are committed
+media/films/*.mp4
+media/films/*.wav
