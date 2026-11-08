@@ -120,6 +120,39 @@ The Test workflow runs it on every push that touches `scripts/`.
 Lineage: PAMAX's WooCommerce and BigCommerce scrapers and XAT Racing's
 prober, X-Cart and Shopify scrapers, merged into one adaptive tool.
 
+## Product photos (by UPC)
+
+Every scraped product carries a UPC. Gearfire's image server refuses
+downloads, so photos come from the sources dealers are given them by: the
+distributors' image packs and feed image links, and manufacturers' dealer
+portals. `scripts/match-images.mjs` (`npm run images`) matches them by UPC:
+
+```bash
+npm i sharp
+```
+
+```bash
+npm run images -- --folder path/to/image-pack
+```
+
+That covers files named by UPC. For a pack named by the distributor's own item
+numbers, add their catalog file so the tool can translate them:
+
+```bash
+npm run images -- --folder rsr-images --csv rsr-inventory.txt --no-header --key-col 1 --upc-col 2
+```
+
+For a feed or spreadsheet with image links, point it at the file:
+
+```bash
+npm run images -- --csv feed.csv --upc-col UPC --image-cols "Image URL"
+```
+
+Then `npm run build:catalog` and push. Options: `--max 3` photos per product
+(default 1 keeps the repo light), `--dry-run` to see how many would match first,
+`--replace` to redo products that already have photos. `sharp` resizes to
+1000 px JPEG (about 60–120 KB each); without it files are copied as-is.
+
 ## 3. Deploy
 
 The repo root is the site, with no build step.

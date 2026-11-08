@@ -21,3 +21,4 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/test-scrape.mjs
+      - run: node scripts/test-images.mjs
