@@ -120,6 +120,38 @@ The Test workflow runs it on every push that touches `scripts/`.
 Lineage: PAMAX's WooCommerce and BigCommerce scrapers and XAT Racing's
 prober, X-Cart and Shopify scrapers, merged into one adaptive tool.
 
+## Product photos found online (find-images)
+
+`scripts/find-images.mjs` searches the web for every product without a photo
+(brand + name + UPC, through the Brave Search API), prefers the manufacturer's
+own site, downloads the best match and records where it came from. It also
+writes `assets/data/scraped/photo-review.html`, a contact sheet to eyeball
+before publishing (weaker matches outlined in pink). The API bills per search,
+about $5 per 1,000; expect 1–2 searches per product.
+
+Get a key at brave.com/search/api, then in PowerShell, in the project folder:
+
+```bash
+npm i --no-save sharp
+```
+
+```bash
+$env:BRAVE_API_KEY="your-key-here"
+```
+
+```bash
+npm run find-images -- --limit 20
+```
+
+Check `assets\data\scraped\photo-review.html` in a browser, then run the rest:
+
+```bash
+npm run find-images -- --budget 6000
+```
+
+Then `npm run build:catalog` and push. Runs resume where they left off;
+`--retry` searches again for products nothing was found for.
+
 ## Product photos (by UPC)
 
 Every scraped product carries a UPC. Gearfire's image server refuses

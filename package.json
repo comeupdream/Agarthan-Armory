@@ -14,7 +14,8 @@
     "build:wall": "node tools/build-wall.mjs",
     "build:icons": "node tools/build-icons.mjs",
     "stamp": "node tools/stamp-partials.mjs",
-    "images": "node scripts/match-images.mjs"
+    "images": "node scripts/match-images.mjs",
+    "find-images": "node scripts/find-images.mjs"
   },
   "engines": {
     "node": ">=18"

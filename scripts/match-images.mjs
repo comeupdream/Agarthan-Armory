@@ -93,9 +93,9 @@ async function walk(dir, out = []) {
   }
   return out;
 }
-const isImage = (b) => (b[0] === 0xff && b[1] === 0xd8) || (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) ||
+export const isImage = (b) => (b[0] === 0xff && b[1] === 0xd8) || (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) ||
   b.subarray(0, 4).toString() === 'GIF8' || (b.subarray(0, 4).toString() === 'RIFF' && b.subarray(8, 12).toString() === 'WEBP');
-const extOf = (b) => (b[0] === 0xff ? '.jpg' : b[0] === 0x89 ? '.png' : b.subarray(0, 4).toString() === 'GIF8' ? '.gif' : '.webp');
+export const extOf = (b) => (b[0] === 0xff ? '.jpg' : b[0] === 0x89 ? '.png' : b.subarray(0, 4).toString() === 'GIF8' ? '.gif' : '.webp');
 
 async function main() {
   const FOLDERS = all('folder'), CSVS = all('csv');
