@@ -508,22 +508,32 @@
   }
 
   /* ---------- Agartha transmissions: the client's art videos ----------
-   * Play only while on screen and the tab is visible. Reduced motion starts
-   * them held on the poster frame. Hold / Play lets anyone stop the motion. */
+   * Play only while on screen and the tab is visible. A video with `loop`
+   * runs on; one without plays once and rests on its last frame (Replay runs
+   * it again). Reduced motion starts them held, the static piece on its
+   * resting frame (data-still). Hold / Play lets anyone stop the motion. */
   function transmissions() {
     $$('video[data-art]').forEach((v) => {
       v.muted = true;                       // iOS needs the property, not only the attribute
       const frame = v.closest('[data-art-frame]');
       const btn = frame && $('[data-art-hold]', frame);
       const state = frame && $('[data-art-state]', frame);
-      let held = reduced, onScreen = !('IntersectionObserver' in window);
+      let held = reduced, done = false, onScreen = !('IntersectionObserver' in window);
+      if (reduced && !v.loop && v.dataset.still) v.poster = v.dataset.still;
       const sync = () => {
-        if (!held && onScreen && !document.hidden) { const p = v.play(); if (p) p.catch(() => {}); } else v.pause();
-        if (frame) frame.classList.toggle('held', held);
-        if (state) state.textContent = held ? 'Held' : 'Live';
-        if (btn) { btn.textContent = held ? 'Play' : 'Hold'; btn.setAttribute('aria-label', held ? 'Play the animation' : 'Pause the animation'); }
+        if (!held && !done && onScreen && !document.hidden) { const p = v.play(); if (p) p.catch(() => {}); } else v.pause();
+        if (frame) { frame.classList.toggle('held', held && !done); frame.classList.toggle('still', done); }
+        if (state) state.textContent = done ? 'Still' : held ? 'Held' : 'Live';
+        if (btn) {
+          btn.textContent = done ? 'Replay' : held ? 'Play' : 'Hold';
+          btn.setAttribute('aria-label', done ? 'Replay the animation' : held ? 'Play the animation' : 'Pause the animation');
+        }
       };
-      if (btn) btn.addEventListener('click', () => { held = !held; sync(); });
+      v.addEventListener('ended', () => { done = true; sync(); });
+      if (btn) btn.addEventListener('click', () => {
+        if (done) { done = false; held = false; v.currentTime = 0; } else held = !held;
+        sync();
+      });
       if (!onScreen) new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; sync(); }, { rootMargin: '160px 0px' }).observe(v);
       document.addEventListener('visibilitychange', sync);
       sync();
