@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FFL Transfers — Agarthan Armory</title>
+<meta name="description" content="Ship your online firearm purchase to Agarthan Armory's FFL. Transfer fees, what to bring, how long it takes, and private-party transfers.">
+<meta name="theme-color" content="#03060c">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Agarthan Armory">
+<meta property="og:title" content="FFL Transfers — The Gate in the Wall">
+<meta property="og:description" content="Bought a gun online? Ship it to our FFL. We log it, run the background check and hand it over.">
+<meta property="og:image" content="https://agarthanarmory.com/assets/img/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/cinzel-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+<script>try{var t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)document.documentElement.classList.add('age-ok')}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<!-- partial:gate -->
+<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-card hud brackets">
+    <div class="gate-scan" aria-hidden="true">
+      <svg viewBox="0 0 120 120" fill="none" stroke="currentColor">
+        <circle cx="60" cy="60" r="56" stroke-opacity=".25"/>
+        <g class="spin"><path d="M60 4a56 56 0 0 1 48.5 28" stroke-width="2"/><path d="M60 116a56 56 0 0 1-48.5-28" stroke-width="2"/></g>
+        <g class="spin2" stroke-dasharray="3 7" stroke-opacity=".6"><circle cx="60" cy="60" r="44"/></g>
+        <circle cx="60" cy="60" r="30" stroke-opacity=".4"/>
+        <path d="M45 66l9-17 6 9 5-7 10 15z" fill="currentColor" fill-opacity=".18"/>
+        <ellipse cx="60" cy="47" rx="12" ry="3.2" fill="currentColor" fill-opacity=".35"/>
+      </svg>
+    </div>
+    <span class="eyebrow">Perimeter checkpoint</span>
+    <h2 id="gateTitle">Credentials required beyond the wall</h2>
+    <div class="gate-msg"><p>This outpost deals in firearms and ammunition. You must be <b><span data-age>21</span> or older</b> to pass.</p></div>
+    <div class="gate-actions">
+      <button class="btn btn-ice" id="gateYes" type="button">I’m <span data-age>21</span> or older · open the gate</button>
+      <button class="btn btn-ghost" id="gateNo" type="button">Turn back</button>
+    </div>
+    <p class="gate-fine">By entering you confirm you are of legal age where you live. Every firearm sale complies with federal, state and local law.</p>
+  </div>
+</div>
+<!-- /partial:gate -->
+<!-- partial:header -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>◈ Federal firearms licensee · <b>transfers accepted</b> ◈ Outpost time <i data-clock>--:--:--</i> ◈ Surface temp −89.2°C (Vostok record) ◈ Signal <b>strong</b> ◈ Vril reserves <b>98%</b> ◈ Aurora activity <b>high</b> ◈ Craft sightings <b>logged</b> ◈ New inventory recovered weekly ◈ Special orders from every major distributor</span>
+    <span>◈ Federal firearms licensee · <b>transfers accepted</b> ◈ Outpost time <i data-clock>--:--:--</i> ◈ Surface temp −89.2°C (Vostok record) ◈ Signal <b>strong</b> ◈ Vril reserves <b>98%</b> ◈ Aurora activity <b>high</b> ◈ Craft sightings <b>logged</b> ◈ New inventory recovered weekly ◈ Special orders from every major distributor</span>
+  </div>
+</div>
+<header class="site-header">
+  <nav class="nav wrap" aria-label="Main">
+    <a class="brand" href="index.html" aria-label="Agarthan Armory — home">
+      <img class="brand-mark" src="assets/img/logo.svg" alt="" width="40" height="40">
+      <span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>Federally licensed · beyond the wall</small></span>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="armory.html">The Armory</a></li>
+      <li><a href="armory.html?dept=ammo">Ammo</a></li>
+      <li><a href="index.html#map">The Map</a></li>
+      <li><a href="transfers.html">FFL Transfers</a></li>
+      <li><a href="index.html#visit">Visit</a></li>
+    </ul>
+    <button class="req-btn" type="button" data-open-req aria-label="Open your requisition list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+      <span class="req-label">Requisition</span><span class="req-count" data-n="0">0</span>
+    </button>
+    <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
+  </nav>
+</header>
+<!-- /partial:header -->
+
+<main id="main">
+  <section class="page-hero">
+    <canvas id="sky" data-sky="lite" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <span class="eyebrow">FFL transfer services</span>
+      <h1 class="frost-text">The gate in the wall</h1>
+      <p>Bought a firearm online, at auction or from a private seller? Ship it to our FFL. We receive it, log it, run the background check and hand it over, by the book.</p>
+      <div class="hero-cta" style="justify-content:flex-start">
+        <button class="btn btn-ice arrow" type="button" id="requestFfl">Request our FFL copy</button>
+        <a class="btn btn-ghost" href="#faq">Questions</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">01 — How it works</span>
+        <h2>Five steps through the gate</h2>
+      </div>
+      <ol class="steps reveal" style="list-style:none;padding:0;margin:0">
+        <li class="step"><div class="step-n"><span>01</span></div><h3>Buy it anywhere</h3><p>Any online retailer, auction site or private seller.</p></li>
+        <li class="step"><div class="step-n"><span>02</span></div><h3>Ship to our FFL</h3><p>The seller needs a copy of our license. Ask and we’ll send it to them directly.</p></li>
+        <li class="step"><div class="step-n"><span>03</span></div><h3>We log it</h3><p>It’s entered in our bound book on arrival, and we call you.</p></li>
+        <li class="step"><div class="step-n"><span>04</span></div><h3>Clear the checkpoint</h3><p>Valid photo ID, ATF Form 4473 and a NICS background check.</p></li>
+        <li class="step"><div class="step-n"><span>05</span></div><h3>Take it home</h3><p>Approved and complete. Welcome back through the gate.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">02 — Fees</span>
+        <h2>Transfer fees</h2>
+        <p>Per transaction, paid when you pick up. Background check included.</p>
+      </div>
+      <div class="fee-grid reveal">
+        <div class="fee hud brackets"><b>Long gun</b><span class="amt" data-cfg="fees.longGun"></span><small>Rifles and shotguns</small></div>
+        <div class="fee hud brackets"><b>Handgun</b><span class="amt" data-cfg="fees.handgun"></span><small>Pistols, revolvers and receivers</small></div>
+        <div class="fee hud brackets"><b>Each additional</b><span class="amt" data-cfg="fees.additional"></span><small>Same 4473, same visit</small></div>
+        <div class="fee hud brackets"><b>Private party</b><span class="amt" data-cfg="fees.privateParty"></span><small>Buyer and seller come in together</small></div>
+        <div class="fee hud brackets" data-sot hidden><b>NFA item</b><span class="amt" data-cfg="fees.nfa"></span><small>Suppressors, SBRs — Form 4 / eForms</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap two-col">
+      <div class="hud brackets reveal" style="padding:clamp(22px,3vw,34px)">
+        <h4>What to bring</h4>
+        <ul class="ticklist">
+          <li>A valid government-issued photo ID with your current address (driver’s license or state ID).</li>
+          <li>If your ID address is out of date, a second government document showing your current address (vehicle registration, voter card, property tax bill).</li>
+          <li>Your state’s permit or license, if your state requires one to buy (for example, a handgun purchase permit).</li>
+          <li>The seller’s name and order number, so we can match the shipment.</li>
+        </ul>
+      </div>
+      <div class="hud brackets reveal" style="padding:clamp(22px,3vw,34px)">
+        <h4>Before you buy</h4>
+        <ul class="ticklist">
+          <li>Make sure the firearm is legal to own where you live. We can’t transfer an item your state prohibits.</li>
+          <li>Call or email us first so we know it’s coming.</li>
+          <li>Handguns and receivers: 21+. Long guns: 18+. Federal law sets the floor; your state may set more.</li>
+          <li>We inspect each arrival. Report any damage to the seller before the transfer completes.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="services" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">03 — Services</span>
+        <h2>More than a gate</h2>
+      </div>
+      <div class="service-grid">
+        <div class="service hud brackets reveal">
+          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="12" width="32" height="26"/><path d="M8 20h32M18 12V6h12v6M16 28h16M16 33h10"/></svg>
+          <h3>Special orders</h3><p>If it isn’t in the vault, we can usually get it from a distributor. Tell us the make, model and caliber.</p>
+        </div>
+        <div class="service hud brackets reveal">
+          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 30l8-8 6 6 14-14"/><path d="M30 14h8v8"/><path d="M8 40h32"/></svg>
+          <h3>Consignment &amp; buys</h3><p>Selling a firearm? We can buy it outright or sell it for you on consignment. Bring it in or send photos first.</p>
+        </div>
+        <div class="service hud brackets reveal">
+          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="24" cy="24" r="14"/><circle cx="24" cy="24" r="3"/><path d="M24 4v8M24 36v8M4 24h8M36 24h8"/></svg>
+          <h3>Optics mounting</h3><p>Scopes and red dots mounted, leveled and torqued to spec, ready to zero.</p>
+        </div>
+        <div class="service hud brackets reveal">
+          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M24 6l14 6v10c0 9-6 16-14 20-8-4-14-11-14-20V12z"/><path d="M18 24l5 5 8-9"/></svg>
+          <h3>Private-party transfers</h3><p>Buying from someone you know? Do it properly: both of you come in and the buyer completes a 4473 and background check.</p>
+        </div>
+      </div>
+      <p class="form-note" style="margin-top:16px">Services vary. Call ahead to confirm availability.</p>
+    </div>
+  </section>
+
+  <section class="section" id="faq" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">04 — Questions</span>
+        <h2>Transfer FAQ</h2>
+      </div>
+      <div class="faq reveal">
+        <details><summary>How long does a transfer take?</summary><p>Once the firearm arrives and is logged, the transfer itself usually takes 20–30 minutes in person. Most NICS checks come back in minutes. Some come back “delayed”; we’ll keep you posted.</p></details>
+        <details><summary>What happens if my background check is delayed or denied?</summary><p>A delay means NICS needs more time to research, and we follow federal and state rules on how long to wait before proceeding. If a transfer is denied, we can’t release the firearm; we’ll explain your options, including returning it to the seller (shipping at your cost) and appealing the decision.</p></details>
+        <details><summary>Can I ship a firearm to you from another state?</summary><p>Yes. Licensed dealers ship firearms to other licensed dealers across state lines. Handguns must transfer to residents of the dealer’s state, and long guns can transfer to residents of other states only where both states’ laws allow it. Ask before you buy.</p></details>
+        <details><summary>Do you accept ammunition, parts or accessories?</summary><p>Under federal law, ammunition and most parts don’t require an FFL, though some states regulate ammunition sales and some sellers will only ship to a dealer. Ask us first; there may be a receiving fee.</p></details>
+        <details><summary>Do you handle NFA items?</summary><p>Suppressors, short-barreled rifles and other NFA items require a dealer with Special Occupational Tax status. Call us and we’ll tell you exactly what we can do.</p></details>
+        <details><summary>How long will you hold my firearm?</summary><p>Please pick up within a reasonable time once we call. Long-term storage may carry a fee. Ask us if you need longer.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- partial:footer -->
+<footer class="site-footer">
+  <div class="wrap foot-grid">
+    <div>
+      <a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt="" width="40" height="40"><span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>The last outpost before the wall</small></span></a>
+      <p style="margin-top:18px;max-width:320px">Firearms, ammunition, optics and FFL transfers. Hyperborean steel, Agarthan engineering, and every form filled out properly.</p>
+      <p class="runes foot-runes" data-runes="hyperborea · agartha · the ice wall"></p>
+      <div class="ffl-plate">FFL · <span data-cfg="ffl.number" data-tbd="[ FFL NUMBER ]"></span><br><span data-cfg="ffl.type"></span><span data-sot hidden> · SOT</span></div>
+    </div>
+    <div>
+      <h4>The Armory</h4>
+      <ul>
+        <li><a href="armory.html?dept=sidearms">Sidearms</a></li>
+        <li><a href="armory.html?dept=longarms">Longarms</a></li>
+        <li><a href="armory.html?dept=shotguns">Shotguns</a></li>
+        <li><a href="armory.html?dept=ammo">Ammunition</a></li>
+        <li><a href="armory.html?dept=optics">Optics &amp; Tech</a></li>
+        <li><a href="armory.html?dept=gear">Expedition Gear</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Services</h4>
+      <ul>
+        <li><a href="transfers.html">FFL transfers</a></li>
+        <li><a href="transfers.html#services">Special orders</a></li>
+        <li><a href="transfers.html#faq">Transfer FAQ</a></li>
+        <li><a href="index.html#map">The ice wall map</a></li>
+        <li><a href="index.html#visit">Visit &amp; hours</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li data-cfg="phone" data-tbd="[ PHONE ]"></li>
+        <li data-cfg="email" data-tbd="[ EMAIL ]"></li>
+        <li data-cfg="address" data-tbd="[ ADDRESS ]"></li>
+      </ul>
+      <h4 style="margin-top:22px">Signals</h4>
+      <ul data-social></ul>
+    </div>
+  </div>
+  <div class="legal wrap">
+    © <span data-year>2026</span> <span data-cfg="name"></span>. Federally licensed firearms dealer. Every firearm transfer requires ATF Form 4473 and a background check and must comply with federal, state and local law.
+    Handguns 21+ · long guns &amp; ammunition 18+. We reserve the right to refuse any sale. What lies beyond the wall remains classified.
+  </div>
+</footer>
+<!-- /partial:footer -->
+
+<script src="assets/js/config.js"></script>
+<script src="assets/data/catalog.js"></script>
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/site.js"></script>
+<script>
+  document.getElementById('requestFfl').addEventListener('click', function () {
+    var AA = window.AA, email = AA.cfg.email;
+    if (!email) { AA.toast('The store’s email isn’t set up yet (config.js → email).', 5000); return; }
+    location.href = 'mailto:' + email + '?subject=' + encodeURIComponent('FFL copy request') + '&body=' +
+      encodeURIComponent('Please send a copy of your FFL to the seller below.\n\nSeller name:\nSeller email:\nOrder number:\nMy name and phone:');
+  });
+</script>
+</body>
+</html>

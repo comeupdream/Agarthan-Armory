@@ -1,0 +1,20 @@
+{
+  "name": "agarthan-armory",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agarthan Armory storefront (static site) + the catalog scraper that keeps it in sync with the live store.",
+  "scripts": {
+    "start": "node server.mjs",
+    "probe": "node scripts/probe-site.mjs https://agarthanarmory.com",
+    "scrape": "node scripts/scrape.mjs --site https://agarthanarmory.com",
+    "build:catalog": "node scripts/build-catalog.mjs",
+    "sync": "npm run scrape && npm run build:catalog",
+    "test": "node scripts/test-scrape.mjs",
+    "build:wall": "node tools/build-wall.mjs",
+    "build:icons": "node tools/build-icons.mjs",
+    "stamp": "node tools/stamp-partials.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

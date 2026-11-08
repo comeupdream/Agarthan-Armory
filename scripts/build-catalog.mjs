@@ -1,0 +1,228 @@
+#!/usr/bin/env node
+/* =============================================================================
+ * build-catalog.mjs — scraped store data → assets/data/catalog.js (what the
+ * site renders). Seconds, no network; re-run any time the rules or the
+ * overrides change.
+ *
+ *   in   assets/data/scraped/catalog.json   (scripts/scrape.mjs)
+ *        assets/data/overrides.json         (optional hand corrections, below)
+ *   out  assets/data/catalog.js             (demo: false)
+ *
+ * Per product it decides: the department (sidearms, longarms, shotguns, ammo,
+ * optics, gear), whether it is a FIREARM (drives the FFL note), the hologram
+ * icon, the spec rows (caliber, capacity, barrel, action, …), the stock state
+ * and the price. Rules are keyword heuristics over the store's own categories
+ * first and the product name second; whatever they get wrong, overrides fix.
+ *
+ * Nothing is invented: no SKU, price or spec that the store did not publish.
+ *
+ * overrides.json — keyed by product id (the slug in catalog.js):
+ *   { "glock-19-gen5": { "dept": "sidearms", "type": "pistol", "featured": true,
+ *                        "lore": "Standard issue below the ice.", "hide": false,
+ *                        "firearm": true, "name": "…", "specs": { "barrel": "4.02 in" } } }
+ *
+ * USAGE  node scripts/build-catalog.mjs [--in path] [--overrides path] [--out path] [--remote-images]
+ *   --remote-images  fall back to the store's own photo URLs when a product
+ *                    has no downloaded photo (hotlinks: break if that host moves)
+ * ===========================================================================*/
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+/* ---------- classification ---------- */
+const T = (s) => String(s || '').toLowerCase();
+const has = (re, ...parts) => parts.some((p) => re.test(T(p)));
+
+const RE = {
+  ammoCat: /\b(ammo|ammunition|cartridges?|shotshells?|reloading|bulk ammo)\b/,
+  ammoName: /\b(ammo|ammunition|shotshells?|buckshot|birdshot|slugs?|bulk pack)\b|\b(00|000|#?[1-9])\s?buck\b|\b\d{2,3}\s?(gr|grain)\b|\b\d{1,4}\s?(rd|rds|rounds?|ct)\s*(box|case|pack|bag|can)\b|\bbox of \d+|\b(2-3\/4|2 3\/4|2\.75|3-1\/2)\s?("|in\b|inch)/,
+  optics: /\b(optics?|scopes?|riflescopes?|red ?dots?|reflex|holographic|prism|magnifiers?|lpvo|thermal|night vision|nvg|monoculars?|binoculars?|rangefinders?|sights?|lasers?|holosun|vortex|trijicon|eotech|aimpoint|leupold|burris|nightforce|swampfox|primary arms|pulsar|steiner)\b|\b\d+(\.\d+)?-\d+(\.\d+)?x\d*\b/,
+  gearName: /\b(magazines?|mags?|pmags?|holsters?|cases?|bags?|backpacks?|safes?|vaults?|lock ?box|slings?|cleaning|solvent|lube|oil|bore ?snake|brush(es)?|kits?|grips?|stocks?|handguards?|rails?|mounts?|rings|bipods?|targets?|ear pro|hearing|eye pro|glasses|apparel|shirts?|hats?|hoodies?|patches?|knives|knife|lights?|flashlights?|lumens?|triggers?|buffers?|springs?|parts|gift cards?|stickers?|muzzle brakes?|compensators?|flash hiders?)\b/,
+  receiver: /\b(stripped|complete|billet|forged)?\s?lower receivers?\b|\bstripped lower\b|\bcomplete lower\b/,
+  shotgun: /\bshotguns?\b|\b(12|16|20|28)\s?(ga|gauge)\b|\.?410\s?(bore|ga)?\b/,
+  handgun: /\b(pistols?|handguns?|revolvers?|sidearms?|semi-?auto pistol)\b/,
+  rifle: /\b(rifles?|carbines?|ar-?15s?|ar-?10s?|ak-?47s?|lever[- ]action|bolt[- ]action|pcc|msr|sbr|long ?guns?|m&p ?15|m4|m4a1|mini-14|m1a|m14|garand|sks)\b/,
+  rifleCal: /\b5\.56|\.223|\.308|\b6\.5 ?(creedmoor|cm|prc|grendel)|\b7\.62|\b300 ?(blk|blackout|aac|win|prc)|\.30-06|\b30-06|\.270|\.243|\.350 legend|\.450 bushmaster|\.45-70|\.30-30|\b6mm/,
+  pistolCal: /\b9 ?mm|\.380|\.40 ?(s&w|sw)|\b10 ?mm|\.45 ?(acp|auto)|\.357|\.38 ?(spl|special)|\.44 ?(mag|special)|\.22 ?lr|\b22 ?lr|5\.7 ?x ?28/,
+  firearmCat: /\b(firearms?|guns?|handguns?|pistols?|revolvers?|rifles?|shotguns?|long ?guns?|used guns?|consignment guns?)\b/,
+};
+export function classify(p) {
+  const cats = (p.categories || []).join(' / ');
+  const tags = (p.tags || []).join(' ');
+  const name = p.name || '';
+  const attrs = Object.keys(p.attributes || {}).join(' ');
+  // categories are the store's own words — trust them before the name
+  if (has(RE.ammoCat, cats)) return 'ammo';
+  if (has(RE.optics, cats) && !has(RE.firearmCat, cats)) return 'optics';
+  const firearmCat = has(RE.firearmCat, cats);
+  if (firearmCat || !cats) {
+    if (has(RE.shotgun, cats)) return 'shotguns';
+    if (has(RE.handgun, cats)) return 'sidearms';
+    if (has(RE.rifle, cats)) return 'longarms';
+  }
+  if (has(/\b(accessor|parts?|gear|apparel|merch|cleaning|storage|holsters?|magazines?|cases?|safes?)\b/, cats)) {
+    return has(RE.optics, name) && !has(RE.gearName, name.replace(/\b(scope|sight) mounts?\b/i, '')) ? 'optics' : 'gear';
+  }
+  // the name: ammo and optics before guns ("12 ga shotshell", "rifle scope")
+  if (has(RE.ammoName, name, tags)) return 'ammo';
+  if (has(RE.optics, name) && !has(/\b(mounts?|rings|covers?|caps?)\b/, name) && !has(RE.handgun, name) && !has(/\brifle\b(?! ?scope)/, name)) return 'optics';
+  if (has(RE.gearName, name) && !has(/\b(pistol|rifle|shotgun|revolver)\b(?!\s?(grip|case|bag|mag|magazine|sling|stock|light|safe|rest))/, name)) return 'gear';
+  if (has(RE.receiver, name)) return 'longarms';
+  if (has(RE.shotgun, name, tags, attrs)) return 'shotguns';
+  if (has(RE.handgun, name, tags)) return 'sidearms';
+  if (has(RE.rifle, name, tags)) return 'longarms';
+  // listed by model only ("M&P15 Sport III 5.56 16\""): read it the way a person
+  // would — a cartridge plus a barrel length means a gun; the length says which
+  const barrel = barrelIn(name);
+  if (barrel && (has(RE.rifleCal, name) || has(RE.pistolCal, name))) return barrel >= 10 ? 'longarms' : 'sidearms';
+  if (firearmCat) return 'longarms';
+  return 'gear';
+}
+const FIREARM_DEPTS = new Set(['sidearms', 'longarms', 'shotguns']);
+const BARREL_RE = /\b(\d{1,2}(?:\.\d{1,3})?)\s?(?:"|”|''|in\b|inch(?:es)?\b|-inch)/i;
+/** barrel length in inches from a listing name, or null */
+export const barrelIn = (s) => { const m = String(s || '').match(BARREL_RE); const n = m ? parseFloat(m[1]) : NaN; return n >= 2 && n <= 34 ? n : null; };
+export function iconFor(dept, p) {
+  const n = T(`${p.name} ${(p.categories || []).join(' ')}`);
+  switch (dept) {
+    case 'sidearms': return /revolver|wheel ?gun|single action army|\bsaa\b|\b(gp100|sp101|lcr|redhawk|blackhawk|model 686|model 629|python|anaconda|king cobra)\b/.test(n) ? 'revolver' : 'pistol';
+    case 'longarms':
+      if (/lever/.test(n)) return 'lever';
+      if (/\b(m1a|m14|garand|sks|fal|g3|m1 carbine|battle rifle)\b/.test(n)) return 'battle';
+      if (/\.22\s?(lr|wmr)?\b|\b22\s?lr\b|rimfire|10\/22|\.17\s?hmr/.test(n)) return 'rimfire';
+      if (/receiver|ar-?15|ar-?10|\bm4|5\.56|\.223|300 ?blk|blackout|m&p ?15|carbine/.test(n)) return 'ar';
+      if (/bolt|precision rifle|hunting rifle|\b(tikka|remington 700|ruger american|savage|bergara|howa|weatherby|browning x-bolt|mossberg patriot)\b/.test(n)) return 'bolt';
+      return 'ar';
+    case 'shotguns': return /semi|auto(loader)?\b|\b(benelli|m4|m2|a300|a400|1301|sbe|1100|11-87|sa-08|930|940|vr80)\b/.test(n) ? 'semishotgun' : 'shotgun';
+    case 'ammo': return /\b(12|16|20|28)\s?(ga|gauge)\b|\.410|shotshell|buckshot|birdshot|slug/.test(n) ? 'shells' : 'ammo';
+    case 'optics':
+      if (/thermal|night vision|nvg|monocular|binocular/.test(n)) return 'thermal';
+      if (/\b(light|lumen|flashlight|tlr|surefire|streamlight)\b/.test(n)) return 'light';
+      if (/red ?dot|reflex|holographic|rmr|\brds\b|micro dot|enclosed emitter|eotech|aimpoint|holosun/.test(n) && !/scope|lpvo|\d+-\d+x/.test(n)) return 'reddot';
+      return 'scope';
+    default:
+      if (/magazine|\bmags?\b|pmag/.test(n)) return 'mag';
+      if (/\bcases?\b|\bbags?\b|backpack/.test(n)) return 'case';
+      if (/\bsafe\b|vault|lock ?box/.test(n)) return 'safe';
+      if (/clean|solvent|lube|oil|bore|brush|kit/.test(n)) return 'kit';
+      if (/\b(light|lumen|flashlight|tlr|surefire|streamlight|olight)\b/.test(n)) return 'light';
+      return 'case';
+  }
+}
+
+/* ---------- specs ---------- */
+const CALIBERS = [
+  /\b9\s?mm(?:\s?(?:luger|parabellum|\+p))?\b|\b9x19\b/, /\.380(?:\s?acp|\s?auto)?\b/, /\.40\s?(?:s&w|sw|cal)\b/, /\b10\s?mm(?:\s?auto)?\b/, /\.45\s?(?:acp|auto|colt|long colt|lc)\b/,
+  /\.357\s?(?:mag(?:num)?|sig)\b/, /\.38\s?(?:special|spl|spcl)\b/, /\.44\s?(?:mag(?:num)?|special|spl)\b/, /\.22\s?(?:lr|long rifle|wmr|mag(?:num)?)\b|\b22\s?lr\b/, /\.17\s?(?:hmr|wsm)\b/,
+  /\b5\.56(?:\s?x\s?45)?(?:\s?(?:mm|nato))*\b/, /\.223(?:\s?(?:rem(?:ington)?|wylde))?\b/, /\b(?:\.)?300\s?(?:blk|blackout|aac|win mag|wsm|prc)\b/, /\b6\.5\s?(?:creedmoor|cm|prc|grendel)\b/,
+  /\.308(?:\s?win(?:chester)?)?\b/, /\b7\.62\s?x\s?(?:39|51|54r?)\b/, /\.30-06(?:\s?springfield)?\b|\b30-06\b/, /\.270(?:\s?win)?\b/, /\.243(?:\s?win)?\b/, /\b6mm\s?(?:arc|creedmoor)\b/,
+  /\.350\s?legend\b/, /\.450\s?bushmaster\b/, /\.45-70\b/, /\.30-30\b/, /\b5\.7\s?x\s?28\b/, /\.25\s?acp\b/, /\.32\s?acp\b/,
+  /\b(?:12|16|20|28)\s?(?:ga|gauge)\b/, /\.410(?:\s?bore)?\b/,
+];
+const titleCal = (s) => s.replace(/\b(acp|lr|wmr|hmr|nato|s&w|blk|cm|prc|ga)\b/gi, (m) => m.toUpperCase()).replace(/\bluger\b/i, 'Luger').replace(/\bmag(num)?\b/i, 'Magnum').replace(/\b(win|rem|special|creedmoor|blackout|legend|bushmaster|springfield|auto)\b/gi, (m) => m[0].toUpperCase() + m.slice(1).toLowerCase());
+const attr = (p, re) => { for (const [k, v] of Object.entries(p.attributes || {})) if (re.test(k)) return String(v).trim(); return null; };
+export function specsFor(dept, p) {
+  const firearm = FIREARM_DEPTS.has(dept);
+  const text = `${p.name} ${p.shortDescription || ''}`;
+  const s = {};
+  const cal = attr(p, /^(caliber|calibre|gauge|cartridge|chamber(ing)?)$/i) || (() => { for (const re of CALIBERS) { const m = text.match(new RegExp(re.source, 'i')); if (m) return titleCal(m[0].trim()); } return null; })();
+  if (cal && (firearm || dept === 'ammo' || dept === 'gear')) s.caliber = cal;
+  if (firearm) {
+    const cap = attr(p, /^(capacity|magazine capacity|mag capacity|rounds?)$/i) || (text.match(/\b(\d{1,3})[\s-]?(?:\+\s?1\s?)?(?:rd|rds|round|shot)s?\b/i) || [])[1];
+    if (cap) s.capacity = /^\d+$/.test(cap) ? `${cap} rounds` : cap;
+    const bar = attr(p, /^barrel( length)?$/i) || (barrelIn(text) && `${barrelIn(text)} in`);
+    if (bar) s.barrel = bar;
+    const act = attr(p, /^(action|action type|operation)$/i);
+    if (act) s.action = act;
+  }
+  if (dept === 'ammo') {
+    const b = attr(p, /^(bullet( weight| type)?|grain|load|projectile)$/i) || (text.match(/\b(\d{2,3})\s?(?:gr|grain)\b\.?\s*([A-Za-z][\w-]{1,14}(?:\s[A-Z]{2,4})?)?/i) || [])[0];
+    if (b) s.bullet = b.replace(/\bgrain\b/i, 'gr');
+    const c = attr(p, /^(rounds?|count|quantity|rounds per box|box (count|quantity))$/i) || (text.match(/\b(\d{1,4})\s?(?:rd|rds|rounds?|ct|count)\b/i) || [])[1];
+    if (c) s.count = /^\d+$/.test(c) ? `${c} rounds` : c;
+  }
+  if (dept === 'optics') {
+    const mag = attr(p, /^magnification$/i) || (text.match(/\b(\d+(?:\.\d+)?-\d+(?:\.\d+)?x(?:\d+)?|\d+x\d{2})\b/i) || [])[1];
+    if (mag) s.magnification = mag;
+    const ret = attr(p, /^reticle$/i) || (text.match(/\b(\d+(?:\.\d+)?\s?moa(?:\s(?:dot|circle))?)\b/i) || [])[1];
+    if (ret) s.reticle = ret.replace(/moa/i, 'MOA');
+  }
+  // anything else the store labelled, up to a sane number of rows
+  const keep = /^(finish|frame|sights?|safety|weight|overall length|twist( rate)?|magazines? included|model|condition|color|colour|material|fits|compatibility|mount|battery|output|lumens)$/i;
+  for (const [k, v] of Object.entries(p.attributes || {})) {
+    if (Object.keys(s).length >= 9) break;
+    if (keep.test(k) && v) s[k.toLowerCase().replace(/\s+/g, '_')] = String(v);
+  }
+  return s;
+}
+
+/* ---------- build ---------- */
+const BRANDS = ['Smith & Wesson', 'Springfield Armory', 'Sig Sauer', 'SIG Sauer', 'Daniel Defense', 'Heckler & Koch', 'Palmetto State Armory', 'Sellier & Bellot', 'Primary Arms', 'Shadow Systems', 'Aero Precision', 'Kel-Tec', 'Glock', 'Ruger', 'CZ', 'Taurus', 'Beretta', 'Mossberg', 'Remington', 'Winchester', 'Benelli', 'Henry', 'Savage', 'Tikka', 'Browning', 'Colt', 'Kimber', 'Walther', 'HK', 'FN', 'BCM', 'Canik', 'Staccato', 'Stoeger', 'Marlin', 'Bergara', 'Howa', 'Federal', 'Hornady', 'CCI', 'PMC', 'Fiocchi', 'Magtech', 'Aguila', 'Speer', 'Barnes', 'Nosler', 'Blazer', 'Holosun', 'Vortex', 'Trijicon', 'EOTech', 'Aimpoint', 'Leupold', 'Burris', 'Bushnell', 'Swampfox', 'Streamlight', 'SureFire', 'Olight', 'Magpul', 'Pelican', 'Liberty', 'Hoppe’s', "Hoppe's", 'Otis', 'Pulsar', 'AGM', 'ATN', 'Steiner', 'Nightforce', 'Zeiss', 'Swarovski'];
+const brandOf = (p) => {
+  if (p.brand) return p.brand;
+  const a = attr(p, /^(brand|manufacturer|make|mfg)$/i); if (a) return a;
+  const n = p.name || '';
+  for (const b of BRANDS) if (new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(n)) return b;
+  return null;
+};
+const clip = (s, n) => { s = String(s || '').trim(); if (s.length <= n) return s; const cut = s.slice(0, n); const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('\n')); return (end > n * 0.6 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, '') + '…').trim(); };
+
+export function buildItems(scraped, overrides = {}, { remoteImages = false } = {}) {
+  const items = [];
+  for (const p of scraped) {
+    if (!p || !p.name) continue;
+    const o = overrides[p.id] || {};
+    if (o.hide) continue;
+    const dept = o.dept || classify(p);
+    const firearm = o.firearm ?? (FIREARM_DEPTS.has(dept) || RE.receiver.test(T(p.name)));
+    const images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
+    const status = p.availability || (p.price != null ? 'in' : 'ask');
+    items.push({
+      id: p.id,
+      dept,
+      type: o.type || iconFor(dept, p),
+      name: o.name || p.name,
+      brand: o.brand || brandOf(p),
+      price: o.price !== undefined ? o.price : p.price ?? null,
+      was: p.regularPrice ?? null,
+      priceNote: o.priceNote || p.priceNote || null,
+      status,
+      firearm,
+      specs: { ...specsFor(dept, p), ...(o.specs || {}) },
+      desc: clip(o.desc || p.description || p.shortDescription || '', 1600),
+      lore: o.lore || null,
+      images: images.slice(0, 6),
+      url: p.permalink || null,
+      sku: p.sku || null,
+      featured: Boolean(o.featured),
+      rank: p.rank ?? items.length,
+    });
+  }
+  return items;
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+  const arg = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
+  const IN = path.resolve(arg('in', 'assets/data/scraped/catalog.json'));
+  const OV = path.resolve(arg('overrides', 'assets/data/overrides.json'));
+  const OUTF = path.resolve(arg('out', 'assets/data/catalog.js'));
+  let scraped;
+  try { scraped = JSON.parse(await readFile(IN, 'utf8')); }
+  catch (e) { console.error(`✗ can't read ${IN} — run scripts/scrape.mjs first (${e.message})`); process.exit(1); }
+  if (!Array.isArray(scraped) || !scraped.length) { console.error('✗ scraped catalog is empty — nothing written'); process.exit(1); }
+  let overrides = {};
+  try { overrides = JSON.parse(await readFile(OV, 'utf8')); delete overrides._readme; } catch { /* optional */ }
+  let report = {};
+  try { report = JSON.parse(await readFile(path.join(path.dirname(IN), 'report.json'), 'utf8')); } catch { /* optional */ }
+  const items = buildItems(scraped, overrides, { remoteImages: argv.includes('--remote-images') });
+  const byDept = items.reduce((a, i) => ((a[i.dept] = (a[i.dept] || 0) + 1), a), {});
+  const doc = { demo: false, source: report.site || 'store', updated: (report.finishedAt || new Date().toISOString()).slice(0, 10), items };
+  await writeFile(OUTF, `/* generated by scripts/build-catalog.mjs from the store scrape — edit assets/data/overrides.json, not this file */\nwindow.AA_CATALOG = ${JSON.stringify(doc, null, 1)};\n`);
+  console.log(`✓ ${items.length} items → ${path.relative(process.cwd(), OUTF)}`);
+  console.log('  by department: ' + Object.entries(byDept).map(([k, v]) => `${k} ${v}`).join(' · '));
+  const unpriced = items.filter((i) => i.price == null).length;
+  if (unpriced) console.log(`  ${unpriced} without a price (shown as "${'Call for price'}")`);
+}
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) main();

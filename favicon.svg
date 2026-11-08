@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Agarthan Armory">
+  <defs>
+    <linearGradient id="aaIce" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4fdff"/><stop offset=".45" stop-color="#8fdcf6"/><stop offset="1" stop-color="#1b5a86"/></linearGradient>
+    <linearGradient id="aaHull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0fbff"/><stop offset="1" stop-color="#6aa9cc"/></linearGradient>
+    <linearGradient id="aaBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5dffb1" stop-opacity=".75"/><stop offset="1" stop-color="#5de4ff" stop-opacity=".12"/></linearGradient>
+    <clipPath id="aaDisc"><circle cx="32" cy="32" r="27"/></clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="#04101d" stroke="#5de4ff" stroke-width="2"/>
+  <g clip-path="url(#aaDisc)">
+    <path d="M26.5 27h11l7.5 17h-26z" fill="url(#aaBeam)"/>
+    <path d="M2 46l5-2.6 5 1.8 6-3 5 2 5-2.6 4 1.6 5-2.4 6 2.6 5-1.8 5 2.2 5-1.4V66H2z" fill="url(#aaIce)"/>
+    <path d="M12 47v12M19 45.5v10M26 46v13M37 45.6v11M45 46.4v12M53 46v9" stroke="#0b2c48" stroke-opacity=".55" stroke-width="1.1"/>
+    <path d="M31.2 43.4h1.6l1.4 18h-4.4z" fill="#effeff"/>
+  </g>
+  <path d="M23.5 24.2Q32 11.5 40.5 24.2z" fill="#5de4ff" fill-opacity=".55" stroke="#bff6ff" stroke-width=".9"/>
+  <ellipse cx="32" cy="25.6" rx="15.5" ry="4.2" fill="url(#aaHull)"/>
+  <ellipse cx="32" cy="27" rx="11" ry="1.6" fill="#0b2238"/>
+  <g fill="#5dffb1"><circle cx="22.5" cy="26.2" r="1"/><circle cx="27.2" cy="26.9" r="1"/><circle cx="32" cy="27.1" r="1"/><circle cx="36.8" cy="26.9" r="1"/><circle cx="41.5" cy="26.2" r="1"/></g>
+  <circle cx="32" cy="9.5" r="1.5" fill="#ffffff"/>
+</svg>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Signal lost — Agarthan Armory</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#03060c">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+  .lost { position: relative; min-height: 100svh; display: grid; place-items: center; text-align: center; overflow: hidden; isolation: isolate;
+    background: radial-gradient(120% 80% at 50% 0%, #0b1f3a 0%, #050d1b 55%, #02050b 100%); padding: 40px var(--gutter); }
+  .lost .wall { height: 38%; }
+  .lost h1 { font-size: clamp(64px, 16vw, 200px); line-height: .9; }
+  .lost p { color: #a9c3d6; max-width: 520px; margin: 18px auto 0; font-size: 18px; }
+  .lost .code { font: 400 12px/1.8 var(--f-mono); letter-spacing: .3em; color: var(--aurora); text-transform: uppercase; }
+  .lost .hero-cta { margin-top: 30px; }
+  .lost .inner { position: relative; z-index: 2; margin-bottom: 18vh; }
+</style>
+</head>
+<body>
+<main class="lost">
+  <canvas id="sky" data-sky aria-hidden="true"></canvas>
+  <img class="wall" src="/assets/img/ice-wall.svg" alt="" aria-hidden="true">
+  <div class="inner">
+    <div class="code">Error 404 · signal lost beyond the wall</div>
+    <p class="runes hero-runes" data-runes="signal lost beyond the wall" aria-hidden="true" style="margin:10px auto 0"></p>
+    <h1 class="frost-text">404</h1>
+    <p>Whatever was here drifted past the ice wall. The expedition can’t follow it, but the Armory is right where we left it.</p>
+    <div class="hero-cta">
+      <a class="btn btn-ice arrow" href="/armory.html">Return to the Armory</a>
+      <a class="btn btn-ghost" href="/">Back to base</a>
+    </div>
+  </div>
+</main>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/site.js"></script>
+</body>
+</html>

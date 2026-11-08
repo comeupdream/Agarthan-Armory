@@ -1,0 +1,109 @@
+name: Scrape catalog
+
+# Pulls the live store's products — names, prices, descriptions, specs,
+# stock, categories, photos — and commits them, then rebuilds the catalog the
+# site shows (assets/data/catalog.js). Runs on GitHub's runners because the
+# Claude sandbox cannot reach the store.
+#
+# How to run: Actions tab → "Scrape catalog" → Run workflow → pick the branch.
+# A failed or empty scrape commits nothing (scrape.mjs refuses to overwrite).
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Store to scrape'
+        default: 'https://agarthanarmory.com'
+        required: true
+      platform:
+        description: 'How to read it (auto tries the exact feeds first)'
+        type: choice
+        options: [auto, woo, shopify, sitemap, crawl]
+        default: auto
+      max_images:
+        description: 'Photos per product (0 = data only)'
+        default: '6'
+        required: false
+      concurrency:
+        description: 'Parallel requests (keep it polite)'
+        default: '3'
+        required: false
+      limit:
+        description: 'Cap on products this run (blank = all) — use 20 for a trial run'
+        default: ''
+        required: false
+      ignore_robots:
+        description: 'Ignore robots.txt (our own store only)'
+        type: boolean
+        default: false
+      allow_shrink:
+        description: 'Accept a catalog less than half the size of the last good run'
+        type: boolean
+        default: false
+  # Once the first run looks right, uncomment to refresh nightly (UTC):
+  # schedule:
+  #   - cron: '17 8 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape-catalog
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Scrape the store
+        env:
+          SITE: ${{ inputs.site || 'https://agarthanarmory.com' }}
+          PLATFORM: ${{ inputs.platform || 'auto' }}
+          MAXI: ${{ inputs.max_images || '6' }}
+          CONC: ${{ inputs.concurrency || '3' }}
+          LIMIT: ${{ inputs.limit }}
+          IGNORE_ROBOTS: ${{ inputs.ignore_robots && '1' || '' }}
+          ALLOW_SHRINK: ${{ inputs.allow_shrink && '1' || '' }}
+        run: >
+          node scripts/scrape.mjs --site "$SITE" --platform "$PLATFORM"
+          --max-images "$MAXI" --concurrency "$CONC"
+          ${LIMIT:+--limit "$LIMIT"} ${IGNORE_ROBOTS:+--ignore-robots} ${ALLOW_SHRINK:+--allow-shrink}
+
+      - name: Build the site catalog
+        run: node scripts/build-catalog.mjs
+
+      - name: Commit
+        # Two phases, conflict-proof: (1) commit only what the scrape owns
+        # (scraped data + photos); (2) after rebasing onto the latest branch,
+        # rebuild catalog.js against it (so a newer overrides.json wins) and
+        # commit that. A push race drops the rebuild commit and re-runs it.
+        env:
+          SITE: ${{ inputs.site || 'https://agarthanarmory.com' }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/data/scraped assets/img/products
+          git diff --cached --quiet || git commit -m "Scrape: catalog data + photos from $SITE"
+          BRANCH="${GITHUB_REF_NAME}"
+          for i in 1 2 3 4 5; do
+            if ! git pull --rebase --autostash origin "$BRANCH"; then
+              git rebase --abort 2>/dev/null || true
+              echo "Attempt $i: rebase failed; retrying…"; sleep $((2 ** i)); continue
+            fi
+            node scripts/build-catalog.mjs
+            BUILT=0
+            git add assets/data/catalog.js
+            if ! git diff --cached --quiet; then git commit -m "Build catalog.js from the scrape"; BUILT=1; fi
+            if git push origin "HEAD:$BRANCH"; then echo "Pushed on attempt $i."; exit 0; fi
+            if [ "$BUILT" = "1" ]; then git reset --hard HEAD~1; fi
+            echo "Attempt $i: push rejected; retrying…"; sleep $((2 ** i))
+          done
+          echo "::error::Could not push the scraped catalog after 5 attempts." >&2
+          exit 1

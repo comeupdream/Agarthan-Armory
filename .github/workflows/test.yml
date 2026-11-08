@@ -1,0 +1,23 @@
+name: Test
+
+# The scraper + catalog builder against mock stores (no network needed).
+on:
+  push:
+    paths: ['scripts/**', '.github/workflows/test.yml']
+  pull_request:
+    paths: ['scripts/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/test-scrape.mjs

@@ -1,0 +1,22 @@
+<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-card hud brackets">
+    <div class="gate-scan" aria-hidden="true">
+      <svg viewBox="0 0 120 120" fill="none" stroke="currentColor">
+        <circle cx="60" cy="60" r="56" stroke-opacity=".25"/>
+        <g class="spin"><path d="M60 4a56 56 0 0 1 48.5 28" stroke-width="2"/><path d="M60 116a56 56 0 0 1-48.5-28" stroke-width="2"/></g>
+        <g class="spin2" stroke-dasharray="3 7" stroke-opacity=".6"><circle cx="60" cy="60" r="44"/></g>
+        <circle cx="60" cy="60" r="30" stroke-opacity=".4"/>
+        <path d="M45 66l9-17 6 9 5-7 10 15z" fill="currentColor" fill-opacity=".18"/>
+        <ellipse cx="60" cy="47" rx="12" ry="3.2" fill="currentColor" fill-opacity=".35"/>
+      </svg>
+    </div>
+    <span class="eyebrow">Perimeter checkpoint</span>
+    <h2 id="gateTitle">Credentials required beyond the wall</h2>
+    <div class="gate-msg"><p>This outpost deals in firearms and ammunition. You must be <b><span data-age>21</span> or older</b> to pass.</p></div>
+    <div class="gate-actions">
+      <button class="btn btn-ice" id="gateYes" type="button">I’m <span data-age>21</span> or older · open the gate</button>
+      <button class="btn btn-ghost" id="gateNo" type="button">Turn back</button>
+    </div>
+    <p class="gate-fine">By entering you confirm you are of legal age where you live. Every firearm sale complies with federal, state and local law.</p>
+  </div>
+</div>

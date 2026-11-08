@@ -1,0 +1,51 @@
+name: Probe the store
+
+# What the store is built on and how its pages are shaped: the exact product
+# feeds (Woo Store API, Shopify products.json), sitemap, home, one category,
+# one product page. Report only — run it first, and whenever a scrape comes
+# back thin. Output lands in the run's Summary tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'The store to read'
+        default: 'https://agarthanarmory.com'
+        required: true
+      chars:
+        description: 'How many characters of each block to print'
+        default: '500'
+        required: false
+      category:
+        description: 'A category page to read (blank: guessed from the navigation)'
+        default: ''
+        required: false
+      product:
+        description: 'A product page to read (blank: guessed from the category page)'
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read the store
+        # inputs go through env vars, never ${{ }} inside the script (injection-safe)
+        env:
+          SITE: ${{ inputs.site }}
+          CHARS: ${{ inputs.chars }}
+          CATEGORY: ${{ inputs.category }}
+          PRODUCT: ${{ inputs.product }}
+        run: |
+          set -- "$SITE" --chars "${CHARS:-500}"
+          [ -n "$CATEGORY" ] && set -- "$@" --category "$CATEGORY"
+          [ -n "$PRODUCT" ] && set -- "$@" --product "$PRODUCT"
+          node scripts/probe-site.mjs "$@"

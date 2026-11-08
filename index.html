@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agarthan Armory — Arms from Beyond the Ice Wall</title>
+<meta name="description" content="Agarthan Armory is a federally licensed firearms dealer: handguns, rifles, shotguns, ammunition, optics and FFL transfers, from the last outpost before the ice wall.">
+<meta name="theme-color" content="#03060c">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Agarthan Armory">
+<meta property="og:title" content="Agarthan Armory — Arms from Beyond the Ice Wall">
+<meta property="og:description" content="Firearms, ammunition, optics and FFL transfers. Hyperborean steel, Agarthan engineering, federally licensed.">
+<meta property="og:image" content="https://agarthanarmory.com/assets/img/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/cinzel-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+<script>try{var t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)document.documentElement.classList.add('age-ok')}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<!-- partial:gate -->
+<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-card hud brackets">
+    <div class="gate-scan" aria-hidden="true">
+      <svg viewBox="0 0 120 120" fill="none" stroke="currentColor">
+        <circle cx="60" cy="60" r="56" stroke-opacity=".25"/>
+        <g class="spin"><path d="M60 4a56 56 0 0 1 48.5 28" stroke-width="2"/><path d="M60 116a56 56 0 0 1-48.5-28" stroke-width="2"/></g>
+        <g class="spin2" stroke-dasharray="3 7" stroke-opacity=".6"><circle cx="60" cy="60" r="44"/></g>
+        <circle cx="60" cy="60" r="30" stroke-opacity=".4"/>
+        <path d="M45 66l9-17 6 9 5-7 10 15z" fill="currentColor" fill-opacity=".18"/>
+        <ellipse cx="60" cy="47" rx="12" ry="3.2" fill="currentColor" fill-opacity=".35"/>
+      </svg>
+    </div>
+    <span class="eyebrow">Perimeter checkpoint</span>
+    <h2 id="gateTitle">Credentials required beyond the wall</h2>
+    <div class="gate-msg"><p>This outpost deals in firearms and ammunition. You must be <b><span data-age>21</span> or older</b> to pass.</p></div>
+    <div class="gate-actions">
+      <button class="btn btn-ice" id="gateYes" type="button">I’m <span data-age>21</span> or older · open the gate</button>
+      <button class="btn btn-ghost" id="gateNo" type="button">Turn back</button>
+    </div>
+    <p class="gate-fine">By entering you confirm you are of legal age where you live. Every firearm sale complies with federal, state and local law.</p>
+  </div>
+</div>
+<!-- /partial:gate -->
+<!-- partial:header -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>◈ Federal firearms licensee · <b>transfers accepted</b> ◈ Outpost time <i data-clock>--:--:--</i> ◈ Surface temp −89.2°C (Vostok record) ◈ Signal <b>strong</b> ◈ Vril reserves <b>98%</b> ◈ Aurora activity <b>high</b> ◈ Craft sightings <b>logged</b> ◈ New inventory recovered weekly ◈ Special orders from every major distributor</span>
+    <span>◈ Federal firearms licensee · <b>transfers accepted</b> ◈ Outpost time <i data-clock>--:--:--</i> ◈ Surface temp −89.2°C (Vostok record) ◈ Signal <b>strong</b> ◈ Vril reserves <b>98%</b> ◈ Aurora activity <b>high</b> ◈ Craft sightings <b>logged</b> ◈ New inventory recovered weekly ◈ Special orders from every major distributor</span>
+  </div>
+</div>
+<header class="site-header">
+  <nav class="nav wrap" aria-label="Main">
+    <a class="brand" href="index.html" aria-label="Agarthan Armory — home">
+      <img class="brand-mark" src="assets/img/logo.svg" alt="" width="40" height="40">
+      <span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>Federally licensed · beyond the wall</small></span>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="armory.html">The Armory</a></li>
+      <li><a href="armory.html?dept=ammo">Ammo</a></li>
+      <li><a href="index.html#map">The Map</a></li>
+      <li><a href="transfers.html">FFL Transfers</a></li>
+      <li><a href="index.html#visit">Visit</a></li>
+    </ul>
+    <button class="req-btn" type="button" data-open-req aria-label="Open your requisition list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+      <span class="req-label">Requisition</span><span class="req-count" data-n="0">0</span>
+    </button>
+    <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
+  </nav>
+</header>
+<!-- /partial:header -->
+
+<main id="main">
+  <!-- ================= HERO ================= -->
+  <section class="hero" aria-label="Agarthan Armory">
+    <canvas id="sky" data-sky aria-hidden="true"></canvas>
+    <img class="wall" src="assets/img/ice-wall.svg" alt="" aria-hidden="true">
+    <svg class="ufo" viewBox="0 0 160 150" role="button" aria-label="Unidentified flying object" tabindex="-1">
+      <defs>
+        <linearGradient id="ufoHull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2fcff"/><stop offset=".55" stop-color="#7fb3d1"/><stop offset="1" stop-color="#1c3550"/></linearGradient>
+        <linearGradient id="ufoDome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8ffff" stop-opacity=".95"/><stop offset="1" stop-color="#5de4ff" stop-opacity=".35"/></linearGradient>
+        <linearGradient id="ufoBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5dffb1" stop-opacity=".55"/><stop offset="1" stop-color="#5de4ff" stop-opacity="0"/></linearGradient>
+      </defs>
+      <path class="beam" d="M62 62h36l30 88H32z" fill="url(#ufoBeam)"/>
+      <path d="M54 48Q80 16 106 48z" fill="url(#ufoDome)" stroke="#bff6ff" stroke-width="1"/>
+      <ellipse cx="80" cy="52" rx="64" ry="13" fill="url(#ufoHull)"/>
+      <ellipse cx="80" cy="57" rx="52" ry="5" fill="#0b2238"/>
+      <g class="lights"><circle cx="38" cy="54" r="3"/><circle cx="59" cy="57" r="3"/><circle cx="80" cy="58" r="3"/><circle cx="101" cy="57" r="3"/><circle cx="122" cy="54" r="3"/></g>
+      <ellipse cx="80" cy="64" rx="22" ry="4" fill="#9ff3ff" opacity=".7"/>
+    </svg>
+    <div class="hud-corner tl">Outpost <b>online</b><br>Local <span data-clock>--:--:--</span></div>
+    <div class="hud-corner tr">90°00′S · beyond the wall<br><span data-date></span></div>
+    <div class="hud-corner bl">Vril field <b>stable</b><br>Aurora kp 7 · clear skies</div>
+    <div class="hud-corner br">FFL · <span data-cfg="ffl.number" data-tbd="[ FFL # ]"></span></div>
+
+    <div class="hero-content">
+      <span class="eyebrow">Federally licensed firearms dealer</span>
+      <h1 class="frost-text">Agarthan<span class="l2">Armory</span></h1>
+      <p class="runes hero-runes" data-runes="agarthan armory · beyond the ice wall" aria-hidden="true"></p>
+      <p class="hero-tag">Hyperborean steel. Agarthan engineering. Firearms, ammunition, optics and FFL transfers from the last outpost before the ice wall.</p>
+      <div class="hero-cta">
+        <a class="btn btn-ice arrow" href="armory.html">Enter the Armory</a>
+        <a class="btn btn-ghost" href="#map">Open the map</a>
+      </div>
+    </div>
+    <div class="scroll-cue" aria-hidden="true">Descend</div>
+  </section>
+
+  <div class="band" aria-hidden="true">
+    <div class="band-track">
+      <span>Handguns</span><span>Rifles</span><span>Shotguns</span><span>Ammunition</span><span>Optics &amp; Night Vision</span><span>FFL Transfers</span><span>Special Orders</span><span>Expedition Gear</span>
+      <span>Handguns</span><span>Rifles</span><span>Shotguns</span><span>Ammunition</span><span>Optics &amp; Night Vision</span><span>FFL Transfers</span><span>Special Orders</span><span>Expedition Gear</span>
+    </div>
+  </div>
+
+  <!-- ================= DEPARTMENTS ================= -->
+  <section class="section" id="departments">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">01 — The departments</span>
+        <h2>Choose your expedition</h2>
+        <p>Six vaults, one outpost. Everything we stock, sorted for the journey you are planning.</p>
+      </div>
+      <div class="depts" id="deptGrid">
+        <a class="dept hud brackets reveal" href="armory.html?dept=sidearms" data-dept="sidearms" data-icon="pistol">
+          <div class="dept-code"><span>Dept 01</span><b data-count></b></div>
+          <div class="holo-wrap scan"></div>
+          <h3>Agarthan Sidearms</h3>
+          <p>Carry, duty and range pistols, and revolvers that still work after the grid goes dark.</p>
+          <span class="go arrow">Enter </span>
+        </a>
+        <a class="dept hud brackets reveal" href="armory.html?dept=longarms" data-dept="longarms" data-icon="ar">
+          <div class="dept-code"><span>Dept 02</span><b data-count></b></div>
+          <div class="holo-wrap scan"></div>
+          <h3>Hyperborean Longarms</h3>
+          <p>Modern sporting rifles, bolt guns, lever actions and rimfire for every expedition.</p>
+          <span class="go arrow">Enter </span>
+        </a>
+        <a class="dept hud brackets reveal" href="armory.html?dept=shotguns" data-dept="shotguns" data-icon="shotgun">
+          <div class="dept-code"><span>Dept 03</span><b data-count></b></div>
+          <div class="holo-wrap scan"></div>
+          <h3>Ice Wall Breachers</h3>
+          <p>Pump and semi-auto shotguns for the home, the field and holding the gate.</p>
+          <span class="go arrow">Enter </span>
+        </a>
+        <a class="dept hud brackets reveal" href="armory.html?dept=ammo" data-dept="ammo" data-icon="ammo">
+          <div class="dept-code"><span>Dept 04</span><b data-count></b></div>
+          <div class="holo-wrap scan"></div>
+          <h3>Ammunition Caches</h3>
+          <p>Range, defense and hunting loads. Stock up before the long polar night.</p>
+          <span class="go arrow">Enter </span>
+        </a>
+        <a class="dept hud brackets reveal" href="armory.html?dept=optics" data-dept="optics" data-icon="scope">
+          <div class="dept-code"><span>Dept 05</span><b data-count></b></div>
+          <div class="holo-wrap scan"></div>
+          <h3>Optics &amp; Advanced Tech</h3>
+          <p>Red dots, LPVOs, thermal and night vision. Vril-bright glass, recovered from below.</p>
+          <span class="go arrow">Enter </span>
+        </a>
+        <a class="dept hud brackets reveal" href="armory.html?dept=gear" data-dept="gear" data-icon="case">
+          <div class="dept-code"><span>Dept 06</span><b data-count></b></div>
+          <div class="holo-wrap scan"></div>
+          <h3>Expedition Gear</h3>
+          <p>Magazines, cases, safes, lights and cleaning kits. Pack for the crossing.</p>
+          <span class="go arrow">Enter </span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= THE MAP ================= -->
+  <section class="section map-section" id="map">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">02 — Navigation</span>
+        <h2>The map beyond the ice wall</h2>
+        <p>Every outpost is a department. Hover to scan, click to enter. Charted the way the old maps show it: the pole at the center, Hyperborea above the way down to Agartha, and Antarctica the wall that rings the edge of the world.</p>
+      </div>
+      <div class="map-layout">
+        <div class="map-stage" id="iceMap">
+          <div class="map-zoom">
+            <button type="button" id="mapZoomIn" aria-label="Zoom in">+</button>
+            <button type="button" id="mapZoomOut" aria-label="Zoom out">−</button>
+            <button type="button" id="mapZoomReset" aria-label="Reset map" style="font-size:13px">⟲</button>
+          </div>
+          <div class="map-readout" id="mapReadout" aria-hidden="true">Move across the map · <b>signal live</b></div>
+        </div>
+        <aside class="map-panel hud brackets" id="mapPanel" aria-live="polite">
+          <span class="mp-kicker">The inner vault</span>
+          <h3>Entire Armory</h3>
+          <div class="mp-coords">AGARTHA · 90°00′N</div>
+          <p class="mp-text">The way down. Every firearm, round and relic we hold, in one place.</p>
+          <p class="mp-lore"></p>
+          <a class="btn btn-ice btn-sm arrow mp-go" href="armory.html" style="margin-top:18px">Enter</a>
+          <ul class="map-list" id="mapList"></ul>
+          <p class="map-note">Projection: azimuthal equidistant, north-polar. Coastlines: Natural Earth. Beyond the wall: uncharted.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FEATURED ================= -->
+  <section class="section" id="featured">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">03 — Recovered relics</span>
+        <h2>Fresh from the vault</h2>
+        <p>A few of the things on our racks right now. The full inventory lives in the Armory.</p>
+      </div>
+      <div class="grid" id="featuredGrid"></div>
+      <div style="margin-top:34px;text-align:center"><a class="btn btn-ghost arrow" href="armory.html">See the full Armory</a></div>
+    </div>
+  </section>
+
+  <!-- ================= THE GATE (transfers) ================= -->
+  <section class="section" id="gate-in-the-wall" style="background:linear-gradient(180deg,transparent,#061223 40%,transparent)">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">04 — FFL transfers</span>
+        <h2>The gate in the wall</h2>
+        <p>Bought a firearm online or from a private seller? Ship it to our FFL. We receive it, log it, run the background check and hand it over, by the book.</p>
+      </div>
+      <ol class="steps reveal" style="list-style:none;padding:0;margin:0">
+        <li class="step"><div class="step-n"><span>01</span></div><h3>Buy it anywhere</h3><p>Any online retailer, auction or private seller.</p></li>
+        <li class="step"><div class="step-n"><span>02</span></div><h3>Ship to our FFL</h3><p>The seller needs a copy of our license. We’ll send it.</p></li>
+        <li class="step"><div class="step-n"><span>03</span></div><h3>We log it</h3><p>Entered in our bound book. We call you when it lands.</p></li>
+        <li class="step"><div class="step-n"><span>04</span></div><h3>Clear the checkpoint</h3><p>Photo ID, ATF Form 4473 and a NICS background check.</p></li>
+        <li class="step"><div class="step-n"><span>05</span></div><h3>Take it home</h3><p>Approved and complete. Welcome back through the gate.</p></li>
+      </ol>
+      <div class="fee-grid reveal" style="margin-top:48px">
+        <div class="fee hud brackets"><b>Long gun transfer</b><span class="amt" data-cfg="fees.longGun"></span><small>Rifles &amp; shotguns</small></div>
+        <div class="fee hud brackets"><b>Handgun transfer</b><span class="amt" data-cfg="fees.handgun"></span><small>Pistols, revolvers, receivers</small></div>
+        <div class="fee hud brackets"><b>Each additional</b><span class="amt" data-cfg="fees.additional"></span><small>Same transaction</small></div>
+        <div class="fee hud brackets" style="display:flex;flex-direction:column;justify-content:center"><a class="btn btn-ice arrow" href="transfers.html">Transfer details</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= THE LOG (story) ================= -->
+  <section class="section" id="log">
+    <div class="wrap log-grid">
+      <div class="logbook hud brackets reveal" aria-label="Expedition log">
+        <div class="entry"><time>Expedition log · Feb 1947 · entry 01</time>Day four past the pole. The wall rises out of the sea like it was built, not frozen. Compass spinning. Radio full of a tone nobody can place.</div>
+        <div class="entry"><time>Entry 02</time>Light through a crack in the ice. Green, then blue. Beyond it, mountains that should not be there and a spire humming with the light the old books call vril. <span class="redact">Command</span> ordered radio silence.</div>
+        <div class="entry"><time>Entry 03</time>Craft overhead. A disc, silent, pacing the plane at twelve hundred feet. It turned once, slowly, and was gone. Logged as weather.</div>
+        <div class="entry"><time>Entry 04</time><span class="typed">Found an outpost at the gate. Well stocked. Federally licensed. They ran a background check on the entire crew.</span></div>
+      </div>
+      <div class="truth reveal">
+        <span class="eyebrow">05 — Who we are</span>
+        <h3 style="margin-top:14px">The last outpost before the wall</h3>
+        <p>Agarthan Armory is a federally licensed firearms dealer. We stock handguns, rifles, shotguns, ammunition, optics and gear, handle FFL transfers and take special orders from every major distributor.</p>
+        <p style="color:var(--muted)">We can’t tell you what’s past the wall. We can tell you every transfer goes by the book.</p>
+        <div class="facts">
+          <div class="fact hud"><b>License</b><span data-cfg="ffl.type"></span></div>
+          <div class="fact hud"><b>FFL number</b><span data-cfg="ffl.number" data-tbd="[ FFL # ]"></span></div>
+          <div class="fact hud"><b>Established</b><span data-cfg="established" data-tbd="[ YEAR ]"></span></div>
+          <div class="fact hud"><b>Outpost</b><span data-cfg="address.city" data-tbd="[ CITY ]"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VISIT ================= -->
+  <section class="section" id="visit">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">06 — Coordinates</span>
+        <h2>Visit the outpost</h2>
+        <p>Come look things over, pick up a transfer, or talk through a build. Questions by phone or email are welcome too.</p>
+      </div>
+      <div class="visit-grid">
+        <div class="visit-card hud brackets reveal">
+          <dl>
+            <dt>Address</dt><dd data-cfg="address" data-tbd="[ STREET · CITY · STATE ]"></dd>
+            <dt>Phone</dt><dd data-cfg="phone" data-tbd="[ PHONE ]"></dd>
+            <dt>Email</dt><dd data-cfg="email" data-tbd="[ EMAIL ]"></dd>
+            <dt>License</dt><dd><span data-cfg="ffl.type"></span> · <span data-cfg="ffl.number" data-tbd="[ FFL # ]"></span></dd>
+          </dl>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:26px">
+            <a class="btn btn-ice btn-sm arrow" id="directions" href="#" target="_blank" rel="noopener" hidden>Get directions</a>
+            <a class="btn btn-ghost btn-sm" href="transfers.html">Transfer details</a>
+          </div>
+          <h4 style="margin-top:34px">Hours</h4>
+          <table class="hours" data-hours></table>
+        </div>
+        <div class="visit-card hud brackets reveal">
+          <h4>Send a transmission</h4>
+          <form class="form" id="contactForm">
+            <div class="row">
+              <div class="field"><label for="cName">Name</label><input id="cName" name="name" autocomplete="name" required></div>
+              <div class="field"><label for="cContact">Email or phone</label><input id="cContact" name="contact" autocomplete="email" required></div>
+            </div>
+            <div class="field"><label for="cTopic">Topic</label>
+              <select id="cTopic" name="topic"><option>General question</option><option>FFL transfer</option><option>Special order</option><option>Selling or consigning a firearm</option><option>Something else</option></select>
+            </div>
+            <div class="field"><label for="cMsg">Message</label><textarea id="cMsg" name="message" required></textarea></div>
+            <button class="btn btn-ice arrow" type="submit">Transmit</button>
+            <p class="form-note">We never ship firearms to a home address. Firearm purchases complete in person with a background check.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- partial:footer -->
+<footer class="site-footer">
+  <div class="wrap foot-grid">
+    <div>
+      <a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt="" width="40" height="40"><span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>The last outpost before the wall</small></span></a>
+      <p style="margin-top:18px;max-width:320px">Firearms, ammunition, optics and FFL transfers. Hyperborean steel, Agarthan engineering, and every form filled out properly.</p>
+      <p class="runes foot-runes" data-runes="hyperborea · agartha · the ice wall"></p>
+      <div class="ffl-plate">FFL · <span data-cfg="ffl.number" data-tbd="[ FFL NUMBER ]"></span><br><span data-cfg="ffl.type"></span><span data-sot hidden> · SOT</span></div>
+    </div>
+    <div>
+      <h4>The Armory</h4>
+      <ul>
+        <li><a href="armory.html?dept=sidearms">Sidearms</a></li>
+        <li><a href="armory.html?dept=longarms">Longarms</a></li>
+        <li><a href="armory.html?dept=shotguns">Shotguns</a></li>
+        <li><a href="armory.html?dept=ammo">Ammunition</a></li>
+        <li><a href="armory.html?dept=optics">Optics &amp; Tech</a></li>
+        <li><a href="armory.html?dept=gear">Expedition Gear</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Services</h4>
+      <ul>
+        <li><a href="transfers.html">FFL transfers</a></li>
+        <li><a href="transfers.html#services">Special orders</a></li>
+        <li><a href="transfers.html#faq">Transfer FAQ</a></li>
+        <li><a href="index.html#map">The ice wall map</a></li>
+        <li><a href="index.html#visit">Visit &amp; hours</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li data-cfg="phone" data-tbd="[ PHONE ]"></li>
+        <li data-cfg="email" data-tbd="[ EMAIL ]"></li>
+        <li data-cfg="address" data-tbd="[ ADDRESS ]"></li>
+      </ul>
+      <h4 style="margin-top:22px">Signals</h4>
+      <ul data-social></ul>
+    </div>
+  </div>
+  <div class="legal wrap">
+    © <span data-year>2026</span> <span data-cfg="name"></span>. Federally licensed firearms dealer. Every firearm transfer requires ATF Form 4473 and a background check and must comply with federal, state and local law.
+    Handguns 21+ · long guns &amp; ammunition 18+. We reserve the right to refuse any sale. What lies beyond the wall remains classified.
+  </div>
+</footer>
+<!-- /partial:footer -->
+
+<script src="assets/js/config.js"></script>
+<script src="assets/data/catalog.js"></script>
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/site.js"></script>
+<script src="assets/js/map-data.js"></script>
+<script src="assets/js/map.js"></script>
+<script src="assets/js/home.js"></script>
+</body>
+</html>
