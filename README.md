@@ -151,7 +151,8 @@ To add a realm: copy a theme block in `site.css`, then add it to `THEMES` in
 ## Editing
 
 - **Header, footer or age gate:** edit `partials/*.html`, then run
-  `npm run stamp`.
+  `npm run stamp`. Run it after changing any stylesheet or script too: it
+  stamps each link with a content version so browsers never keep a stale copy.
 - **Agartha art videos** (from the client): the static piece
   (`agarthan-rotating.mp4`) stands on a lit pedestal in the home page's
   "Agarthan code" section; it plays once and rests on its last frame, with a

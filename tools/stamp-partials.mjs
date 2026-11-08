@@ -3,12 +3,14 @@
  * stamp-partials.mjs — copies partials/*.html into every page between
  *   <!-- partial:NAME --> … <!-- /partial:NAME -->
  * so the header, footer and age gate live in one place while the pages stay
- * plain static HTML (no build needed to serve them). Run after editing a
- * partial:  node tools/stamp-partials.mjs
+ * plain static HTML (no build needed to serve them). Also stamps every local
+ * stylesheet/script link with ?v=<content hash>. Run after editing a partial,
+ * a stylesheet or a script:  node tools/stamp-partials.mjs  (npm run stamp)
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const partials = Object.fromEntries(fs.readdirSync(path.join(ROOT, 'partials'))
@@ -23,6 +25,15 @@ for (const page of fs.readdirSync(ROOT).filter((f) => f.endsWith('.html'))) {
     n++;
     return `<!-- partial:${name} -->\n${partials[name]}\n<!-- /partial:${name} -->`;
   });
+  // version every local stylesheet/script link by its content, so a changed
+  // file is a new URL and no browser can keep serving a stale copy
+  let v = 0;
+  html = html.replace(/((?:href|src)=")(\/?assets\/(?:css|js)\/[\w.-]+\.(?:css|js))(?:\?v=[0-9a-f]+)?"/g, (m, attr, ref) => {
+    const f = path.join(ROOT, ref.replace(/^\//, ''));
+    if (!fs.existsSync(f)) return m;
+    v++;
+    return `${attr}${ref}?v=${crypto.createHash('sha1').update(fs.readFileSync(f)).digest('hex').slice(0, 10)}"`;
+  });
   fs.writeFileSync(file, html);
-  console.log(`${page}: ${n} partial(s)`);
+  console.log(`${page}: ${n} partial(s), ${v} versioned link(s)`);
 }
