@@ -1,0 +1,55 @@
+name: Sample product pages
+
+# Saves a few of the store's product pages (one or more per category) and
+# prints what is on them: structured data, variant pickers, spec rows and the
+# text under the title. Used to teach the scraper where the store keeps
+# caliber, grain, round count, barrel length and so on. Commits nothing; the
+# pages are attached to the run as an artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: 'Which scrape to sample ("shop" = the Gearfire storefront)'
+        default: 'shop'
+        required: true
+      per:
+        description: 'Pages per category'
+        default: '1'
+        required: false
+      ids:
+        description: 'Or particular product ids, comma separated'
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Save and describe pages
+        env:
+          FOLDER: ${{ inputs.folder }}
+          PER: ${{ inputs.per }}
+          IDS: ${{ inputs.ids }}
+        run: |
+          case "$FOLDER" in *[!a-z0-9-]*) echo "::error::folder may only use a-z, 0-9 and -"; exit 1;; esac
+          case "$PER" in *[!0-9]*) echo "::error::per must be a number"; exit 1;; esac
+          case "$IDS" in *[!a-zA-Z0-9,-]*) echo "::error::ids may only use letters, digits, - and ,"; exit 1;; esac
+          args=(--folder "$FOLDER" --per "${PER:-1}" --out sampled-pages)
+          [ -n "$IDS" ] && args+=(--ids "$IDS")
+          node scripts/save-pages.mjs "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sampled-pages
+          path: sampled-pages
+          if-no-files-found: ignore
+          retention-days: 14

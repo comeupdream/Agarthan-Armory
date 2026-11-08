@@ -15,7 +15,8 @@
     "build:icons": "node tools/build-icons.mjs",
     "stamp": "node tools/stamp-partials.mjs",
     "images": "node scripts/match-images.mjs",
-    "find-images": "node scripts/find-images.mjs"
+    "find-images": "node scripts/find-images.mjs",
+    "save-pages": "node scripts/save-pages.mjs"
   },
   "engines": {
     "node": ">=18"
