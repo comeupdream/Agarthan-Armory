@@ -33,7 +33,25 @@ const PUBLIC = (p) => {
   return (segs.length === 3 && segs[2].endsWith('.js')) || (segs.length === 4 && segs[2] === 'items' && segs[3].endsWith('.json'));
 };
 
+// /version: what is deployed — the commit Render built (RENDER_GIT_COMMIT) and the catalog it serves
+const STARTED = new Date().toISOString();
+const versionInfo = () => {
+  let items = null, updated = null, source = null;
+  try {
+    const cat = fs.readFileSync(path.join(ROOT, 'assets', 'data', 'catalog.js'), 'utf8');
+    items = (cat.match(/^\{"id":/gm) || []).length;
+    const head = cat.slice(0, 600);
+    updated = (head.match(/"updated":"([^"]+)"/) || [])[1] || null;
+    source = (head.match(/"source":"([^"]+)"/) || [])[1] || null;
+  } catch { /* no catalog */ }
+  return { commit: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'local', branch: process.env.RENDER_GIT_BRANCH || null, started: STARTED, catalog: { items, updated, source } };
+};
+
 http.createServer((req, res) => {
+  if (req.url === '/version' || req.url === '/version.json') {
+    res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify(versionInfo(), null, 2));
+  }
   let p;
   try { p = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { res.writeHead(400); return res.end(); }
   if (p.includes('\0')) { res.writeHead(400); return res.end(); }

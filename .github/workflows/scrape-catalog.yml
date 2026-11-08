@@ -111,7 +111,7 @@ jobs:
             fi
             node scripts/build-catalog.mjs
             BUILT=0
-            git add assets/data/catalog.js assets/data/items
+            git add assets/data/catalog.js assets/data/items *.html
             if ! git diff --cached --quiet; then git commit -m "Build catalog.js from the scrape"; BUILT=1; fi
             if git push origin "HEAD:$BRANCH"; then echo "Pushed on attempt $i."; exit 0; fi
             if [ "$BUILT" = "1" ]; then git reset --hard HEAD~1; fi

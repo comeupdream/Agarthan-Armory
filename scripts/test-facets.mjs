@@ -112,6 +112,14 @@ const [bp] = buildItems([GF('Black Powder Guns & Accessories', 'Rifles', 'Hawken
 eq([bp.dept, bp.firearm], ['longarms', false], 'gearfire: black powder is shelved with rifles but is not a firearm (the store says so)');
 const [can] = buildItems([GF('NFA/Suppressors', 'Suppressors', 'Obsidian 45', {}, { id: 'can', price: 900, firearm: false, nfa: true })]);
 eq([can.dept, can.firearm, can.type], ['nfa', true, 'can'], 'gearfire: a suppressor goes through the FFL, with its own icon');
+/* a pistol in a rifle round goes to its own category with the rifles; one in a handgun round stays a handgun */
+const pistol = (id, sub, cal, extra = {}) => GF('Handguns', sub, `Pistol ${id}`, { 'Handgun Caliber': cal, ...extra }, { id, price: 1000, firearm: true });
+const [mk18, bfr, pcc, g19] = buildItems([pistol('mk18', 'Large Format Pistols', '5.56 mm NATO'), pistol('bfr', 'Revolvers', '45-70 Government'),
+  pistol('pcc', 'Large Format Pistols', '9mm'), pistol('g19', 'Semi-Automatic', '9mm')]);
+eq([mk18.dept, mk18.sub, mk18.f.action, mk18.type, mk18.firearm], ['longarms', 'AR & Rifle-Caliber Pistols', 'Semi-Auto', 'ar', true], 'a 5.56 pistol is an AR pistol, with the rifles');
+eq([bfr.dept, bfr.sub, bfr.f.action, bfr.type], ['longarms', 'AR & Rifle-Caliber Pistols', 'Revolver', 'revolver'], 'a .45-70 revolver joins it, its action kept');
+eq([pcc.dept, g19.dept], ['sidearms', 'sidearms'], 'a 9mm pistol of any size stays a handgun');
+eq([normCaliber('7.62 mm NATO'), normCaliber('.45 (Long) Colt'), normCaliber('.32 Auto (ACP)')], ['7.62x51 NATO', '.45 Colt', '.32 ACP'], 'more caliber spellings');
 const [box] = buildItems([{ ...lever, id: 'lv', price: 58.99 }]);
 eq(box.cpr, 2.95, 'price per round');
 const [bad] = buildItems([GF('Ammunition', 'Rifle Ammo', 'Rifle Ammo', { 'Rifle Caliber': '7.62x39mm', 'Rounds Per Box': '1000' }, { id: 'tula', price: 9.99 })]);

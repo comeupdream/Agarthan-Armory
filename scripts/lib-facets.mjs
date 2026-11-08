@@ -27,14 +27,14 @@ export const CALIBERS = [
   [/\.40\s?(?:s&w|sw|cal)\b|\b40\s?s&w\b/, '.40 S&W'],
   [/\b10\s?mm(?:\s?auto)?\b/, '10mm Auto'],
   [/\.45\s?(?:acp|auto)\b|\b45\s?acp\b/, '.45 ACP'],
-  [/\.45\s?(?:colt|lc|long colt)\b/, '.45 Colt'],
+  [/\.45\s?(?:colt|lc|long colt|\(long\) colt)\b/, '.45 Colt'],
   [/\.357\s?sig\b/, '.357 SIG'],
   [/\.357\s?(?:mag(?:num)?)?\b|\b357\s?mag/, '.357 Magnum'],
   [/\.38\s?super\b/, '.38 Super'],
   [/\.38\s?(?:special|spl|spcl|spec)\b|\b38\s?spl\b/, '.38 Special'],
   [/\.44\s?(?:special|spl)\b/, '.44 Special'],
   [/\.44\s?(?:rem\s?)?mag(?:num)?\b|\b44\s?mag\b/, '.44 Magnum'],
-  [/\.32\s?acp\b/, '.32 ACP'], [/\.25\s?acp\b/, '.25 ACP'], [/\.327\s?fed/, '.327 Federal Magnum'],
+  [/\.32\s?(?:acp|auto)\b/, '.32 ACP'], [/\.25\s?acp\b/, '.25 ACP'], [/\.327\s?fed/, '.327 Federal Magnum'],
   [/\.460\s?s&w/, '.460 S&W Magnum'], [/\.500\s?s&w/, '.500 S&W Magnum'],
   [/\.22\s?(?:wmr|mag(?:num)?|win(?:chester)? mag(?:num)?)\b|\b22\s?wmr\b/, '.22 WMR'],
   [/\.17\s?hornady mag/, '.17 HMR'],
@@ -47,7 +47,7 @@ export const CALIBERS = [
   [/\b6\.5\s?(?:creedmoor|cm|creed)\b/, '6.5 Creedmoor'], [/\b6\.5\s?prc\b/, '6.5 PRC'], [/\b6\.5\s?grendel\b/, '6.5 Grendel'],
   [/\.25-06\b/, '.25-06 Rem'], [/\.270\s?wsm\b/, '.270 WSM'], [/\.270\b|\b270\s?win/, '.270 Win'],
   [/\b7mm-08\b/, '7mm-08 Rem'], [/\b7mm\s?prc\b/, '7mm PRC'], [/\b7mm\s?(?:rem(?:ington)?\s?)?mag(?:num)?\b/, '7mm Rem Mag'],
-  [/\b7\.62\s?x\s?39\b/, '7.62x39'], [/\b7\.62\s?x\s?54r?\b/, '7.62x54R'], [/\b7\.62\s?x\s?51\b/, '7.62x51 NATO'],
+  [/\b7\.62\s?x\s?39\b/, '7.62x39'], [/\b7\.62\s?x\s?54r?\b/, '7.62x54R'], [/\b7\.62\s?x\s?51\b|\b7\.62\s?(?:mm)?\s?nato\b/, '7.62x51 NATO'],
   [/\b(?:\.)?300\s?(?:blk|blackout|aac)\b/, '.300 Blackout'], [/\.300\s?(?:win\s?mag|winchester magnum)\b/, '.300 Win Mag'],
   [/\.300\s?wsm\b/, '.300 WSM'], [/\.300\s?prc\b/, '.300 PRC'], [/\.300\s?wby\b|\.300 weatherby/, '.300 Wby Mag'],
   [/\.308\b|\b308\s?win/, '.308 Win'], [/\.30-06\b|\b30-06\b/, '.30-06 Springfield'], [/\.30-30\b|\b30-30\b/, '.30-30 Win'],
@@ -55,6 +55,10 @@ export const CALIBERS = [
   [/\.450\s?bushmaster\b/, '.450 Bushmaster'], [/\.45-70\b/, '.45-70 Govt'], [/\.458\s?socom\b/, '.458 SOCOM'],
   [/\.50\s?bmg\b/, '.50 BMG'],
 ];
+/** a rifle cartridge (not a handgun round): a pistol chambered in one is shelved with the AR pistols */
+const RIFLE_CARTRIDGE = /5\.56|\.223|\.22-250|\.204|\.224|\b6mm|\.243|6\.5|\.25-06|\.270|\b7mm|7\.62|5\.45|6\.8|8\.6|\.30[08]\b|\.300|\.30-06|\.30-30|\.338|\.350|\.360|\.400 legend|\.450|\.45-70|\.458|\.50 bmg/i;
+export const isRifleCartridge = (cal) => !!cal && RIFLE_CARTRIDGE.test(String(cal));
+
 export function caliberOf(text) {
   const t = T(text).replace(/(\d)\s?x\s?(\d+)\s?mm\b/g, '$1x$2');   // 7.62x39mm → 7.62x39
   for (const [re, name] of CALIBERS) { const m = t.match(re); if (m) return typeof name === 'function' ? name(m) : name; }
