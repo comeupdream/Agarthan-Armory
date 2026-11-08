@@ -20,6 +20,7 @@
  * ===========================================================================*/
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { stripHtml, specTable } from './scrape.mjs';
 
 const argv = process.argv.slice(2);
@@ -144,5 +145,6 @@ async function main() {
 const isBlocked = (r) => !r.text || r.status < 200 || r.status >= 300 ||
   /request blocked|the request could not be satisfied|just a moment|cf-browser-verification|captcha|access denied/i.test(r.text.slice(0, 4000));
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === new URL(import.meta.url).pathname;
+// file URLs, not paths: on Windows a path is C:\\… while a URL path is /C:/…
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 if (isMain) main().catch((e) => { console.error('✗ ' + e.message); process.exit(1); });

@@ -5,8 +5,9 @@
 // fits each drawing into its box, centered in the 240x120 viewBox, and
 // bakes the transform into the coordinates.
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const OUT = process.argv[2] || new URL('../assets/js/icons.js', import.meta.url).pathname;
+const OUT = process.argv[2] || fileURLToPath(new URL('../assets/js/icons.js', import.meta.url));
 const r = (v) => {
   const n = Math.round(v * 10) / 10;
   return Object.is(n, -0) ? '0' : String(n);
