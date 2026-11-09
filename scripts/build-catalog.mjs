@@ -20,6 +20,8 @@
  *   { "glock-19-gen5": { "dept": "sidearms", "type": "pistol", "featured": true,
  *                        "lore": "Standard issue below the ice.", "hide": false,
  *                        "firearm": true, "name": "…", "specs": { "barrel": "4.02 in" } } }
+ *   "noPhoto": true on any product takes its photo off the site — and off every
+ *   product sharing that photo (the variants of its line): how a wrong web photo goes.
  *
  * USAGE  node scripts/build-catalog.mjs [--in path] [--overrides path] [--out path] [--remote-images]
  *   (no --in: merges every store scraped under assets/data/scraped/, e.g. the
@@ -96,6 +98,7 @@ export function classify(p) {
 }
 const FIREARM_DEPTS = new Set(['sidearms', 'longarms', 'shotguns', 'nfa']);
 export const ARP = 'AR & Rifle-Caliber Pistols';
+export const OWN_BRAND = /agarthan/i;   // the store's own products
 /** the barrel-length filter's ranges, by what a buyer compares: handguns by the inch; rifles fine below the
  *  16" line (AR pistols, SBR lengths) and by 2" above it; shotguns from home-defense to bird-gun lengths */
 const RANGES = {
@@ -247,6 +250,9 @@ export function displayName(p, dept, f) {
 
 export function buildItems(scraped, overrides = {}, { remoteImages = false } = {}) {
   const items = [];
+  // a photo pulled by hand ({ "<any variant id>": { "noPhoto": true } }) goes from every product that shares it
+  const rejected = new Set();
+  for (const p of scraped) if (p && overrides[p.id] && overrides[p.id].noPhoto) for (const f of p.localImages || []) rejected.add(f);
   for (const p of scraped) {
     if (!p || !p.name) continue;
     const o = overrides[p.id] || {};
@@ -257,7 +263,12 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
     // a National Firearms Act item: the NFA department (suppressors, short-barreled rifles), the
     // store's own flag, or a firearm whose name says so (a short-barreled rifle filed with the rifles)
     const nfa = o.nfa ?? (dept === 'nfa' || !!p.nfa || (firearm && RE.nfa.test(T(p.name))));
-    const images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
+    // a photo found on the web (find-images) never stands for the store's own products — merch, gift cards,
+    // its own listings: the web only has other people's shirts and cards to offer
+    const own = OWN_BRAND.test(String(p.brand || '')) || /agarthan merch/i.test((p.categories || []).join(' '));
+    let images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
+    if ((own && p.photoSource) || o.noPhoto) images = [];
+    images = images.filter((f) => !rejected.has(f));
     const status = p.availability || (p.price != null ? 'in' : 'ask');
     let sub = o.sub || subOf(dept, p);
     const f = { ...facetsOf(dept, sub, p), ...(o.f || {}) };

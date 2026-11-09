@@ -162,6 +162,16 @@ const [ar16, mk18b] = buildItems([GF('Rifles', 'Semi-Automatic', 'AR', { 'Rifle 
   pistol('mk18b', 'Large Format Pistols', '5.56 NATO', { 'Barrel Length': '10.3"' })]);
 eq([ar16.f.barrel, ar16.specs.barrel, mk18b.f.barrel], ['16–18"', '16.1"', '8–10.5"'], 'barrel filter by range, the exact length kept on the card');
 eq([normCaliber('7.62 mm NATO'), normCaliber('.45 (Long) Colt'), normCaliber('.32 Auto (ACP)')], ['7.62x51 NATO', '.45 Colt', '.32 ACP'], 'more caliber spellings');
+/* photos: a web photo never stands for the store's own product; a photo pulled by hand goes from every variant sharing it */
+const webPhoto = (id, extra = {}) => ({ ...GF('Agarthan Merch', 'Agarthan Merch', 'Thule Shirt', {}, { id, price: 27, brand: 'Agarthan Armory', localImages: ['img/products/x.webp'], photoSource: { page: 'https://example.com', score: 2 } }), ...extra });
+const [shirt] = buildItems([webPhoto('shirt')]);
+eq(shirt.images, [], 'the store\'s own merch never shows a photo found on the web');
+const [ownSite] = buildItems([webPhoto('own', { photoSource: undefined, localImages: ['img/products/own-1.jpg'] })]);
+eq(ownSite.images, ['img/products/own-1.jpg'], '…but keeps a photo from the store\'s own site');
+const vA = GF('Optics', 'Scopes', 'Tru-Brite', {}, { id: 'va', price: 200, brand: 'TRUGLO', localImages: ['img/products/va-1.webp'], photoSource: { page: 'x', score: 3 } });
+const vB = { ...vA, id: 'vb', photoSource: { page: 'x', score: 3, sharedFrom: 'va' } };
+const [pa, pb] = buildItems([vA, vB], { vb: { noPhoto: true } });
+eq([pa.images, pb.images], [[], []], 'noPhoto on one variant takes the shared photo off the whole line');
 const [box] = buildItems([{ ...lever, id: 'lv', price: 58.99 }]);
 eq(box.cpr, 2.95, 'price per round');
 const [bad] = buildItems([GF('Ammunition', 'Rifle Ammo', 'Rifle Ammo', { 'Rifle Caliber': '7.62x39mm', 'Rounds Per Box': '1000' }, { id: 'tula', price: 9.99 })]);

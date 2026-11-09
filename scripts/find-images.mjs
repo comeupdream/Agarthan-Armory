@@ -126,7 +126,9 @@ async function main() {
   try { for (const e of await readdir(CAT_DIR, { withFileTypes: true })) if (e.isDirectory()) files.push(path.join(CAT_DIR, e.name, 'catalog.json')); } catch { /* none */ }
   const cats = [];
   for (const f of files) { try { if (catalogExists(f)) cats.push({ f, list: await readCatalog(f) }); } catch { /* unreadable */ } }
-  const todo = cats.flatMap((c) => c.list).filter((p) => !(p.localImages || []).length && (RETRY || !(p.photoSearch && p.photoSearch.result === 'none')));
+  // the store's own products (merch, gift cards, its own listings) are never searched for: the web has only others' to offer
+  const own = (p) => /agarthan/i.test(String(p.brand || '')) || /agarthan merch/i.test((p.categories || []).join(' '));
+  const todo = cats.flatMap((c) => c.list).filter((p) => !own(p) && !(p.localImages || []).length && (RETRY || !(p.photoSearch && p.photoSearch.result === 'none')));
   // one search per product LINE: the variants of a line (calibers, colors) share its photo unless --per-variant
   const groups = new Map();
   for (const p of todo) { const k = PER_VARIANT ? p.id : (p.line || `${p.brand || ''}|${p.name}`); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
