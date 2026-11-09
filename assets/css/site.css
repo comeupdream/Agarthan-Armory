@@ -1137,18 +1137,18 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
 .fk-fig { margin: 12px 0 14px; }
 .fk-fig img { display: block; width: 100%; max-width: 360px; height: auto; border: 1px solid var(--line); }
 
-/* ---------- the transfer fees: Antarctica notes laid on the counter behind the price cards ---------- */
-.fee-grid { position: relative; isolation: isolate; }
-.fee-grid > .fee { z-index: 1; background: color-mix(in srgb, var(--panel) 80%, transparent); backdrop-filter: blur(2px); }
-/* the notes stay below the steps: they start just above the cards and spill out underneath */
-.fee-money { position: absolute; inset: -14px -40px -150px; z-index: 0; pointer-events: none; }
-.fee-money .note { position: absolute; width: min(46%, 560px); height: auto; border-radius: 4px; opacity: .5;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .6); filter: saturate(.9); }
-.fee-money .n1 { left: 4%; top: 0; transform: rotate(-4deg); }
-.fee-money .n2 { right: 3%; bottom: 0; transform: rotate(4deg); }
+/* ---------- the transfer section: the Antarctica $20 bill laid straight behind it ---------- */
+#gate-in-the-wall { position: relative; isolation: isolate; overflow: hidden; }
+#gate-in-the-wall > .wrap { position: relative; z-index: 1; }
+.gate-money { position: absolute; inset: 0; z-index: 0; display: grid; place-items: center; pointer-events: none; }
+.gate-money picture, .gate-money img { display: block; width: min(96%, 1440px); height: auto; }
+.gate-money img { width: 100%; opacity: .72; border-radius: 6px; }
+.gate-money picture { position: relative; }
+/* a dark wash over the bill, heaviest where the words are, so the section still reads */
+.gate-money::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(3, 8, 16, .78) 0%, rgba(3, 8, 16, .45) 30%, rgba(3, 8, 16, .38) 70%, rgba(3, 8, 16, .74) 100%); }
+.fee-grid > .fee { background: color-mix(in srgb, var(--panel) 85%, transparent); backdrop-filter: blur(3px); }
 @media (max-width: 760px) {
-  .fee-money { inset: -10px -8px -90px; }
-  .fee-money .note { width: 78%; opacity: .4; }
-  .fee-money .n1 { left: -6%; }
-  .fee-money .n2 { right: -6%; }
+  .gate-money { place-items: end center; padding-bottom: 40px; }
+  .gate-money picture { width: 100%; }
 }
