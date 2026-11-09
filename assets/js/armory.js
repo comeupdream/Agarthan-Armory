@@ -267,7 +267,7 @@
       ? `mailto:${esc(AA.cfg.email)}?subject=${encodeURIComponent('Question: ' + it.name)}`
       : 'index.html#visit';
     $('#detailInner').innerHTML = `
-      <div class="viz-lg${it.images && it.images[0] ? ' photo' : ''}">${AA.viz(it, true)}</div>
+      <div class="viz-lg${it.images && it.images[0] ? ' photo' : ''}">${AA.viz(it, true)}${AA.nfaTag(it)}</div>
       <div class="detail-body">
         <div class="card-top"><span>${esc([(AA.DEPTS[it.dept] || {}).title, it.sub].filter(Boolean).join(' › '))}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
         <h2 id="detailTitle">${esc(it.name)}</h2>

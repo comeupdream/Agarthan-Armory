@@ -49,6 +49,8 @@ const RE = {
   rifleCal: /\b5\.56|\.223|\.308|\b6\.5 ?(creedmoor|cm|prc|grendel)|\b7\.62|\b300 ?(blk|blackout|aac|win|prc)|\.30-06|\b30-06|\.270|\.243|\.350 legend|\.450 bushmaster|\.45-70|\.30-30|\b6mm/,
   pistolCal: /\b9 ?mm|\.380|\.40 ?(s&w|sw)|\b10 ?mm|\.45 ?(acp|auto)|\.357|\.38 ?(spl|special)|\.44 ?(mag|special)|\.22 ?lr|\b22 ?lr|5\.7 ?x ?28/,
   firearmCat: /\b(firearms?|guns?|handguns?|pistols?|revolvers?|rifles?|shotguns?|long ?guns?|used guns?|consignment guns?)\b/,
+  // a firearm whose own name says it is regulated by the National Firearms Act
+  nfa: /\bsbr\b|\bsbs\b|short[- ]?barrel(?:l?ed)? (?:rifle|shotgun)|\baow\b|any other weapon/,
 };
 // Gearfire's own departments (Shooting Sports › Category › Subcategory) say exactly where a product goes
 const GF_DEPT = { handguns: 'sidearms', rifles: 'longarms', shotguns: 'shotguns', ammunition: 'ammo', 'reloading supplies': 'ammo',
@@ -247,6 +249,9 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
     let dept = o.dept || classify(p);
     // the store's own flag when it has one (Gearfire: isFirearm / isNfa — black powder is neither)
     const firearm = o.firearm ?? (typeof p.firearm === 'boolean' ? p.firearm || !!p.nfa : FIREARM_DEPTS.has(dept) || RE.receiver.test(T(p.name)));
+    // a National Firearms Act item: the NFA department (suppressors, short-barreled rifles), the
+    // store's own flag, or a firearm whose name says so (a short-barreled rifle filed with the rifles)
+    const nfa = o.nfa ?? (dept === 'nfa' || !!p.nfa || (firearm && RE.nfa.test(T(p.name))));
     const images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
     const status = p.availability || (p.price != null ? 'in' : 'ask');
     let sub = o.sub || subOf(dept, p);
@@ -279,6 +284,7 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       priceNote: o.priceNote || p.priceNote || null,
       status,
       firearm,
+      nfa: nfa || undefined,   // labelled NFA, in red, on the item's cover
       // cards read a few canonical rows; a store spec sheet (Gearfire) rides along for the detail view
       specs: p.source === 'gearfire'
         ? Object.fromEntries(Object.entries({ caliber: f.caliber, capacity: f.capacity, barrel: exactBarrel, count: f.count, magnification: f.mag, reticle: f.reticle, ...(o.specs || {}) }).filter(([, v]) => v))

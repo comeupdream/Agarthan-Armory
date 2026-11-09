@@ -118,6 +118,19 @@ const [bp] = buildItems([GF('Black Powder Guns & Accessories', 'Rifles', 'Hawken
 eq([bp.dept, bp.firearm], ['longarms', false], 'gearfire: black powder is shelved with rifles but is not a firearm (the store says so)');
 const [can] = buildItems([GF('NFA/Suppressors', 'Suppressors', 'Obsidian 45', {}, { id: 'can', price: 900, firearm: false, nfa: true })]);
 eq([can.dept, can.firearm, can.type], ['nfa', true, 'can'], 'gearfire: a suppressor goes through the FFL, with its own icon');
+/* NFA items are flagged (cards draw a red NFA plate on the cover): the NFA department, the store's
+   own flag, or a firearm whose name says so; things named after suppressors or short barrels are not */
+const [nCan, nUnflagged, nSbr, nCover, nSight, nAmmo, nPistol] = buildItems([
+  GF('NFA/Suppressors', 'Suppressors', 'Obsidian 45', {}, { id: 'n1', price: 900, firearm: false, nfa: true }),
+  GF('NFA/Suppressors', 'Suppressors', 'TISHA 9MM TITANIUM', {}, { id: 'n2', price: 900, firearm: true, nfa: false }),
+  GF('Rifles', 'Semi-Automatic', 'HK MR762 A4 13" Bbl Short Barrel Rifle w/(1) 20rd Mag', {}, { id: 'n3', price: 4000, firearm: true, nfa: false }),
+  GF('Gear & Accessories', 'Gear & Accessories', 'High Temp Suppressor Cover', {}, { id: 'n4', price: 60, firearm: false, nfa: false }),
+  GF('Optics', 'Iron & Night Sights', 'Tall Suppressor Height Sight', {}, { id: 'n5', price: 90, firearm: false, nfa: false }),
+  GF('Ammunition', 'Rimfire Ammo', 'Gold Dot Short Barrel Rimfire .22 WMR 40 gr Hollow Point', {}, { id: 'n6', price: 20, firearm: false, nfa: false }),
+  GF('Handguns', 'Semi-Automatic', 'VP9A1 X — Suppressor Height', {}, { id: 'n7', price: 900, firearm: true, nfa: false }),
+]);
+eq([nCan.nfa, nUnflagged.nfa, nSbr.nfa], [true, true, true], 'NFA: the store\'s flag, the NFA department, a short-barreled rifle filed with the rifles');
+eq([nCover.nfa, nSight.nfa, nAmmo.nfa, nPistol.nfa], [undefined, undefined, undefined, undefined], 'not NFA: a suppressor cover, a suppressor-height sight, short-barrel ammo, a suppressor-height pistol');
 /* a pistol in a rifle round goes to its own category with the rifles; one in a handgun round stays a handgun */
 const pistol = (id, sub, cal, extra = {}) => GF('Handguns', sub, `Pistol ${id}`, { 'Handgun Caliber': cal, ...extra }, { id, price: 1000, firearm: true });
 const [mk18, bfr, pcc, g19] = buildItems([pistol('mk18', 'Large Format Pistols', '5.56 mm NATO'), pistol('bfr', 'Revolvers', '45-70 Government'),

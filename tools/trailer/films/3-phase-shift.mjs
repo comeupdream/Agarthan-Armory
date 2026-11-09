@@ -7,12 +7,58 @@
  * section, where the client's static piece plays once on its pedestal; then a last
  * shift to the gate in the wall, where the client's looping piece runs on the
  * checkpoint monitor, and the lens goes into it.
+ *
+ * The peak is the loop mirrored into a kaleidoscope; a tunnel of light carries the
+ * camera back up out of the earth, and the come-down is the camera pulling out of the
+ * gate in the ice wall, back on the home page in Polar. In the calm the seal rises out
+ * of the gate, up its light, and settles as the hero's star; the name phase-shifts its
+ * script on glitch slices — Future, a flash of Old World, Runic — and the page turns
+ * away into the dark. No Ancient Tech, and (like every film) no geode eye.
  */
+
+// the calm's changes of script, in film seconds: [t, font]
+export const OUTRO_FONTS = [[31.8, 'future'], [33.2, 'oldworld'], [33.9, 'runic']];
 
 function act(t, S) {
   const { at } = S;
   const realm = (v) => { const b = document.querySelector(`.prefs-opt[data-k="theme"][data-v="${v}"]`); if (b) b.click(); };
+  if (S.page() === 'index.html' && t >= 28.3) {
+    /* ---------- the outro: back on the home page, out of the gate ---------- */
+    at('home', 28.3, () => { realm('polar'); scrollTo(0, 0); });
+    scrollTo(0, 0);
+    // (the act runs inside the page, so it carries its own copy of OUTRO_FONTS)
+    const FONTS = [[31.8, 'future'], [33.2, 'oldworld'], [33.9, 'runic']];
+    for (const [tc, f] of FONTS) at('font-' + tc, tc, () => { const b = document.querySelector(`.prefs-opt[data-k="font"][data-v="${f}"]`); if (b) b.click(); });
+    const W = innerWidth, H = innerHeight;
+    // the gate in the wall: the wall art is 1600x516, pinned to the hero's foot and
+    // scaled to cover it, with the gate at (800, 330)
+    const [ex, ey] = S.memo('gate', () => {
+      const r = S.rect('.hero .wall'), k = Math.max(r.width / 1600, r.height / 516);
+      return [r.left + r.width / 2, r.bottom - 516 * k + 330 * k];
+    });
+    // the seal comes up out of the gate and climbs its light to the hero's star
+    const rise = S.ease.inOut(S.seg(t, 31.2, 34.6));
+    const sx = ex, sy = S.lerp(ey, H * 0.137, rise) + Math.sin(t * 1.4) * 3 * rise;
+    const size = S.lerp(30, 84, S.ease.out(S.seg(t, 31.2, 32.6)));
+    if (t > 31.0) {
+      let el = document.getElementById('__seal');
+      if (!el) {
+        el = document.createElement('span'); el.id = '__seal'; el.className = 'seal';
+        el.innerHTML = '<img src="assets/img/brand/seal-600.png" alt="">';
+        el.style.cssText = 'position:fixed;left:0;top:0;width:100px;height:100px;z-index:2147482500;pointer-events:none;transform-origin:50% 50%';
+        document.body.appendChild(el);
+      }
+      el.style.transform = `translate(${sx - 50}px, ${sy - 50}px) scale(${size / 100}) rotate(${(1 - rise) * 360}deg)`;
+      el.style.opacity = String(S.seg(t, 31.0, 31.6));
+      el.style.filter = `drop-shadow(0 0 ${12 + 26 * (1 - rise) + 5 * Math.sin(t * 2.4)}px rgba(var(--accent-rgb), .85))`;
+    }
+    S.mouse = [W - 4, 4];
+    return;
+  }
   if (S.page() === 'index.html') {
+    // (the jump to the checkpoint is asked for before the guard: a frame lands on 21.8 exactly)
+    at('go', 21.8, () => S.go('/transfers.html'));
+    if (t >= 21.8) return;
     at('r1', 1.2, () => realm('crystal'));
     at('r2', 2.6, () => realm('inner-earth'));
     at('r3', 4.0, () => realm('vril'));
@@ -20,16 +66,16 @@ function act(t, S) {
     at('r5', 6.8, () => realm('polar'));
     if (t < 8.0) scrollTo(0, 0);
     at('map', 8.0, () => document.querySelector('#iceMap').scrollIntoView({ block: 'center' }));
-    for (const [i, tz] of [[1, 9.4], [2, 10.8], [3, 12.2]].map(([i, tz]) => [i, tz])) at('zoom' + i, tz, () => document.getElementById('mapZoomIn').click());
+    for (const [i, tz] of [[1, 9.4], [2, 10.8], [3, 12.2]]) at('zoom' + i, tz, () => document.getElementById('mapZoomIn').click());
     if (t >= 8.0 && t < 15.2) { const [mx, my] = S.memo('pole', () => S.mid('#iceMap')); S.mouse = [mx, my]; }
     at('agartha', 15.2, () => { realm('crystal'); document.querySelector('#code .relic').scrollIntoView({ block: 'center' }); });
     if (t >= 15.2) { S.mouse = [innerWidth - 4, innerHeight - 4]; S.video('#code video', Math.max(0, t - 16.0)); }
-    at('go', 21.8, () => S.go('/transfers.html'));
   } else {
     if (t < 21.9) return;
     scrollTo(0, 0);
     S.mouse = [4, innerHeight - 4];
     S.video('.feed video', t - 21.8);
+    at('up', 28.3, () => S.go('/index.html'));
   }
 }
 
@@ -75,7 +121,7 @@ function lens(t) {
     // the client's piece is a light image: keep the glow off it so it reads
     u.bloom = 0.08; u.glow = 0.22 + 0.4 * (1 - open);
     u.accent = [0.78, 0.61, 1.0]; u.accent2 = [1.0, 0.82, 0.48];
-  } else {
+  } else if (t < 28.8) {
     // the last shift, to the checkpoint monitor, and into the loop
     const cut = Math.round(21.8 * 30) - 1;
     if (t < 22.35) { u.wipe = sm(seg(21.8, 22.35)); u.held = cut; u.wipeKind = 2; }
@@ -83,12 +129,44 @@ function lens(t) {
     // the checkpoint monitor sits right of the heading, a little above centre
     u.pan = [-lerp(0, 0.425, push), -lerp(0, 0.106, push)];
     u.zoom = lerp(1, 3.0, push * push);
-    u.kaleido = 0.5 * sm(seg(26.0, 27.6)); u.kalN = 6;
-    u.trails = 0.35 + 0.3 * push; u.warp = 0.004 + 0.006 * push; u.chroma = 0.002 + 0.004 * push;
-    u.hue = 20 * push * Math.sin(t * 0.7);
-    u.white = sm(seg(27.3, 28.0));
-    u.bloom = 0.08; u.glow = 0.22 + 0.5 * sm(seg(26.0, 27.6));
+    // PEAK 26.0-28.2: the loop folds into a kaleidoscope, and the hue runs
+    const peak = sm(seg(26.0, 27.4));
+    u.kaleido = 0.5 * sm(seg(26.0, 27.0)) + 0.4 * peak; u.kalN = 6 + 2 * peak;
+    u.trails = 0.35 + 0.3 * push + 0.2 * peak; u.warp = 0.004 + 0.006 * push + 0.01 * peak; u.chroma = 0.002 + 0.004 * push + 0.004 * peak;
+    u.hue = 20 * push * Math.sin(t * 0.7) + 140 * peak * sm(seg(26.4, 28.6));
+    u.bloom = 0.08 + 0.2 * peak; u.glow = 0.22 + 0.5 * sm(seg(26.0, 27.6));
     u.accent = [0.78, 0.61, 1.0]; u.accent2 = [1.0, 0.82, 0.48];
+    // ASCENT 27.6-28.9: a tunnel of light carries the camera up and out (the page changes under it)
+    const up = sm(seg(27.6, 28.2));
+    u.tunnel = [up, (t - 27.6) * 5.0, -0.5, 0.5 + 1.8 * up];
+  } else {
+    // COME DOWN 28.8-31.0: the tunnel lets go and the camera pulls back out of the gate in the wall
+    const out = sm(seg(28.8, 31.0));
+    const tun = 1 - sm(seg(28.8, 29.6));
+    u.tunnel = [tun, (t - 27.6) * 5.0 * (1 - 0.5 * out), -0.5, 2.3 * tun];
+    // the gate sits on the page's centre line, 79% of the way down: pan [0, 0.294] centres it
+    u.zoom = 1 + 3.2 * (1 - out) * (1 - out);
+    u.pan = [0, 0.294 * (1 - out)];
+    // the hue keeps turning the way it was going and comes round to where it started
+    u.hue = 140 + 220 * out;
+    u.kaleido = 0.5 * (1 - sm(seg(28.8, 30.2)));
+    u.kalN = 8;
+    u.trails = 0.55 * (1 - out) + 0.12;
+    u.warp = 0.012 * (1 - out); u.chroma = 0.0015 + 0.008 * (1 - out);
+    u.bloom = 0.28 + 0.2 * (1 - out); u.glow = 0.5;
+    u.white = 0.25 * tun * seg(28.6, 28.9);
+    // CALM: each change of script phase-shifts in on glitch slices, with a jolt of split light
+    let jolt2 = 0;
+    for (const [tc] of OUTRO_FONTS) {
+      if (t >= tc && t < tc + 0.45) { u.wipe = sm(seg(tc, tc + 0.45)); u.held = Math.round(tc * 30) - 1; u.wipeKind = 2; }
+      if (t >= tc) jolt2 = Math.max(jolt2, Math.exp(-(t - tc) * 5));
+    }
+    u.chroma += 0.007 * jolt2; u.warp += 0.006 * jolt2;
+    // and at the end the page turns away into the dark
+    const drift = sm(seg(34.4, 37.0));
+    u.cam = [1 - 0.22 * drift, -9 * drift, 4 * drift];
+    u.zoom *= 1 + 0.015 * (1 - Math.cos(t * 0.6)) * out;
+    u.black = sm(seg(36.2, 37.0));
   }
   return u;
 }
@@ -97,14 +175,16 @@ export default {
   key: 'phase-shift',
   poster: 17.6,
   title: 'Phase Shift — the ice wall through every realm, down the pole to Agartha and its transmissions',
-  dur: 28,
+  dur: 37,
   url: '/index.html',
-  prefs: {},
+  prefs: { font: 'runic' },
   act,
   lens,
   cues: [
     { t: 1.2, kind: 'shift' }, { t: 2.6, kind: 'shift' }, { t: 4.0, kind: 'shift' }, { t: 5.4, kind: 'shift' }, { t: 6.8, kind: 'shift' },
     { t: 7.4, kind: 'dive' }, { t: 8.0, kind: 'emerge' }, { t: 9.4, kind: 'zoom' }, { t: 10.8, kind: 'zoom' }, { t: 12.2, kind: 'zoom' },
-    { t: 13.6, kind: 'fall' }, { t: 15.2, kind: 'sun' }, { t: 16.0, kind: 'relic' }, { t: 21.8, kind: 'shift' }, { t: 22.6, kind: 'push' }, { t: 27.3, kind: 'white' },
+    { t: 13.6, kind: 'fall' }, { t: 15.2, kind: 'sun' }, { t: 16.0, kind: 'relic' }, { t: 21.8, kind: 'shift' }, { t: 22.6, kind: 'push' },
+    { t: 26.0, kind: 'peak' }, { t: 27.6, kind: 'ascend' }, { t: 28.8, kind: 'down' }, { t: 31.0, kind: 'calm' }, { t: 31.2, kind: 'seal' },
+    ...OUTRO_FONTS.map(([t, font]) => ({ t, kind: 'font', font })),
   ],
 };

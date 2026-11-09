@@ -8,38 +8,40 @@
  * ===========================================================================*/
 window.AA_CONFIG = {
   name: 'Agarthan Armory',
-  legalName: null,                 // e.g. 'Agarthan Armory LLC' — shown in the footer + legal line
-  established: null,               // e.g. 2021
+  // from the store's own site (shop.agarthanarmory.com), its federal licence record and its
+  // Florida LLC filing (L24000086954, filed 19 Feb 2024)
+  legalName: 'Agarthan Armory LLC', // shown in the footer + legal line
+  established: 2024,
   domain: 'agarthanarmory.com',
 
   // Age gate. Federal floor: 21 for handguns from a dealer, 18 for long guns + ammo.
   ageMin: 21,
 
   ffl: {
-    number: null,                  // e.g. '1-23-456-01-7A-12345' — shown on the FFL plate + transfers page
-    type: 'Type 01 Dealer',        // 'Type 01 Dealer', 'Type 07 Manufacturer', …
+    number: '1-59-011-07-8A-59532', // shown on the FFL plate + transfers page
+    type: 'Type 07 Manufacturer',  // the licence number's type field is 07: manufacturer of firearms
     sot: false,                    // true if Class 3 SOT (NFA items: suppressors, SBRs)
   },
 
-  phone: null,                     // '(555) 555-5555'
+  phone: '(561) 830-3366',
   email: null,                     // 'info@agarthanarmory.com'
   address: {                       // shown in Visit + footer; null street = by appointment / online only
-    street: null,
-    city: null,
-    state: null,
-    zip: null,
+    street: '1460 SW 3rd St, Suite B10',
+    city: 'Pompano Beach',
+    state: 'FL',
+    zip: '33069',
   },
   // Plots the store as a beacon on the ice wall map. null = "beyond the wall".
   geo: null,                       // { lat: 34.05, lon: -118.24 }
 
   // [day, 'open – close' | 'Closed' | null]
   hours: [
-    ['Mon', null], ['Tue', null], ['Wed', null], ['Thu', null],
-    ['Fri', null], ['Sat', null], ['Sun', null],
+    ['Mon', '10:00 AM – 6:00 PM'], ['Tue', '10:00 AM – 6:00 PM'], ['Wed', '10:00 AM – 6:00 PM'], ['Thu', '10:00 AM – 6:00 PM'],
+    ['Fri', '10:00 AM – 6:00 PM'], ['Sat', 'Closed'], ['Sun', 'Closed'],
   ],
 
   social: {                        // full URLs; null hides the link
-    instagram: null,
+    instagram: 'https://www.instagram.com/agarthanarmory/',
     facebook: null,
     x: null,
     youtube: null,

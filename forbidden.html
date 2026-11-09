@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en" data-font="future">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forbidden Knowledge — Agarthan Armory</title>
+<meta name="description" content="What the old maps, the expedition logs and the stories say lies at the edge of the world: the ice wall, Hyperborea, the hollow earth, Agartha, Vril — and the eye in the wall.">
+<meta name="theme-color" content="#03060c">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/img/brand/seal-64.png">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Agarthan Armory">
+<meta property="og:title" content="Forbidden Knowledge — beyond the ice wall">
+<meta property="og:description" content="Recovered beyond the wall. Clearance: none.">
+<meta property="og:image" content="https://agarthanarmory.com/assets/img/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css?v=bb096bf4bb">
+<script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<!-- partial:gate -->
+<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-card hud brackets">
+    <div class="gate-scan" aria-hidden="true">
+      <svg viewBox="0 0 120 120" fill="none" stroke="currentColor">
+        <circle cx="60" cy="60" r="56" stroke-opacity=".25"/>
+        <g class="spin"><path d="M60 4a56 56 0 0 1 48.5 28" stroke-width="2"/><path d="M60 116a56 56 0 0 1-48.5-28" stroke-width="2"/></g>
+        <g class="spin2" stroke-dasharray="3 7" stroke-opacity=".6"><circle cx="60" cy="60" r="44"/></g>
+      </svg>
+      <span class="seal gate-seal"><img src="assets/img/brand/seal-160.png" alt=""></span>
+    </div>
+    <span class="eyebrow">Perimeter checkpoint</span>
+    <h2 id="gateTitle">Credentials required beyond the wall</h2>
+    <div class="gate-msg"><p>This outpost deals in firearms and ammunition. You must be <b><span data-age>21</span> or older</b> to pass.</p></div>
+    <div class="gate-actions">
+      <button class="btn btn-ice" id="gateYes" type="button">I’m <span data-age>21</span> or older · open the gate</button>
+      <button class="btn btn-ghost" id="gateNo" type="button">Turn back</button>
+    </div>
+    <p class="gate-fine">By entering you confirm you are of legal age where you live. Every firearm sale complies with federal, state and local law.</p>
+  </div>
+</div>
+<!-- /partial:gate -->
+<!-- partial:header -->
+<div class="topbar">
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>◈ Federal firearms licensee · <b>transfers accepted</b> ◈ Outpost time <i data-clock>--:--:--</i> ◈ Surface temp −89.2°C (Vostok record) ◈ Signal <b>strong</b> ◈ Vril reserves <b>98%</b> ◈ Aurora activity <b>high</b> ◈ Craft sightings <b>logged</b> ◈ New inventory recovered weekly ◈ Special orders from every major distributor</span>
+    <span>◈ Federal firearms licensee · <b>transfers accepted</b> ◈ Outpost time <i data-clock>--:--:--</i> ◈ Surface temp −89.2°C (Vostok record) ◈ Signal <b>strong</b> ◈ Vril reserves <b>98%</b> ◈ Aurora activity <b>high</b> ◈ Craft sightings <b>logged</b> ◈ New inventory recovered weekly ◈ Special orders from every major distributor</span>
+  </div>
+</div>
+<div class="prefs">
+  <button class="prefs-btn" type="button" aria-expanded="false" aria-controls="prefsPanel" aria-label="Display settings: realm, script and cursor">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg><span>Realm</span>
+  </button>
+  <div class="prefs-panel hud brackets" id="prefsPanel" role="dialog" aria-label="Display settings" hidden></div>
+</div>
+</div>
+<header class="site-header">
+  <nav class="nav wrap" aria-label="Main">
+    <a class="brand" href="index.html" aria-label="Agarthan Armory — home">
+      <span class="brand-mark seal" aria-hidden="true"><img src="assets/img/brand/seal-160.png" alt="" width="40" height="40"></span>
+      <span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>Federally licensed · beyond the wall</small></span>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="armory.html">The Armory</a></li>
+      <li><a href="armory.html?dept=ammo">Ammo</a></li>
+      <li><a href="index.html#map">The Map</a></li>
+      <li><a href="transfers.html">FFL Transfers</a></li>
+      <li><a href="index.html#visit">Visit</a></li>
+    </ul>
+    <button class="req-btn" type="button" data-open-req aria-label="Open your requisition list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+      <span class="req-label">Requisition</span><span class="req-count" data-n="0">0</span>
+    </button>
+    <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
+  </nav>
+</header>
+<!-- /partial:header -->
+
+<main id="main" class="forbidden">
+  <section class="page-hero fk-hero">
+    <canvas id="sky" data-sky="lite" aria-hidden="true"></canvas>
+    <img class="fk-geode" src="assets/img/eye/giga-geode.webp" alt="" aria-hidden="true" width="619" height="1100">
+    <div class="wrap fk-head">
+      <a class="fk-eye" data-eye="watch" href="index.html" aria-label="Back through the wall">
+        <img src="assets/img/eye/geode-eye-600.webp" alt="" width="441" height="260">
+        <span class="eye-label">Back through the wall</span>
+      </a>
+      <span class="eyebrow">Recovered beyond the wall · clearance: none</span>
+      <h1 class="frost-text">Forbidden knowledge</h1>
+      <p class="runes fk-runes" data-runes="what the wall keeps" aria-hidden="true"></p>
+      <p>The eye let you through. What follows is what the old maps, the expedition logs and the stories say lies at the edge of the world. Some of it is on record. Most of it is legend. The wall keeps the difference to itself, so every file here says which it is.</p>
+      <p class="fk-key"><span class="fk-tag record">Record</span> documented · <span class="fk-tag legend">Legend</span> told, never proven · <span class="fk-tag sighted">Sighted</span> ours</p>
+    </div>
+  </section>
+
+  <section class="section fk-files-section">
+    <div class="wrap">
+      <ol class="fk-files">
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 01</span><span>66°33′S · the rim</span><span class="fk-tag legend">Legend</span></div>
+          <h3>The wall</h3>
+          <p>Draw the world from above the North Pole and Antarctica stops being a continent at the bottom of the globe. It becomes a ring of ice around the edge of everything. That is the azimuthal equidistant projection, the map in this site's own navigation, and the one Alexander Gleason printed as his <i>New Standard Map of the World</i> in 1892.</p>
+          <p>The legend begins where the map ends: a wall of ice two hundred feet high that runs the whole rim of the world, and that <span class="redact" tabindex="0">no expedition has been allowed to cross</span>.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 02</span><span>beyond the north wind</span><span class="fk-tag legend">Legend</span></div>
+          <h3>Hyperborea</h3>
+          <p>The Greeks put a people beyond Boreas, the north wind, in a land of endless sun where Apollo spent his winters. Pindar sang of it. Herodotus wrote it down and said he did not believe it. On our map it is the land above the way down.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 03</span><span>90°00′N · 1595</span><span class="fk-tag record">Record</span></div>
+          <h3>Rupes Nigra</h3>
+          <p>Gerardus Mercator's chart of the Arctic, published in 1595, puts a black magnetic rock at the North Pole: four islands around it, four rivers pouring between them into a whirlpool that drains into the earth. He took it from a lost book, the <i>Inventio Fortunata</i>. The chart is real and in the archives. The rock, as far as anyone has found, is not.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 04</span><span>the Royal Society · 1692</span><span class="fk-tag record">Record</span></div>
+          <h3>Shells within shells</h3>
+          <p>Edmond Halley, the comet's Halley, proposed to the Royal Society that the earth is hollow: an outer shell around inner ones, each with its own poles, which would explain why compasses drift. He suggested the aurora might be a luminous atmosphere escaping through the thin crust at the poles. A real paper by a serious man. Wrong, but on record.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 05</span><span>St. Louis · 1818</span><span class="fk-tag record">Record</span></div>
+          <h3>Symmes' holes</h3>
+          <p>John Cleves Symmes Jr. mailed a circular to colleges, scientists and governments: <q>I declare the earth is hollow, and habitable within.</q> He asked for a hundred brave companions to sail with him into the opening at the pole. Nobody funded the voyage. The openings are still called Symmes holes.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 06</span><span>the way down</span><span class="fk-tag legend">Legend</span></div>
+          <h3>Agartha</h3>
+          <p>Saint-Yves d'Alveydre wrote in 1886 of Agartha, a kingdom under the earth that keeps the knowledge the surface lost. In 1922 Ferdynand Ossendowski's <i>Beasts, Men and Gods</i> gave it a ruler, the King of the World. Our map puts the way down at the pole, and our vault behind it.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 07</span><span>London · 1871</span><span class="fk-tag legend">Legend</span></div>
+          <h3>Vril</h3>
+          <p>Edward Bulwer-Lytton's novel <i>The Coming Race</i> told of a people under the earth and the energy they wield, which he called Vril. It was a novel. People believed it anyway, and the word outlived the book. The ticker on this site still reports the reserves.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 08</span><span>the Ross Sea · 1946–47</span><span class="fk-tag record">Record</span></div>
+          <h3>Operation Highjump</h3>
+          <p>The US Navy sent about 4,700 men, 13 ships and 33 aircraft to Antarctica under Admiral Richard E. Byrd, the largest expedition the continent has ever seen. That part is history.</p>
+          <p>The diary that has him flying past the pole into a green valley warmed from below is legend: <span class="redact" tabindex="0">no such diary was ever found</span>. Our expedition log on the home page borrows the legend and keeps its own entries.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 09</span><span>Washington · 1 December 1959</span><span class="fk-tag record">Record</span></div>
+          <h3>The treaty</h3>
+          <p>Twelve nations signed the Antarctic Treaty: no military activity, no new territorial claims, science only. Anyone may visit and nobody may own it. That is what the document says. People who believe in the wall read it as the opposite: <span class="redact" tabindex="0">a fence, with everyone agreeing to stand on this side of it</span>.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 10</span><span>the Rhine · 1944</span><span class="fk-tag record">Record</span></div>
+          <h3>Foo fighters</h3>
+          <p>Allied night-fighter crews over Europe named the lights that paced their planes foo fighters. They were reported, logged and never explained. The craft that crosses this site's hero is one of their descendants, and the ticker files every sighting.</p>
+        </li>
+        <li class="fk-file hud brackets reveal">
+          <div class="fk-meta"><span>File 11</span><span>Vostok Station · 21 July 1983</span><span class="fk-tag record">Record</span></div>
+          <h3>−89.2 °C</h3>
+          <p>The coldest air temperature ever measured at the surface of the earth, taken at Vostok in the dark of the Antarctic winter. The outpost's ticker reads it to you every day, as a reminder of what is on the other side of the wall.</p>
+        </li>
+        <li class="fk-file hud brackets reveal fk-last">
+          <div class="fk-meta"><span>File 12</span><span>the gate · now</span><span class="fk-tag sighted">Sighted</span></div>
+          <h3>The eye in the wall</h3>
+          <p>It opened in the gate. Amethyst, with a slit of pale ice for a pupil, and it follows whoever looks at it. Nobody built it and nobody has seen it close for long. It let you through. <span class="redact" tabindex="0">It is watching you read this.</span></p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section fk-close">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">End of the recovered files</span>
+        <h2>We don’t sell secrets</h2>
+        <p>Only the gear people carry when they go looking for them. Everything in the vault goes through the gate by the book.</p>
+      </div>
+      <div class="hero-cta" style="justify-content:flex-start">
+        <a class="btn btn-ice arrow" href="armory.html">Enter the Armory</a>
+        <a class="btn btn-ghost" href="index.html#map">Back to the map</a>
+      </div>
+      <p class="fk-note">This page is lore: myths, legends and old maps, told for the story. The records are real; what the legends make of them is not.</p>
+    </div>
+  </section>
+</main>
+
+<!-- partial:footer -->
+<footer class="site-footer">
+  <div class="wrap foot-grid">
+    <div>
+      <a class="brand" href="index.html"><span class="brand-mark seal" aria-hidden="true"><img src="assets/img/brand/seal-160.png" alt="" width="40" height="40"></span><span class="brand-name"><strong>AGARTHAN ARMORY</strong><small>The last outpost before the wall</small></span></a>
+      <p style="margin-top:18px;max-width:320px">Firearms, ammunition, optics and FFL transfers. Hyperborean steel, Agarthan engineering, and every form filled out properly.</p>
+      <p class="runes foot-runes" data-runes="hyperborea · agartha · the ice wall"></p>
+      <div class="ffl-plate">FFL · <span data-cfg="ffl.number" data-tbd="[ FFL NUMBER ]"></span><br><span data-cfg="ffl.type"></span><span data-sot hidden> · SOT</span></div>
+    </div>
+    <div>
+      <h4>The Armory</h4>
+      <ul>
+        <li><a href="armory.html?dept=sidearms">Sidearms</a></li>
+        <li><a href="armory.html?dept=longarms">Longarms</a></li>
+        <li><a href="armory.html?dept=shotguns">Shotguns</a></li>
+        <li><a href="armory.html?dept=ammo">Ammunition</a></li>
+        <li><a href="armory.html?dept=optics">Optics &amp; Tech</a></li>
+        <li><a href="armory.html?dept=gear">Expedition Gear</a></li>
+        <li><a href="armory.html?dept=nfa">NFA &amp; Suppressors</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Services</h4>
+      <ul>
+        <li><a href="transfers.html">FFL transfers</a></li>
+        <li><a href="transfers.html#services">Special orders</a></li>
+        <li><a href="transfers.html#faq">Transfer FAQ</a></li>
+        <li><a href="index.html#map">The ice wall map</a></li>
+        <li><a href="index.html#visit">Visit &amp; hours</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li data-cfg="phone" data-tbd="[ PHONE ]"></li>
+        <li data-cfg="email" data-tbd="[ EMAIL ]"></li>
+        <li data-cfg="address" data-tbd="[ ADDRESS ]"></li>
+      </ul>
+      <h4 style="margin-top:22px">Signals</h4>
+      <ul data-social></ul>
+    </div>
+  </div>
+  <div class="legal wrap">
+    © <span data-year>2026</span> <span data-cfg="name"></span>. Federally licensed firearms dealer. Every firearm transfer requires ATF Form 4473 and a background check and must comply with federal, state and local law.
+    Handguns 21+ · long guns &amp; ammunition 18+. We reserve the right to refuse any sale. What lies beyond the wall remains classified.
+  </div>
+</footer>
+<!-- /partial:footer -->
+
+<script src="assets/js/config.js?v=0438ef4e8a"></script>
+<script src="assets/data/catalog.js?v=95b8bdc12c"></script>
+<script src="assets/js/icons.js?v=77fa25b999"></script>
+<script src="assets/js/site.js?v=7df1ff3e62"></script>
+<script src="assets/js/prefs.js?v=bc09182041"></script>
+<script src="assets/js/eye.js?v=4edacf2e36"></script>
+</body>
+</html>
