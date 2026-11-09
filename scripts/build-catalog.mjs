@@ -96,6 +96,20 @@ export function classify(p) {
 }
 const FIREARM_DEPTS = new Set(['sidearms', 'longarms', 'shotguns', 'nfa']);
 export const ARP = 'AR & Rifle-Caliber Pistols';
+/** the barrel-length filter's ranges, by what a buyer compares: handguns by the inch; rifles fine below the
+ *  16" line (AR pistols, SBR lengths) and by 2" above it; shotguns from home-defense to bird-gun lengths */
+const RANGES = {
+  sidearms: [3, 4, 5, 6], longarms: [8, 10.5, 12.5, 14.5, 16, 18, 20, 22, 24], nfa: [8, 10.5, 12.5, 14.5, 16], shotguns: [18.5, 20, 24, 26, 28],
+};
+export function barrelRange(dept, sub, inches) {
+  if (!(inches > 0)) return null;
+  const cuts = RANGES[dept];   // one scale per department, so its filter never shows overlapping ranges
+  if (!cuts) return null;
+  const fmt = (n) => String(+n.toFixed(2));
+  if (inches < cuts[0]) return `Under ${fmt(cuts[0])}"`;
+  for (let k = 1; k < cuts.length; k++) if (inches < cuts[k]) return `${fmt(cuts[k - 1])}–${fmt(cuts[k])}"`;
+  return `${fmt(cuts[cuts.length - 1])}"+`;
+}
 const BARREL_RE = /\b(\d{1,2}(?:\.\d{1,3})?)\s?(?:"|”|''|in\b|inch(?:es)?\b|-inch)/i;
 /** barrel length in inches from a listing name, or null */
 export const barrelIn = (s) => { const m = String(s || '').match(BARREL_RE); const n = m ? parseFloat(m[1]) : NaN; return n >= 2 && n <= 34 ? n : null; };
@@ -251,6 +265,9 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       if (!f.action) f.action = /semi|large format/i.test(was) ? 'Semi-Auto' : /^revolvers?$/i.test(was) ? 'Revolver' : was;
       type = type || (/revolver/i.test(was) ? 'revolver' : /bolt|single shot|break/i.test(was) ? 'bolt' : /lever/i.test(was) ? 'lever' : 'ar');
     }
+    // barrel length filters by range (16–18"); the exact length stays on the card and in the spec sheet
+    const exactBarrel = f.barrel;
+    if (f.barrel && FIREARM_DEPTS.has(dept)) f.barrel = barrelRange(dept, sub, parseFloat(f.barrel)) || f.barrel;
     const price = o.price !== undefined ? o.price : p.price ?? null;
     const rounds = dept === 'ammo' && f.count ? parseInt(f.count, 10) : 0;
     items.push({
@@ -270,7 +287,7 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       nfa: nfa || undefined,   // labelled NFA, in red, on the item's cover
       // cards read a few canonical rows; a store spec sheet (Gearfire) rides along for the detail view
       specs: p.source === 'gearfire'
-        ? Object.fromEntries(Object.entries({ caliber: f.caliber, capacity: f.capacity, barrel: f.barrel, count: f.count, magnification: f.mag, reticle: f.reticle, ...(o.specs || {}) }).filter(([, v]) => v))
+        ? Object.fromEntries(Object.entries({ caliber: f.caliber, capacity: f.capacity, barrel: exactBarrel, count: f.count, magnification: f.mag, reticle: f.reticle, ...(o.specs || {}) }).filter(([, v]) => v))
         : { ...specsFor(dept, p), ...(o.specs || {}) },
       sheet: sheetOf(p) || undefined,
       desc: clip(o.desc || p.description || p.shortDescription || '', 6000),

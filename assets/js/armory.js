@@ -21,7 +21,7 @@
     sidearms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
     longarms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
     shotguns: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
-    gear: ['kind', 'caliber', 'capacity', 'fits', 'color', 'brand'],
+    gear: ['kind', 'fits', 'caliber', 'capacity', 'style', 'hand', 'color', 'brand'],
     nfa: ['caliber', 'barrel', 'capacity', 'color', 'brand'],
   };
   const LABEL = {
@@ -29,11 +29,12 @@
     shot: 'Shot size', shell: 'Shell length', barrel: 'Barrel length', action: 'Action', capacity: 'Capacity', mag: 'Magnification',
     objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
     sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color / finish',
-    height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits',
+    height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits', hand: 'Hand', style: 'Style',
   };
   const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag']);
   const valsOf = (i, k) => (k === 'brand' ? (i.brand ? [i.brand] : []) : [].concat((i.f || {})[k] || []));
-  const numOf = (v) => parseFloat(String(v).replace(/^[^\d]*/, '')) || 0;
+  // numbers in a filter value sort as numbers; "Under 16\"" comes before "16–18\""
+  const numOf = (v) => (parseFloat(String(v).replace(/^[^\d]*/, '')) || 0) - (/^under\b/i.test(String(v)) ? 0.5 : 0);
 
   const state = {
     dept: AA.DEPTS[params.get('dept')] ? params.get('dept') : '',
