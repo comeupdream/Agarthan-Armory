@@ -14,6 +14,12 @@
     const c = el.querySelector('[data-count]');
     if (c) c.textContent = n ? `${n.toLocaleString('en-US')} in stock` : 'Ask us';
   });
+  // "Into the dark": how many of each chapter's category can be had now
+  AA.$$('[data-sub-count]').forEach((el) => {
+    const [d, sub] = el.dataset.subCount.split('|');
+    const n = items.filter((i) => i.dept === d && i.sub === sub && available(i)).length;
+    el.textContent = n ? `${n.toLocaleString('en-US')} in stock` : '';
+  });
 
   // featured: flagged items first, then in-stock, one per department before repeats
   const grid = document.getElementById('featuredGrid');

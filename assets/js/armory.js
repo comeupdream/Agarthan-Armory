@@ -227,6 +227,7 @@
       (pages > 1 ? ` · ${(from + 1).toLocaleString()}–${Math.min(from + state.per, r.length).toLocaleString()}` : '');
     const d = AA.DEPTS[state.dept];
     $('#armoryTitle').textContent = state.sub || (d ? d.title : 'The Armory');
+    showArt();
     document.title = `${state.sub || (d ? d.title : 'The Armory')} — Agarthan Armory`;
     const n = Object.values(state.f).reduce((a, s2) => a + s2.size, 0) + (state.sub ? 1 : 0) + (state.stock ? 1 : 0) + (state.pmin || state.pmax ? 1 : 0);
     const ft2 = $('.filters-toggle'); if (ft2 && !$('.filters').classList.contains('open')) ft2.textContent = n ? `More filters · ${n} on` : 'More filters';
@@ -253,6 +254,26 @@
     sensor: 'Sensor', detection: 'Detection range', display: 'Display', output: 'Output', battery: 'Battery', fits: 'Fits',
     interior: 'Interior', locks: 'Locks', wheels: 'Wheels', includes: 'Includes', fire: 'Fire rating', lock: 'Lock' };
   const DETAILS = new Map();   // id → { desc, images, specs, url } from assets/data/items/<id>.json
+  // a picture beside the title for the departments and categories that have one
+  const ART_DIR = 'assets/img/feature/';
+  const ART = {
+    '': ['manifesto-1280.webp', 'Agarthan Armory: for those who seek what lies beyond the known world'],
+    nfa: ['tiny-cans-640.webp', 'Tiny guns, tiny cans: a compact pistol wearing a short Stealth Additive Works suppressor'],
+    optics: ['holo-laser-900.webp', 'A rifle in blue light with a holographic sight and a laser unit'],
+    'optics/Lasers': ['lasers-900.webp', 'A rifle firing a green laser, under the word Lasers'],
+    'optics/Red Dots & Holographic': ['holo-laser-900.webp', 'A rifle in blue light with a holographic sight and a laser unit'],
+    'optics/Night Vision': ['night-vision-416.webp', 'Seen through night vision: a shooter firing in green light'],
+  };
+  function showArt() {
+    const fig = $('#armoryArt'); if (!fig) return;
+    const art = ART[state.dept + '/' + state.sub] || (state.sub ? null : ART[state.dept]) || null;
+    fig.hidden = !art;
+    fig.closest('.page-hero').classList.toggle('has-art', !!art);
+    if (!art) return;
+    const img = fig.querySelector('img');
+    if (img.getAttribute('src') !== ART_DIR + art[0]) { img.src = ART_DIR + art[0]; img.alt = art[1]; }
+  }
+
   function openItem(id, push) {
     const base = AA.items.get(id); if (!base) return;
     const it = { ...base, ...(DETAILS.get(id) || {}) };
