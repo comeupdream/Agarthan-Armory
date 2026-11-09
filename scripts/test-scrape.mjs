@@ -325,7 +325,7 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
     '/': kitPage(null, href(U(40), U(41), 'shooting-sports/ammunition/rifle-ammo')),
     '/robots.txt': { body: 'User-agent: *\nDisallow: /cart\nSitemap: SITE/sitemap.xml\n', type: 'text/plain' },
   };
-  const gfState = { block: 0, gone: new Set(), hits: 0 };
+  const gfState = { block: 0, gone: new Set(), hits: 0, challenge: 0, hollow: new Set() };
   const gf = await serve({});
   gf.server.removeAllListeners('request');
   const gb = gf.url;
@@ -341,6 +341,8 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
     const d = u.pathname.match(/\/detail\/([0-9a-f-]{36})\/([0-9a-f-]{36})$/);
     if (d) gfState.hits++;
     if (d && gfState.block > 0) { gfState.block--; res.writeHead(403, { 'Content-Type': 'text/html' }); return res.end('<h1>403 ERROR</h1>The request could not be satisfied. Request blocked.'); }
+    if (d && gfState.challenge > 0) { gfState.challenge--; res.writeHead(202, { 'Content-Type': 'text/html' }); return res.end('<html><script src="/challenge.js"></script>checking your browser</html>'); }
+    if (d && gfState.hollow.has(d[1])) return send(kitPage(null));
     if (d && gfState.gone.has(d[1])) { res.writeHead(404); return res.end('gone'); }
     if (d && LINES[d[1]]) return send(kitPage(productRoute(d[1], d[2])));
     res.writeHead(404); res.end('nope');
@@ -378,6 +380,19 @@ const tmp = () => mkdtempSync(path.join(tmpdir(), 'aa-scrape-'));
   r = await run(gb, ['--max-images', '0', '--block-pause', '50'], d);
   ok(r.code === 0 && /pausing/.test(r.out), 'gearfire: refusals pause and retry\n' + r.out);
   eq(r.code === 0 && read(d).length, 7, 'gearfire: every product read after the store lets up');
+  // a firewall challenge answered "202 OK" is a refusal to wait out, never an empty product
+  d = tmp(); gfState.challenge = 3;
+  r = await run(gb, ['--max-images', '0', '--block-pause', '50'], d);
+  ok(r.code === 0 && /challenge page/.test(r.out), 'gearfire: a challenge page pauses and retries\n' + r.out);
+  eq(r.code === 0 && read(d).length, 7, 'gearfire: nothing lost to challenge pages');
+  // a real page with nothing this store sells is remembered, and not fetched again on --resume
+  d = tmp(); gfState.hollow = new Set([U(40)]);
+  r = await run(gb, ['--max-images', '0'], d);
+  ok(/1 product lines had nothing this store sells/.test(r.out), 'gearfire: an empty line is counted\n' + r.out);
+  gfState.hits = 0;
+  r = await run(gb, ['--max-images', '0', '--resume'], d);
+  ok(/1 empty ones skipped/.test(r.out) && gfState.hits === 0, 'gearfire: --resume skips the empty line\n' + r.out);
+  gfState.hollow = new Set();
   // a page that fails is reported by cause; --resume then reads only what is missing
   d = tmp(); gfState.gone = new Set([U(50)]);
   r = await run(gb, ['--max-images', '0'], d);
