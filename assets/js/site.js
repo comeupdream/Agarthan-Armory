@@ -191,9 +191,16 @@
     box.classList.remove('photo');
     img.outerHTML = `<span class="holo-glow" style="display:contents">${AA.icon((item && item.type) || box.dataset.type || 'case')}</span>`;
   }, true);
-  // a National Firearms Act item carries a red NFA plate on its cover, wherever the cover is drawn
+  // a National Firearms Act item carries a red NFA plate on its cover, wherever the cover is drawn,
+  // unless config.js's nfaLabels switches that kind of item off. A kind the switch does not name keeps its label.
   AA.isNfa = (item) => !!(item && (item.nfa || item.dept === 'nfa'));
-  AA.nfaTag = (item) => (AA.isNfa(item) ? '<span class="nfa-tag" title="National Firearms Act item">NFA</span>' : '');
+  AA.nfaKind = (item) => {
+    if (item.type === 'can' || /suppressor/i.test(item.sub || '')) return 'suppressor';
+    if (/shotgun/.test(item.type || '') || /shotgun|\bsbs\b/i.test(`${item.sub || ''} ${item.name || ''}`)) return 'sbs';
+    return 'sbr';
+  };
+  AA.showNfa = (item) => AA.isNfa(item) && (cfg.nfaLabels || {})[AA.nfaKind(item)] !== false;
+  AA.nfaTag = (item) => (AA.showNfa(item) ? '<span class="nfa-tag" title="National Firearms Act item">NFA</span>' : '');
   AA.viz = (item, big) => {
     const img = item.images && item.images[0];
     if (img) return `<img src="${esc(img)}" alt="${esc(item.name)}" loading="lazy" decoding="async">`;
