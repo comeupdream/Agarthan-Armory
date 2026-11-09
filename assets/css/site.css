@@ -1064,3 +1064,65 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
 .pager .pg:disabled { opacity: .35; cursor: default; }
 .pager .pg-gap { color: var(--muted); padding: 0 2px; font: 400 12px/1 var(--f-mono); }
 .pager .pg-of { flex-basis: 100%; text-align: center; margin-top: 6px; color: var(--muted); font: 400 11px/1 var(--f-mono); letter-spacing: .2em; text-transform: uppercase; }
+
+/* ---------- the owner's banner, under the hero ---------- */
+.manifesto { padding: clamp(28px, 4vw, 56px) 0 0; }
+.manifesto-frame { margin: 0; position: relative; overflow: hidden; border: 1px solid var(--line); background: #0b1d3a; }
+.manifesto-frame img { display: block; width: 100%; height: auto; }
+
+/* ---------- into the dark: lasers, night vision, thermal; picture and words alternate ---------- */
+.dark-story { background: linear-gradient(180deg, transparent, #02050a 14%, #02050a 86%, transparent); }
+.chapter { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 60px); align-items: center; margin-top: clamp(44px, 6vw, 92px); }
+.chapter.flip { grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr); }
+.chapter.flip .ch-art { order: 2; }
+.ch-art { position: relative; display: block; padding-bottom: 10%; }
+.ch-art .ch-main { display: block; width: 100%; height: auto; border: 1px solid var(--line-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(var(--accent-rgb), .12); transition: transform .6s ease; }
+.ch-art .ch-inset { position: absolute; right: -3%; bottom: 0; width: 40%; height: auto; border: 1px solid rgba(var(--accent-rgb), .45);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .7), 0 0 24px rgba(var(--accent-rgb), .22); transition: transform .6s ease; }
+.chapter.flip .ch-art .ch-inset { right: auto; left: -3%; }
+.ch-art.inset-left .ch-inset { right: auto; left: -3%; }
+.ch-art.tall { display: flex; align-items: flex-end; gap: 18px; padding-bottom: 0; }
+.ch-art.tall .ch-main { width: auto; height: min(560px, 72vh); max-width: 46%; object-fit: cover; }
+.ch-art.tall .ch-inset { position: static; width: 54%; }
+.ch-art:hover .ch-main { transform: translateY(-4px); }
+.ch-art:hover .ch-inset { transform: translateY(-8px) scale(1.02); }
+.ch-num { display: block; font: 400 13px/1 var(--f-mono); letter-spacing: .4em; color: var(--aurora); }
+.ch-text h3 { font-size: clamp(30px, 3.6vw, 48px); margin: 12px 0 14px; }
+.ch-text p { color: var(--sub2); font-size: 17px; max-width: 460px; margin: 0 0 22px; }
+.ch-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.ch-count { font: 400 12px/1 var(--f-mono); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .ch-art .ch-main, .ch-art .ch-inset { transition: none; } }
+@media (max-width: 900px) {
+  .chapter, .chapter.flip { grid-template-columns: 1fr; }
+  .chapter.flip .ch-art { order: 0; }
+  .ch-art .ch-inset { width: 44%; right: -2%; }
+  .chapter.flip .ch-art .ch-inset, .ch-art.inset-left .ch-inset { left: auto; right: -2%; }
+  .ch-art.tall .ch-main { height: auto; max-height: 480px; width: 44%; max-width: none; }
+}
+
+/* ---------- the silent vault: the owner's NFA poster beside its shelf ---------- */
+.vault-split { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: clamp(28px, 5vw, 72px); align-items: center; }
+.vault-art { display: block; }
+.vault-art img { display: block; width: 100%; height: auto; }
+.vault-text h2 { font-size: clamp(34px, 4.6vw, 60px); margin: 14px 0 16px; }
+.vault-text p { color: var(--sub2); font-size: 17px; max-width: 560px; }
+.nfa-tag.inline { position: static; display: inline-block; vertical-align: 2px; font-size: 11px; padding: 3px 6px 2px; box-shadow: none; }
+@media (max-width: 900px) { .vault-split { grid-template-columns: 1fr; } .vault-art { max-width: 440px; width: 100%; margin: 0 auto; } }
+
+/* ---------- armory: a picture beside the title, for the departments and categories that have one ---------- */
+.page-hero-art { margin: 0; }
+.page-hero-art[hidden] { display: none !important; }
+.page-hero-art img { display: block; max-width: 100%; max-height: 300px; width: auto; height: auto; border: 1px solid var(--line-strong);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55), 0 0 0 1px rgba(var(--accent-rgb), .12); }
+@media (min-width: 1100px) {
+  .page-hero.has-art .wrap { position: relative; }
+  .page-hero.has-art .wrap > :not(.page-hero-art) { max-width: calc(100% - min(40%, 500px) - 40px); }
+  .page-hero.has-art h1 { font-size: clamp(36px, 4.4vw, 66px); overflow-wrap: anywhere; }
+  .page-hero-art { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: min(40%, 500px); display: flex; justify-content: flex-end; }
+}
+@media (max-width: 1099px) { .page-hero-art { margin-top: 24px; } .page-hero-art img { max-height: 220px; } }
+
+/* ---------- forbidden knowledge: a file with a picture ---------- */
+.fk-fig { margin: 12px 0 14px; }
+.fk-fig img { display: block; width: 100%; max-width: 360px; height: auto; border: 1px solid var(--line); }
