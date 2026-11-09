@@ -1082,6 +1082,9 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
   box-shadow: 0 18px 40px rgba(0, 0, 0, .7), 0 0 24px rgba(var(--accent-rgb), .22); transition: transform .6s ease; }
 .chapter.flip .ch-art .ch-inset { right: auto; left: -3%; }
 .ch-art.inset-left .ch-inset { right: auto; left: -3%; }
+.ch-art.solo { padding-bottom: 0; }
+.ch-art.tall.solo { justify-content: center; }
+.ch-art.tall.solo .ch-main { max-width: 100%; }
 .ch-art.tall { display: flex; align-items: flex-end; gap: 18px; padding-bottom: 0; }
 .ch-art.tall .ch-main { width: auto; height: min(560px, 72vh); max-width: 46%; object-fit: cover; }
 .ch-art.tall .ch-inset { position: static; width: 54%; }

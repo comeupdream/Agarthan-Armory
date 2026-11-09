@@ -258,14 +258,11 @@
   const ART_DIR = 'assets/img/feature/';
   const ART = {
     '': ['manifesto-1280.webp', 'Agarthan Armory: for those who seek what lies beyond the known world'],
-    longarms: ['green-laser-aim-900.webp', 'A rifleman sighting down a rifle with a green laser on its rail'],
     nfa: ['tiny-cans-640.webp', 'Tiny guns, tiny cans: a compact pistol wearing a short Stealth Additive Works suppressor'],
     optics: ['holo-laser-900.webp', 'A rifle in blue light with a holographic sight and a laser unit'],
     'optics/Lasers': ['lasers-900.webp', 'A rifle firing a green laser, under the word Lasers'],
     'optics/Red Dots & Holographic': ['holo-laser-900.webp', 'A rifle in blue light with a holographic sight and a laser unit'],
     'optics/Night Vision': ['night-vision-416.webp', 'Seen through night vision: a shooter firing in green light'],
-    'optics/Thermal': ['night-ops-612.webp', 'An operator aiming through smoke and falling snow'],
-    'optics/Riflescopes': ['red-laser-620.webp', 'A soldier aiming a scoped rifle with a red laser'],
   };
   function showArt() {
     const fig = $('#armoryArt'); if (!fig) return;
