@@ -20,7 +20,7 @@
     optics: ['vision', 'form', 'footprint', 'mag', 'objective', 'tube', 'height', 'focal', 'illum', 'reticle', 'dot', 'sensor', 'phosphor', 'laser', 'platform', 'color', 'brand'],
     sidearms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
     longarms: ['caliber', 'barrel', 'action', 'capacity', 'kind', 'platform', 'build', 'color', 'brand'],
-    shotguns: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
+    shotguns: ['caliber', 'chamber', 'barrel', 'action', 'capacity', 'color', 'brand'],
     gear: ['kind', 'fits', 'caliber', 'capacity', 'barrel', 'style', 'hand', 'color', 'brand'],
     nfa: ['kind', 'caliber', 'mount', 'material', 'modular', 'barrel', 'capacity', 'color', 'brand'],
   };
@@ -30,9 +30,9 @@
     objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
     sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color / finish',
     height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits', hand: 'Hand', style: 'Style',
-    vision: 'Vision', form: 'Type', build: 'Build', mount: 'Mount', material: 'Material', modular: 'Modular',
+    vision: 'Vision', form: 'Type', build: 'Build', mount: 'Mount', material: 'Material', modular: 'Modular', chamber: 'Chamber',
   };
-  const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag']);
+  const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag', 'chamber']);
   const valsOf = (i, k) => (k === 'brand' ? (i.brand ? [i.brand] : []) : [].concat((i.f || {})[k] || []));
   // numbers in a filter value sort as numbers; "Under 16\"" comes before "16–18\""
   const numOf = (v) => (parseFloat(String(v).replace(/^[^\d]*/, '')) || 0) - (/^under\b/i.test(String(v)) ? 0.5 : 0);

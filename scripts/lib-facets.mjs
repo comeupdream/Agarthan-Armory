@@ -206,6 +206,23 @@ export const caseName = (v) => {
 // only what the listing says outright ("steel case", "paper hull") — never a guess
 const caseFromText = (t) => (/\bsteel[- ]cased?\b|\bsteel case\b/.test(t) ? 'Steel' : /\bbrass[- ]cased?\b|\bbrass case\b/.test(t) ? 'Brass'
   : /\balumin(?:um|ium)[- ]cased?\b/.test(t) ? 'Aluminum' : /nickel[- ]plated (?:brass|case)/.test(t) ? 'Nickel-plated' : /\bpaper hulls?\b/.test(t) ? 'Paper hull' : /\bplastic hulls?\b/.test(t) ? 'Plastic hull' : null);
+/** one name per action ("Bolt" and "Bolt Action", "SAO" and "Single Action") */
+const actionName = (v) => {
+  if (!v) return null;
+  const t = T(v).trim();
+  return /^bolt/.test(t) ? 'Bolt Action' : /^sao$|single action only|^single action$/.test(t) ? 'Single Action' : /da\s?\/\s?sa|double\/single/.test(t) ? 'DA/SA'
+    : /^dao$|double action only|^double action$/.test(t) ? 'Double Action' : /striker/.test(t) ? 'Striker Fire' : /semi/.test(t) ? 'Semi-Auto' : /break|hinge/.test(t) ? 'Break Open'
+    : /lever/.test(t) ? 'Lever Action' : /pump|slide/.test(t) ? 'Pump Action' : /single shot/.test(t) ? 'Single Shot' : String(v).trim();
+};
+/** one name per footprint; mounting hardware and "universal" are not footprints */
+export function footprintName(v) {
+  const t = T(v).trim();
+  if (/^(screws?|magnifiers?|rangefinders?|binoculars?|universal|multi use|rail|handgun|rifle|1911 government)$/.test(t)) return null;
+  return /rmrcc/.test(t) ? 'Trijicon RMRcc' : /\brmr\b|\bsro\b/.test(t) ? 'Trijicon RMR' : /acro/.test(t) ? 'Aimpoint ACRO'
+    : /407k|507k|holosun k\b|eps carry/.test(t) ? 'Holosun K' : /deltapoint|\bdpp\b|docter|doctor/.test(t) ? 'Docter / DeltaPoint'
+    : /shield|rmsc?\b/.test(t) ? 'Shield RMSc' : /aimpoint (?:micro|t-?[12]|h-?[12])|^t-?[12]$/.test(t) ? 'Aimpoint Micro'
+    : /picatinny|1913/.test(t) ? 'Picatinny' : /^weaver/.test(t) ? 'Weaver' : String(v).trim();
+}
 const yes = (v) => /^(y|yes|true|1)$/i.test(String(v || '').trim());
 const num0 = (v) => { const m = String(v || '').match(/\d+(?:\.\d+)?/); return m ? +m[0] : null; };
 const bulletName = (v) => { const t = T(v); const hit = BULLETS.find(([re]) => re.test(t)); return hit ? hit[1] : String(v).trim(); };
@@ -221,7 +238,10 @@ export function facetsOf(dept, sub, p) {
   const GUNS = ['sidearms', 'longarms', 'shotguns', 'nfa'];
   const sp = storePath(p);
   if (dept === 'ammo' || GUNS.includes(dept) || (dept === 'gear' && /magazine/i.test(sub || ''))) {
-    const cal = normCaliber(A(p, /caliber|calibre|gauge|cartridge|chamber/i)) || caliberOf(variant);
+    const chamberRow = A(p, /chamber/i);
+    const chamberLen = chamberRow && /^\d(?:\.\d+|[- ]\d\/\d)?\s?(?:"|”|in\b|inch)/i.test(chamberRow);
+    const cal = normCaliber(A(p, /caliber|calibre|gauge|cartridge/i) || (chamberLen ? null : chamberRow)) || caliberOf(variant);
+    if (chamberLen && dept === 'shotguns') f.chamber = chamberRow.replace(/\s?(?:in(?:ch(?:es)?)?\b|”)/i, '"').replace(/""$/, '"').trim();
     if (cal) f.caliber = cal;
   }
   if (dept === 'ammo') {
@@ -266,7 +286,7 @@ export function facetsOf(dept, sub, p) {
       const mod = A(p, /modular/i); if (mod) f.modular = yes(mod) ? 'Modular' : 'Fixed length';
     }
     // the store's subcategory already says the action (Semi-Automatic, Bolt Action…): only a spec row adds one
-    const act = A(p, /^action/i) || (sp ? null : /bolt[- ]action/.test(tl) ? 'Bolt action' : /lever[- ]action/.test(tl) ? 'Lever action' : /pump[- ]action/.test(tl) ? 'Pump action' : /semi[- ]auto/.test(tl) ? 'Semi-auto' : /revolver|double[- ]action/.test(tl) ? 'Revolver' : null);
+    const act = actionName(A(p, /^action/i)) || (sp ? null : /bolt[- ]action/.test(tl) ? 'Bolt action' : /lever[- ]action/.test(tl) ? 'Lever action' : /pump[- ]action/.test(tl) ? 'Pump action' : /semi[- ]auto/.test(tl) ? 'Semi-auto' : /revolver|double[- ]action/.test(tl) ? 'Revolver' : null);
     if (act) f.action = act;
     const cap = num0(A(p, /capacity/i)) || (tv.match(/\b(\d{1,3})[\s-]?(?:\+\s?1\s?)?(?:rd|rds|round|shot)s?\b/) || [])[1];
     if (cap) f.capacity = `${parseInt(cap, 10)} rounds`;
@@ -350,6 +370,7 @@ export function facetsOf(dept, sub, p) {
       /picatinny|1913|stanag/.test(tl) && 'Picatinny', /\bweaver\b/.test(tl) && 'Weaver', /\bmrds\b/.test(tl) && 'MRDS', /dovetail/.test(tl) && 'Dovetail',
     ]);
     if (fp.length && ['Red Dots & Holographic', 'Red Dot Mounts', 'Scope Mounts & Rings', 'Bases', 'Optic Accessories', 'Lasers'].includes(sub)) f.footprint = uniq([...(f.footprint || []), ...fp]);
+    if (f.footprint) { const fpn = uniq(f.footprint.map(footprintName)); if (fpn.length) f.footprint = fpn; else delete f.footprint; }
     // a thermal core is 4:3 or 5:4 and at most 1280 wide; a display resolution (1920×1080) is not a sensor
     const sensor = [...tl.matchAll(/\b(\d{3,4})\s?[x×]\s?(\d{3,4})\b/g)].map((m) => [+m[1], +m[2]]).find(([w, h]) => w <= 1280 && w / h >= 1.2 && w / h <= 1.4);
     if (sensor && !f.sensor && ['Thermal', 'Night Vision'].includes(sub)) f.sensor = `${sensor[0]}×${sensor[1]}`;
@@ -370,5 +391,5 @@ export const FACET_LABELS = {
   mag: 'Magnification', objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
   sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color',
   height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits', hand: 'Hand', style: 'Style',
-  vision: 'Vision', form: 'Type', build: 'Build', mount: 'Mount', material: 'Material', modular: 'Modular',
+  vision: 'Vision', form: 'Type', build: 'Build', mount: 'Mount', material: 'Material', modular: 'Modular', chamber: 'Chamber',
 };
