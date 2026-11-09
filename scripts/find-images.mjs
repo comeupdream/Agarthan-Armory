@@ -112,9 +112,10 @@ export function scoreResult(r, p, upc) {
 }
 
 // Where the product sits in a photo on white (raw RGB pixels): its box, and whether
-// it runs into one edge with white space on the opposite side, i.e. a stock or
-// barrel cut off by the frame. A product crossing 3–40% of an edge is cut off;
-// one covering more of it is a full-bleed box or mat, which is fine.
+// the frame cuts it off. A product crossing 3–40% of an edge is cut there (a stock
+// or barrel); one covering more of it is a full-bleed box or mat, which is fine.
+// Cut at one edge with white space opposite, or cut at both opposite edges (a
+// close-up of the receiver), the photo is refused.
 export function framing(data, w, h, ch = 3) {
   const ink = (x, y) => { const i = (y * w + x) * ch; return data[i] < 225 || data[i + 1] < 225 || data[i + 2] < 225; };
   let x0 = w, x1 = -1, y0 = h, y1 = -1;
@@ -124,7 +125,9 @@ export function framing(data, w, h, ch = 3) {
   const contact = { left: run(h, (y) => ink(0, y)) / h, right: run(h, (y) => ink(w - 1, y)) / h, top: run(w, (x) => ink(x, 0)) / w, bottom: run(w, (x) => ink(x, h - 1)) / w };
   const margin = { left: x0 / w, right: (w - 1 - x1) / w, top: y0 / h, bottom: (h - 1 - y1) / h };
   const opposite = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
-  const cut = Object.keys(contact).filter((s) => contact[s] >= 0.03 && contact[s] < 0.4 && margin[opposite[s]] >= 0.004);
+  const narrow = (s) => contact[s] >= 0.03 && contact[s] < 0.4;
+  const cut = Object.keys(contact).filter((s) => narrow(s) && margin[opposite[s]] >= 0.004);
+  for (const [a, b] of [['left', 'right'], ['top', 'bottom']]) if (narrow(a) && narrow(b)) cut.push(`${a}+${b}`);
   return { box: { x0, x1, y0, y1 }, cut, fill: Math.max((x1 - x0 + 1) / w, (y1 - y0 + 1) / h) };
 }
 
