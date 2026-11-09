@@ -85,6 +85,20 @@ const USES = [
   [/target|range|practice|training|plink|clay|\btrap\b|skeet|sporting clays/, 'Target & Training'],
 ];
 
+// red dots by model → the footprint they mount by (only settled ones; anything unsure is left out)
+const FOOTPRINT_MODELS = [
+  [/\brmr\b|trijicon sro\b|\bsro\b(?=.*trijicon)|\b(?:407|507|508)c\b|\b508t\b/, 'Trijicon RMR'],
+  [/shield sights? (?:rmsc?|sms2?)\b|\brmsc\b|swampfox sentinel/, 'Shield RMSc'],
+  [/\bacro\b|steiner mps(?: 2\.0)?\b(?!-)/, 'Aimpoint ACRO'],
+  [/aimpoint (?:micro|t-?[12]|h-?[12])\b|sig (?:sauer )?romeo ?5\b/, 'Aimpoint Micro'],
+  [/deltapoint|\bdpp\b|eotech eflx/, 'Docter / DeltaPoint'],
+  [/fastfire ?[34]\b/, 'Burris FastFire'],
+  [/\bmro\b/, 'Trijicon MRO'],
+  [/\b509t\b/, 'Holosun 509T'],
+  [/\b(?:407|507)k\b|eps carry/, 'Holosun K'],
+  [/eotech (?:exps|xps|5\d\d\b|hws|hhs)/, 'Picatinny'],
+];
+
 /* ---------- subcategory ---------- */
 const OPTIC_SUBS = [
   [/scope mounts?|scope rings?|\brings?\b/, 'Scope Mounts & Rings'], [/red dot mounts?|optic mounts?|riser/, 'Red Dot Mounts'],
@@ -183,6 +197,32 @@ const STYLES = [
   [/adapter|mount|fork|plate|clip|buckle|insert|kit|accessor|attachment|shroud|qas|qls|mls|vest|rig/i, 'Parts & adapters'],
 ];
 const holsterStyle = (v) => { for (const [re, name] of STYLES) if (re.test(v)) return name; return v; };
+/** one name per case material: "Nickel-Plated", "Nickel" → Nickel-plated; "Nickel Alloy Steel" → Steel */
+export const caseName = (v) => {
+  const t = T(v);
+  return /nickel/.test(t) && /steel/.test(t) ? 'Steel' : /nickel/.test(t) ? 'Nickel-plated' : /brass/.test(t) ? 'Brass' : /alumin/.test(t) ? 'Aluminum'
+    : /steel/.test(t) ? 'Steel' : /polymer/.test(t) ? 'Polymer' : /paper/.test(t) ? 'Paper hull' : /plastic/.test(t) ? 'Plastic hull' : String(v).trim();
+};
+// only what the listing says outright ("steel case", "paper hull") — never a guess
+const caseFromText = (t) => (/\bsteel[- ]cased?\b|\bsteel case\b/.test(t) ? 'Steel' : /\bbrass[- ]cased?\b|\bbrass case\b/.test(t) ? 'Brass'
+  : /\balumin(?:um|ium)[- ]cased?\b/.test(t) ? 'Aluminum' : /nickel[- ]plated (?:brass|case)/.test(t) ? 'Nickel-plated' : /\bpaper hulls?\b/.test(t) ? 'Paper hull' : /\bplastic hulls?\b/.test(t) ? 'Plastic hull' : null);
+/** one name per action ("Bolt" and "Bolt Action", "SAO" and "Single Action") */
+const actionName = (v) => {
+  if (!v) return null;
+  const t = T(v).trim();
+  return /^bolt/.test(t) ? 'Bolt Action' : /^sao$|single action only|^single action$/.test(t) ? 'Single Action' : /da\s?\/\s?sa|double\/single/.test(t) ? 'DA/SA'
+    : /^dao$|double action only|^double action$/.test(t) ? 'Double Action' : /striker/.test(t) ? 'Striker Fire' : /semi/.test(t) ? 'Semi-Auto' : /break|hinge/.test(t) ? 'Break Open'
+    : /lever/.test(t) ? 'Lever Action' : /pump|slide/.test(t) ? 'Pump Action' : /single shot/.test(t) ? 'Single Shot' : String(v).trim();
+};
+/** one name per footprint; mounting hardware and "universal" are not footprints */
+export function footprintName(v) {
+  const t = T(v).trim();
+  if (/^(screws?|magnifiers?|rangefinders?|binoculars?|universal|multi use|rail|handgun|rifle|1911 government)$/.test(t)) return null;
+  return /rmrcc/.test(t) ? 'Trijicon RMRcc' : /\brmr\b|\bsro\b/.test(t) ? 'Trijicon RMR' : /acro/.test(t) ? 'Aimpoint ACRO'
+    : /407k|507k|holosun k\b|eps carry/.test(t) ? 'Holosun K' : /deltapoint|\bdpp\b|docter|doctor/.test(t) ? 'Docter / DeltaPoint'
+    : /shield|rmsc?\b/.test(t) ? 'Shield RMSc' : /aimpoint (?:micro|t-?[12]|h-?[12])|^t-?[12]$/.test(t) ? 'Aimpoint Micro'
+    : /picatinny|1913/.test(t) ? 'Picatinny' : /^weaver/.test(t) ? 'Weaver' : String(v).trim();
+}
 const yes = (v) => /^(y|yes|true|1)$/i.test(String(v || '').trim());
 const num0 = (v) => { const m = String(v || '').match(/\d+(?:\.\d+)?/); return m ? +m[0] : null; };
 const bulletName = (v) => { const t = T(v); const hit = BULLETS.find(([re]) => re.test(t)); return hit ? hit[1] : String(v).trim(); };
@@ -198,7 +238,10 @@ export function facetsOf(dept, sub, p) {
   const GUNS = ['sidearms', 'longarms', 'shotguns', 'nfa'];
   const sp = storePath(p);
   if (dept === 'ammo' || GUNS.includes(dept) || (dept === 'gear' && /magazine/i.test(sub || ''))) {
-    const cal = normCaliber(A(p, /caliber|calibre|gauge|cartridge|chamber/i)) || caliberOf(variant);
+    const chamberRow = A(p, /chamber/i);
+    const chamberLen = chamberRow && /^\d(?:\.\d+|[- ]\d\/\d)?\s?(?:"|”|in\b|inch)/i.test(chamberRow);
+    const cal = normCaliber(A(p, /caliber|calibre|gauge|cartridge/i) || (chamberLen ? null : chamberRow)) || caliberOf(variant);
+    if (chamberLen && dept === 'shotguns') f.chamber = chamberRow.replace(/\s?(?:in(?:ch(?:es)?)?\b|”)/i, '"').replace(/""$/, '"').trim();
     if (cal) f.caliber = cal;
   }
   if (dept === 'ammo') {
@@ -213,7 +256,8 @@ export function facetsOf(dept, sub, p) {
     if (bullets.length) f.bullet = bullets;
     const uses = uniq(USES.filter(([re]) => re.test(tl)).map(([, n]) => n));
     if (uses.length) f.use = uses;
-    const cs = A(p, /case type|case material|casing/i); if (cs) f.casing = cs;
+    const cs = A(p, /case type|case material|casing|hull/i) || caseFromText(T(`${p.name} ${p.subtitle || ''} ${p.description || ''}`));
+    if (cs) f.casing = caseName(cs);
     if (sub === 'Shotgun') {
       const rowShot = A(p, /shot size/i);
       const shot = !rowShot && (tv.match(/\b(000|00|0|bbb|bb|t|f)\s?buck(?:shot)?\b/) || tv.match(/(?:#|no\.?\s?)(\d{1,2}(?:\.5)?)\b/));
@@ -225,10 +269,24 @@ export function facetsOf(dept, sub, p) {
     if (sub === 'Reloading' && sp && sp.sub) f.kind = sp.sub;
   }
   if (GUNS.includes(dept)) {
-    const bar = num0(A(p, /barrel length|^barrel$/i)) || (tv.match(/\b(\d{1,2}(?:\.\d{1,2})?)\s?(?:"|”|''|in\b|inch(?:es)?\b|-inch)/) || [])[1];
-    if (bar && +bar >= 2) f.barrel = `${+bar}"`;
+    // the store's row at any length (a 1" pocket revolver); a length read from text only from 2" (not a "3 in" shell)
+    const barRow = num0(A(p, /barrel length|^barrel$/i));
+    const barTxt = +((tv.match(/\b(\d{1,2}(?:\.\d{1,3})?)\s?(?:"|”|''|in\b|inch(?:es)?\b|-inch)/) || [])[1] || 0);
+    const bar = barRow >= 0.5 ? barRow : barTxt >= 2 ? barTxt : null;
+    if (bar) f.barrel = `${+bar}"`;
+    if (sub === 'Receivers & Frames') {
+      if (sp && sp.sub) f.kind = sp.sub;
+      const rs = A(p, /receiver size|^platform$/i); if (rs) f.platform = rs;
+      const st = A(p, /^stripped$/i); if (st) f.build = yes(st) ? 'Stripped' : 'Complete';
+    }
+    if (dept === 'nfa') {
+      const ty = A(p, /suppressor type/i); if (ty) f.kind = ty;
+      const mt = A(p, /mount (?:style|type)|attachment/i); if (mt && !/^none$/i.test(mt)) f.mount = mt;
+      const mat = A(p, /^material$/i); if (mat) f.material = /stainless/i.test(mat) ? 'Stainless steel' : /titanium/i.test(mat) ? 'Titanium' : /inconel/i.test(mat) ? 'Inconel' : /alumin/i.test(mat) ? 'Aluminum' : mat;
+      const mod = A(p, /modular/i); if (mod) f.modular = yes(mod) ? 'Modular' : 'Fixed length';
+    }
     // the store's subcategory already says the action (Semi-Automatic, Bolt Action…): only a spec row adds one
-    const act = A(p, /^action/i) || (sp ? null : /bolt[- ]action/.test(tl) ? 'Bolt action' : /lever[- ]action/.test(tl) ? 'Lever action' : /pump[- ]action/.test(tl) ? 'Pump action' : /semi[- ]auto/.test(tl) ? 'Semi-auto' : /revolver|double[- ]action/.test(tl) ? 'Revolver' : null);
+    const act = actionName(A(p, /^action/i)) || (sp ? null : /bolt[- ]action/.test(tl) ? 'Bolt action' : /lever[- ]action/.test(tl) ? 'Lever action' : /pump[- ]action/.test(tl) ? 'Pump action' : /semi[- ]auto/.test(tl) ? 'Semi-auto' : /revolver|double[- ]action/.test(tl) ? 'Revolver' : null);
     if (act) f.action = act;
     const cap = num0(A(p, /capacity/i)) || (tv.match(/\b(\d{1,3})[\s-]?(?:\+\s?1\s?)?(?:rd|rds|round|shot)s?\b/) || [])[1];
     if (cap) f.capacity = `${parseInt(cap, 10)} rounds`;
@@ -236,6 +294,7 @@ export function facetsOf(dept, sub, p) {
   }
   if (dept === 'gear') {
     if (sp && sp.sub && sp.sub !== sub) f.kind = sp.sub;
+    const gb = num0(A(p, /barrel length/i)); if (gb >= 0.5) f.barrel = `${gb}"`;
     if (/magazine/i.test(sub || '')) { const cap = num0(A(p, /capacity/i)) || (tv.match(/\b(\d{1,3})[\s-]?(?:rd|rds|round)s?\b/) || [])[1]; if (cap) f.capacity = `${parseInt(cap, 10)} rounds`; }
     // what gun it fits: the store's row (holsters), else the variant title ("Fits Glock 17/19/26", "For GLOCK 17")
     const fitRow = A(p, /fit \/ used for|^fits?$|compatib|^model fit|firearm fit/i) || fitsFromTitle(p.subtitle);
@@ -262,6 +321,28 @@ export function facetsOf(dept, sub, p) {
     if (yes(A(p, /^infrared$|^ir$/i))) f.laser = uniq([...(f.laser || []), 'IR']);
     const res = A(p, /sensor resolution|thermal resolution|^resolution$/i);
     if (res && ['Thermal', 'Night Vision'].includes(sub)) f.sensor = res.replace(/\s?[x×]\s?/i, '×');
+    // day, night vision or thermal — so night vision and thermal rifle scopes can be found among the scopes
+    const own = T(`${p.brand || ''} ${p.name} ${p.subtitle || ''}`);
+    if (['Riflescopes', 'Night Vision', 'Thermal', 'Red Dots & Holographic', 'Magnifiers'].includes(sub)) {
+      const v = [];
+      if (sub === 'Thermal' || /\bthermal\b/.test(own)) v.push('Thermal');
+      else if (sub === 'Night Vision' || /night vision (?:rifle ?)?scope|day\/night|digital night/.test(own))
+        v.push(/digital|\b4k\b|smart|cmos|x-sight|spectrum|day\/night/.test(own + ' ' + tl) ? 'Digital night vision' : 'Night vision (tube)');
+      else v.push('Day');
+      if (v[0] === 'Day' && /night[- ]vision[- ]compatible|\bnvg?[- ]compatible|night vision settings|\bnv settings/.test(tl)) v.push('Night-vision compatible');
+      f.vision = v;
+    }
+    if (['Night Vision', 'Thermal'].includes(sub)) {
+      const form = /scope|weapon sight|rifle sight/.test(own) ? 'Rifle scope' : /bundle|combo|\bkit\b/.test(own) ? 'Kits & bundles' : /clip-?on/.test(own) ? 'Clip-on'
+        : yes(A(p, /^binocular$/i)) || /binocular|goggle|bnvd|dtnvs|pvs-?31|gpnvg|rnvg|arnvg/.test(own) ? 'Binocular / goggle'
+        : yes(A(p, /^monocular$/i)) || /monocular|pvs-?14/.test(own) ? 'Monocular' : null;
+      if (form) f.form = form;
+    }
+    // the footprint a sight mounts by, from models whose footprint is settled
+    if (['Red Dots & Holographic', 'Red Dot Mounts', 'Optic Accessories'].includes(sub)) {
+      const hit = FOOTPRINT_MODELS.filter(([re]) => re.test(own)).map(([, n]) => n);
+      if (hit.length) f.footprint = uniq([...(f.footprint || []), ...hit]);
+    }
     const fitRow = A(p, /footprint|fit \/ used for|mount type|compatib/i);
     if (fitRow && ['Red Dots & Holographic', 'Red Dot Mounts', 'Scope Mounts & Rings', 'Bases', 'Optic Accessories', 'Lasers'].includes(sub)) {
       const t = T(fitRow);
@@ -289,6 +370,7 @@ export function facetsOf(dept, sub, p) {
       /picatinny|1913|stanag/.test(tl) && 'Picatinny', /\bweaver\b/.test(tl) && 'Weaver', /\bmrds\b/.test(tl) && 'MRDS', /dovetail/.test(tl) && 'Dovetail',
     ]);
     if (fp.length && ['Red Dots & Holographic', 'Red Dot Mounts', 'Scope Mounts & Rings', 'Bases', 'Optic Accessories', 'Lasers'].includes(sub)) f.footprint = uniq([...(f.footprint || []), ...fp]);
+    if (f.footprint) { const fpn = uniq(f.footprint.map(footprintName)); if (fpn.length) f.footprint = fpn; else delete f.footprint; }
     // a thermal core is 4:3 or 5:4 and at most 1280 wide; a display resolution (1920×1080) is not a sensor
     const sensor = [...tl.matchAll(/\b(\d{3,4})\s?[x×]\s?(\d{3,4})\b/g)].map((m) => [+m[1], +m[2]]).find(([w, h]) => w <= 1280 && w / h >= 1.2 && w / h <= 1.4);
     if (sensor && !f.sensor && ['Thermal', 'Night Vision'].includes(sub)) f.sensor = `${sensor[0]}×${sensor[1]}`;
@@ -309,4 +391,5 @@ export const FACET_LABELS = {
   mag: 'Magnification', objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
   sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color',
   height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits', hand: 'Hand', style: 'Style',
+  vision: 'Vision', form: 'Type', build: 'Build', mount: 'Mount', material: 'Material', modular: 'Modular', chamber: 'Chamber',
 };

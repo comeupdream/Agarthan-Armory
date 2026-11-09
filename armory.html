@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=bb096bf4bb">
+<link rel="stylesheet" href="assets/css/site.css?v=574b92445c">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -125,6 +125,14 @@
         <div class="demo-note" id="demoNote" hidden><b>Sample inventory</b><span>These are example listings for design review, not the store’s live stock or prices. The real catalog replaces them automatically once it is synced.</span></div>
         <div class="results-bar">
           <span id="resultCount" aria-live="polite">—</span>
+          <label>Show
+            <select id="perSel" aria-label="Products per page">
+              <option value="24">24</option>
+              <option value="48">48</option>
+              <option value="96">96</option>
+              <option value="192">192</option>
+            </select>
+          </label>
           <label>Sort
             <select id="sortSel">
               <option value="featured">Featured</option>
@@ -196,11 +204,12 @@
 </footer>
 <!-- /partial:footer -->
 
-<script src="assets/js/config.js?v=0438ef4e8a"></script>
-<script src="assets/data/catalog.js?v=95b8bdc12c"></script>
+<script src="assets/js/config.js?v=8eb8c134e3"></script>
+<script src="assets/data/catalog.js?v=3b141f0857"></script>
 <script src="assets/js/icons.js?v=77fa25b999"></script>
 <script src="assets/js/site.js?v=7df1ff3e62"></script>
 <script src="assets/js/prefs.js?v=bc09182041"></script>
-<script src="assets/js/armory.js?v=09c8cd6561"></script>
+<script src="assets/js/order.js?v=aec2dca164"></script>
+<script src="assets/js/armory.js?v=2cfb82b760"></script>
 </body>
 </html>

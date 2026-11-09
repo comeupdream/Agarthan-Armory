@@ -506,24 +506,33 @@ async function gearfireAdapter(home) {
   console.log(`  pace: ${GF_CONC} at a time, ${GF_DELAY0} ms apart; refusals pause and retry (stop after ${MAX_BLOCKED_MIN} min of them)`);
 
   /* ---- patience: the shop's firewall answers a fast scraper with 403s; wait it out, slow down, carry on ---- */
-  const block = { until: 0, strikes: 0, total: 0, delay: GF_DELAY0, pauses: 0 };
+  const block = { until: 0, strikes: 0, total: 0, delay: GF_DELAY0, pauses: 0, okRun: 0 };
   async function patient(u) {
     for (let attempt = 1; ; attempt++) {
       const wait = block.until - Date.now(); if (wait > 0) await sleep(wait);
       try {
         const r = await get(u, { tries: 2 });
-        if (r.text.length < 8000 && /request blocked|the request could not be satisfied/i.test(r.text)) { const e = new Error('blocked page'); e.status = 403; throw e; }
-        block.strikes = 0; return r;
+        // every real Gearfire page carries its SvelteKit data; anything else (a firewall challenge answered
+        // "202 OK", a "Request blocked" page) is a refusal to wait out, not an empty product
+        if (r.status === 202 || !/__sveltekit_/.test(r.text)) { const e = new Error('challenge page'); e.challenge = true; throw e; }
+        block.strikes = 0;
+        // after a long run without refusals, ease back toward the normal pace
+        if (++block.okRun >= 150 && block.delay > GF_DELAY0) {
+          block.delay = Math.max(GF_DELAY0, Math.round(block.delay * 0.8)); block.okRun = 0;
+          console.log(`  ▶ no refusals for 150 pages — speeding up to ${block.delay} ms between requests`);
+        }
+        return r;
       } catch (e) {
         const st = e.status || 0;
-        const refused = [403, 429, 502, 503, 504].includes(st) || (!st && /timeout|ECONNRESET|fetch failed|socket|network/i.test(e.message));
+        const refused = e.challenge || [403, 429, 502, 503, 504].includes(st) || (!st && /timeout|ECONNRESET|fetch failed|socket|network/i.test(e.message));
         if (!refused || attempt >= 8) throw e;
+        block.okRun = 0;
         if (Date.now() >= block.until) {
           block.strikes++; block.pauses++;
           const pause = Math.min(BLOCK_PAUSE * 2 ** (block.strikes - 1), 10 * 60000);
           block.until = Date.now() + pause; block.total += pause;
           block.delay = Math.min(Math.round(block.delay * 1.5), 5000);
-          console.log(`  ⏸ the store refused (${st || e.message.split(' for ')[0]}) — pausing ${Math.round(pause / 1000)} s, then ${block.delay} ms between requests`);
+          console.log(`  ⏸ the store refused (${e.challenge ? 'challenge page' : st || e.message.split(' for ')[0]}) — pausing ${Math.round(pause / 1000)} s, then ${block.delay} ms between requests`);
         }
         if (block.strikes > 1 && block.total > MAX_BLOCKED_MS) { const s2 = new Error('the store kept refusing'); s2.stop = true; throw s2; }
       }
@@ -568,32 +577,42 @@ async function gearfireAdapter(home) {
   }
 
   /* ---- one page per line gives all its variants ---- */
-  let todo = [...lines].filter(([pid]) => !kept.has(pid));
+  // lines an earlier run found empty (a real page, nothing this store sells) are skipped on --resume
+  const emptyFile = path.join(OUT, 'empty-lines.json');
+  const empties = new Set();
+  if (RESUME && !flag('retry-empty')) { try { for (const id of JSON.parse(await readFile(emptyFile, 'utf8'))) empties.add(id); } catch { /* none yet */ } }
+  let todo = [...lines].filter(([pid]) => !kept.has(pid) && !empties.has(pid));
   if (LIMIT) todo = todo.slice(0, LIMIT);
-  console.log(`  reading ${todo.length} product pages${kept.size ? ` (${kept.size} lines kept from before)` : ''} — about ${Math.round(todo.length * (block.delay + 600) / GF_CONC / 60000)} min at this pace…`);
+  console.log(`  reading ${todo.length} product pages${kept.size ? ` (${kept.size} lines kept from before)` : ''}${empties.size ? ` (${empties.size} empty ones skipped; --retry-empty to read them again)` : ''} — about ${Math.round(todo.length * (block.delay + 600) / GF_CONC / 60000)} min at this pace…`);
   const results = []; const failures = {}; const failedUrls = [];
   let next = 0, done = 0, fallback = 0, stopped = false;
-  const t0 = Date.now();
+  const t0 = Date.now(); let lastMark = t0;
   const keptList = () => [...kept.values()].flatMap((m) => [...m.values()]);
-  const checkpoint = () => writeCatalog(progressFile, [...keptList(), ...results]);
+  const checkpoint = async () => {
+    await writeCatalog(progressFile, [...keptList(), ...results]);
+    if (empties.size) await writeFile(emptyFile, JSON.stringify([...empties]));
+  };
   const onInt = async () => { console.log('\n  stopped — saving progress…'); try { await checkpoint(); console.log(`  saved ${results.length} variants read this run. Run the same command with --resume to carry on.`); } finally { process.exit(130); } };
   process.once('SIGINT', onInt);
   await Promise.all(Array.from({ length: Math.min(GF_CONC, todo.length) }, async () => {
     while (!stopped && next < todo.length) {
-      const [, u] = todo[next++];
+      const [pid, u] = todo[next++];
       try {
         const r = await patient(u);
         const ps = productsFromPage(r.text, r.url || u);
-        if (ps) results.push(...ps);
-        else if (isProductPage(r.text)) { fallback++; results.push(readProductPage(r.text, r.url || u)); }
+        if (ps && ps.length) results.push(...ps);
+        else if (!ps && isProductPage(r.text)) { fallback++; results.push(readProductPage(r.text, r.url || u)); }
+        else empties.add(pid);   // a real page, but nothing this store sells on it: not fetched again on --resume
       } catch (e) {
         if (e.stop) { stopped = true; break; }
         const k = e.status ? `HTTP ${e.status}` : /timeout/i.test(e.message) ? 'timeout' : 'network error';
         failures[k] = (failures[k] || 0) + 1; if (failedUrls.length < 20) failedUrls.push(`${k} ${u}`);
       }
       if (++done % 100 === 0) {
-        const mins = (Date.now() - t0) / 60000;
-        console.log(`    ${done}/${todo.length} pages · ${results.length} variants · ${Object.values(failures).reduce((a, b) => a + b, 0)} failed · ${Math.round(done / mins)}/min`);
+        // the pace of the last 100 pages (not the whole run's average), and what that leaves
+        const now = Date.now(), rate = 100 / Math.max((now - lastMark) / 60000, 1e-6); lastMark = now;
+        const left = (todo.length - done) / Math.max(rate, 0.1);
+        console.log(`    ${done}/${todo.length} pages · ${results.length} variants · ${empties.size} without products · ${Object.values(failures).reduce((a, b) => a + b, 0)} failed · now ${Math.round(rate)}/min, about ${left >= 90 ? `${(left / 60).toFixed(1)} h` : `${Math.round(left)} min`} left`);
       }
       if (done % 200 === 0) await checkpoint();
       await sleep(block.delay);
@@ -613,6 +632,7 @@ async function gearfireAdapter(home) {
     report.incomplete = { pagesLeft: left };
   }
   if (fallback) warn(`${fallback} pages had no inline product data — read from the page text instead`);
+  if (empties.size) { await writeFile(emptyFile, JSON.stringify([...empties])); report.emptyLines = empties.size; console.log(`  ${empties.size} product lines had nothing this store sells (skipped next --resume)`); }
   if (!stopped && !left) await rm(progressFile + '.gz', { force: true }).then(() => rm(progressFile, { force: true }));
   else await checkpoint();
   const products = [...keptList(), ...results].filter((p) => p && p.name);

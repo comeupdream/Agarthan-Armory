@@ -17,12 +17,12 @@
   const FACETS = {
     '': ['brand'],
     ammo: ['caliber', 'use', 'bullet', 'grain', 'count', 'casing', 'shot', 'shell', 'kind', 'brand'],
-    optics: ['footprint', 'mag', 'objective', 'tube', 'height', 'focal', 'illum', 'reticle', 'dot', 'sensor', 'phosphor', 'laser', 'platform', 'color', 'brand'],
+    optics: ['vision', 'form', 'footprint', 'mag', 'objective', 'tube', 'height', 'focal', 'illum', 'reticle', 'dot', 'sensor', 'phosphor', 'laser', 'platform', 'color', 'brand'],
     sidearms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
-    longarms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
-    shotguns: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
-    gear: ['kind', 'fits', 'caliber', 'capacity', 'style', 'hand', 'color', 'brand'],
-    nfa: ['caliber', 'barrel', 'capacity', 'color', 'brand'],
+    longarms: ['caliber', 'barrel', 'action', 'capacity', 'kind', 'platform', 'build', 'color', 'brand'],
+    shotguns: ['caliber', 'chamber', 'barrel', 'action', 'capacity', 'color', 'brand'],
+    gear: ['kind', 'fits', 'caliber', 'capacity', 'barrel', 'style', 'hand', 'color', 'brand'],
+    nfa: ['kind', 'caliber', 'mount', 'material', 'modular', 'barrel', 'capacity', 'color', 'brand'],
   };
   const LABEL = {
     brand: 'Manufacturer', caliber: 'Caliber / gauge', use: 'Use', bullet: 'Bullet type', grain: 'Bullet weight', count: 'Rounds per box',
@@ -30,8 +30,9 @@
     objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
     sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color / finish',
     height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits', hand: 'Hand', style: 'Style',
+    vision: 'Vision', form: 'Type', build: 'Build', mount: 'Mount', material: 'Material', modular: 'Modular', chamber: 'Chamber',
   };
-  const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag']);
+  const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag', 'chamber']);
   const valsOf = (i, k) => (k === 'brand' ? (i.brand ? [i.brand] : []) : [].concat((i.f || {})[k] || []));
   // numbers in a filter value sort as numbers; "Under 16\"" comes before "16–18\""
   const numOf = (v) => (parseFloat(String(v).replace(/^[^\d]*/, '')) || 0) - (/^under\b/i.test(String(v)) ? 0.5 : 0);
@@ -43,6 +44,9 @@
     stock: params.get('stock') === '1',
     sort: params.get('sort') || 'featured',
     pmin: params.get('pmin') || '', pmax: params.get('pmax') || '',
+    // how many cards a page shows: the link's choice, else this visitor's last, else 48
+    per: [24, 48, 96, 192].includes(+params.get('per')) ? +params.get('per') : (() => { try { const v = +localStorage.getItem('aa-per'); return [24, 48, 96, 192].includes(v) ? v : 48; } catch { return 48; } })(),
+    page: Math.max(1, parseInt(params.get('page'), 10) || 1),
     f: {},
   };
   for (const [k, v] of params) if (k.startsWith('f.') && LABEL[k.slice(2)]) state.f[k.slice(2)] = new Set(v.split('|').filter(Boolean));
@@ -51,33 +55,9 @@
   const hay = (i) => [i.name, i.brand, i.sub, (AA.DEPTS[i.dept] || {}).name, i.desc, i.sku,
     ...Object.values(i.specs || {}), ...Object.values(i.f || {}).flat()].filter(Boolean).join(' ').toLowerCase();
   items.forEach((i) => { i._hay = hay(i) + (i.sub === 'AR & Rifle-Caliber Pistols' ? ' arp ar pistol' : ''); });
-  // the default order: the store's own shelf first, then what ships, then the rest; departments take
-  // turns (one of each, then the next of each) so the first screen shows the whole store, photos first
-  const DEPT_ORDER = Object.keys(AA.DEPTS);
-  const bucketOf = (i) => (i.status === 'in' || i.status === 'low' ? 0 : i.status === 'ship' ? 1 : i.status === 'out' ? 3 : 2);
-  const groups = new Map();
-  for (const i of items) {
-    i._bucket = bucketOf(i); i._dept = DEPT_ORDER.indexOf(i.dept);
-    const k = i._bucket + '|' + i.dept; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
-  }
-  for (const g of groups.values()) {
-    // within a department: photos and the store's own shelf first; one variant of every product line
-    // before a second of any; subcategories take turns (a pistol, a revolver, a bolt gun, …)
-    g.sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9));
-    const seen = new Map();
-    for (const i of g) { const k = i.ln || i.id; const n = seen.get(k) || 0; seen.set(k, n + 1); i._v = n; }
-    const tiers = new Map();
-    for (const i of g) {
-      const t = `${i.images && i.images[0] ? 0 : 1}${i.shelf ? 0 : 1}${String(Math.min(i._v, 999)).padStart(3, '0')}`;
-      if (!tiers.has(t)) tiers.set(t, new Map());
-      const bySub = tiers.get(t); if (!bySub.has(i.sub)) bySub.set(i.sub, []); bySub.get(i.sub).push(i);
-    }
-    let n = 0;
-    for (const t of [...tiers.keys()].sort()) {
-      const lists = [...tiers.get(t).values()];
-      for (let r = 0; lists.some((l) => r < l.length); r++) for (const l of lists) if (r < l.length) l[r]._mix = n++;
-    }
-  }
+  // the default order (assets/js/order.js, shared with the photo tool): the store's own shelf first,
+  // then what ships, then the rest; departments take turns; photos lead
+  AA.order.prepare(items, Object.keys(AA.DEPTS));
 
   /* ---------- controls ---------- */
   const deptChips = $('#deptChips'), subChips = $('#subChips'), facetsBox = $('#facets');
@@ -138,7 +118,7 @@
   };
   function passes(i, skip) {
     if (state.dept && i.dept !== state.dept) return false;
-    if (state.sub && i.sub !== state.sub && skip !== 'sub') return false;
+    if (state.sub && i.sub !== state.sub && !(i.also && i.also.includes(state.sub)) && skip !== 'sub') return false;
     if (state.stock && !(i.status === 'in' || i.status === 'low' || i.status === 'ship')) return false;
     const lo = parseFloat(state.pmin), hi = parseFloat(state.pmax);
     if (!isNaN(lo) && !(i.price >= lo)) return false;
@@ -153,7 +133,7 @@
   function renderSubs() {
     const scope = items.filter((i) => passes(i, 'sub'));
     const counts = {};
-    scope.forEach((i) => { if (i.sub) counts[i.sub] = (counts[i.sub] || 0) + 1; });
+    scope.forEach((i) => { for (const s of [i.sub, ...(i.also || [])]) if (s) counts[s] = (counts[s] || 0) + 1; });
     const subs = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     $('#subSet').hidden = !state.dept || subs.length < 2;
     subChips.innerHTML = subs.map(([s, n]) => `<button type="button" class="chip" data-sub="${esc(s)}" aria-pressed="${s === state.sub}">${esc(s)}<small>${n}</small></button>`).join('');
@@ -189,7 +169,7 @@
     const r = items.filter((i) => passes(i));
     const byPrice = (dir) => (a, b) => (a.price == null) - (b.price == null) || dir * ((a.price || 0) - (b.price || 0));
     const sorters = {
-      featured: (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || a._bucket - b._bucket || a._mix - b._mix || a._dept - b._dept,
+      featured: AA.order.featured,
       'price-asc': byPrice(1), 'price-desc': byPrice(-1),
       name: (a, b) => a.name.localeCompare(b.name),
       // ammo by price per round; anything without one after
@@ -197,37 +177,54 @@
     };
     return r.sort(sorters[state.sort] || sorters.featured);
   }
-  /* the grid draws a page at a time: 2,000 cards at once would stall a phone */
-  const PAGE = 48;
-  let current = [], shown = 0;
-  const more = document.createElement('div');
-  more.className = 'more-wrap';
-  more.innerHTML = '<button class="btn btn-ghost" type="button">Load more</button>';
-  $('#armoryGrid').after(more);
-  function renderMore() {
-    const next = current.slice(shown, shown + PAGE);
-    $('#armoryGrid').insertAdjacentHTML('beforeend', next.map(AA.card).join(''));
-    shown += next.length;
-    const left = current.length - shown;
-    more.hidden = left <= 0;
-    more.querySelector('button').textContent = `Load more · ${left} left`;
+  /* the grid shows one page at a time (Show: 24 / 48 / 96 / 192), with numbered pages below it:
+     an endless scroll grew the page without end and left the footer out of reach */
+  const perSel = $('#perSel');
+  if (perSel) {
+    perSel.value = String(state.per);
+    perSel.addEventListener('change', () => { state.per = +perSel.value; try { localStorage.setItem('aa-per', perSel.value); } catch { /* private mode */ } update(); });
   }
-  more.querySelector('button').addEventListener('click', renderMore);
-  if ('IntersectionObserver' in window) new IntersectionObserver((es) => { if (es[0].isIntersecting && !more.hidden) renderMore(); }, { rootMargin: '600px 0px' }).observe(more);
+  const pager = document.createElement('nav');
+  pager.className = 'pager'; pager.setAttribute('aria-label', 'Pages');
+  $('#armoryGrid').after(pager);
+  pager.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-page]'); if (!b || b.disabled) return;
+    state.page = +b.dataset.page; update(true);
+  });
+  /** 1 … 4 5 [6] 7 8 … 193 */
+  function pageList(page, pages) {
+    const keep = new Set([1, pages, page - 2, page - 1, page, page + 1, page + 2].filter((n) => n >= 1 && n <= pages));
+    const out = []; let last = 0;
+    for (const n of [...keep].sort((a, b) => a - b)) { if (n - last > 1) out.push('…'); out.push(n); last = n; }
+    return out;
+  }
+  function renderPager(page, pages) {
+    pager.hidden = pages <= 1;
+    if (pages <= 1) { pager.innerHTML = ''; return; }
+    const btn = (n, label, cls = '') => `<button type="button" class="pg${cls}" data-page="${n}"${n < 1 || n > pages ? ' disabled' : ''}${n === page && !cls ? ' aria-current="page"' : ''}>${label}</button>`;
+    pager.innerHTML = btn(page - 1, '‹ Prev', ' pg-step') +
+      pageList(page, pages).map((n) => (n === '…' ? '<span class="pg-gap">…</span>' : btn(n, n))).join('') +
+      btn(page + 1, 'Next ›', ' pg-step') + `<span class="pg-of">Page ${page} of ${pages.toLocaleString()}</span>`;
+  }
 
-  function update() {
+  // keepPage: a page button (the filters stay); anything else starts again at page 1
+  function update(keepPage) {
+    if (!keepPage) state.page = 1;
     $$('[data-dept]', deptChips).forEach((b) => b.setAttribute('aria-pressed', b.dataset.dept === state.dept));
     renderSubs();
     renderFacets();
     const r = results();
-    current = r; shown = 0;
-    $('#armoryGrid').innerHTML = '';
-    renderMore();
-    // a filter change while scrolled down the list jumps back to the top of the results
+    const pages = Math.max(1, Math.ceil(r.length / state.per));
+    state.page = Math.min(Math.max(1, state.page), pages);
+    const from = (state.page - 1) * state.per;
+    $('#armoryGrid').innerHTML = r.slice(from, from + state.per).map(AA.card).join('');
+    renderPager(state.page, pages);
+    // a filter change or a new page while scrolled down the list jumps back to the top of the results
     const bar = document.querySelector('.results-bar');
     if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start', behavior: AA.reduced ? 'auto' : 'smooth' });
     $('#emptyState').hidden = r.length > 0;
-    $('#resultCount').textContent = `${r.length.toLocaleString()} ${r.length === 1 ? 'relic' : 'relics'} in range`;
+    $('#resultCount').textContent = `${r.length.toLocaleString()} ${r.length === 1 ? 'relic' : 'relics'} in range` +
+      (pages > 1 ? ` · ${(from + 1).toLocaleString()}–${Math.min(from + state.per, r.length).toLocaleString()}` : '');
     const d = AA.DEPTS[state.dept];
     $('#armoryTitle').textContent = state.sub || (d ? d.title : 'The Armory');
     document.title = `${state.sub || (d ? d.title : 'The Armory')} — Agarthan Armory`;
@@ -242,6 +239,8 @@
     if (state.pmax) p.set('pmax', state.pmax);
     if (state.stock) p.set('stock', '1');
     if (state.sort !== 'featured') p.set('sort', state.sort);
+    if (state.per !== 48) p.set('per', String(state.per));
+    if (state.page > 1) p.set('page', String(state.page));
     const cur = new URLSearchParams(location.search).get('item');
     if (cur) p.set('item', cur);
     history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
@@ -336,7 +335,7 @@
 
   /* ---------- boot ---------- */
   $('#demoNote').hidden = !AA.catalog.demo;
-  update();
+  update(true);   // the first draw keeps the page the link asked for
   const start = params.get('item');
   if (start && AA.items.has(start)) {
     const go = () => openItem(start, false);

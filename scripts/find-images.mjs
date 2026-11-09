@@ -27,11 +27,18 @@
  *   PowerShell:  $env:BRAVE_API_KEY="…"      macOS/Linux:  export BRAVE_API_KEY=…
  *
  * USAGE  node scripts/find-images.mjs --limit 20          (try 20 first, then check the review page)
+ *        node scripts/find-images.mjs --cover            (only what shoppers see first — below)
  *        node scripts/find-images.mjs --budget 6000       (the rest; ~1–2 searches per product)
+ *   --cover [N]    only the products on the first page (N cards, default 48) of every view
+ *                  a shopper lands on — All, each department, each category — in the
+ *                  Armory's own order (assets/js/order.js), most visible first; the
+ *                  rest can wait. Default budget 2500 searches (~$12.50) unless --budget.
  *   --budget N     max searches this run (default 300) — the API bills per search
  *   --limit N      max products this run
  *   --rps N        searches per second (default 1, the basic plan's limit)
- *   --size 1000    resize longest side (needs `npm i sharp`; otherwise saved as-is)
+ *   --size 800     longest side in px, saved as WebP (~40 KB). Needs the resizer once:
+ *                  npm install sharp   (runs over 20 products refuse to start without it,
+ *                  so full-size photos never bloat the repo; --no-resize to override)
  *   --retry        search again for products marked "none" earlier
  *   --per-variant  search each variant on its own (default: one search per product
  *                  line, shared by its variants — several times fewer searches)
@@ -41,6 +48,7 @@ import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { readCatalog, writeCatalog, catalogExists } from './lib-store.mjs';
 import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import { upcOf, isImage, extOf } from './match-images.mjs';
 
 /** what to search for: maker + line + what sets the variant apart, then maker + UPC, then maker + part number */
@@ -106,7 +114,8 @@ async function main() {
   const KEY = process.env.BRAVE_API_KEY;
   const API = process.env.BRAVE_API_BASE || 'https://api.search.brave.com';
   if (!KEY) { console.error('✗ set BRAVE_API_KEY first (PowerShell: $env:BRAVE_API_KEY="…") — see the header of this file'); process.exit(1); }
-  const BUDGET = num('budget', 300, 1), LIMIT = num('limit', 0, 0), RPS = num('rps', 1, 0.1), SIZE = num('size', 1000, 200);
+  const COVER = flag('cover') ? num('cover', 48, 1) : 0;
+  const BUDGET = num('budget', COVER ? 2500 : 300, 1), LIMIT = num('limit', 0, 0), RPS = num('rps', 1, 0.1), SIZE = num('size', 800, 200);
   const RETRY = flag('retry'), DRY = flag('dry-run'), PER_VARIANT = flag('per-variant');
   const CAT_DIR = path.resolve(arg('catalog-dir', 'assets/data/scraped'));
   const IMG_DIR = path.resolve(arg('img-dir', 'assets/img/products'));
@@ -117,13 +126,35 @@ async function main() {
   try { for (const e of await readdir(CAT_DIR, { withFileTypes: true })) if (e.isDirectory()) files.push(path.join(CAT_DIR, e.name, 'catalog.json')); } catch { /* none */ }
   const cats = [];
   for (const f of files) { try { if (catalogExists(f)) cats.push({ f, list: await readCatalog(f) }); } catch { /* unreadable */ } }
-  const todo = cats.flatMap((c) => c.list).filter((p) => !(p.localImages || []).length && (RETRY || !(p.photoSearch && p.photoSearch.result === 'none')));
+  // the store's own products (merch, gift cards, its own listings) are never searched for: the web has only others' to offer
+  const own = (p) => /agarthan/i.test(String(p.brand || '')) || /agarthan merch/i.test((p.categories || []).join(' '));
+  const todo = cats.flatMap((c) => c.list).filter((p) => !own(p) && !(p.localImages || []).length && (RETRY || !(p.photoSearch && p.photoSearch.result === 'none')));
   // one search per product LINE: the variants of a line (calibers, colors) share its photo unless --per-variant
   const groups = new Map();
   for (const p of todo) { const k = PER_VARIANT ? p.id : (p.line || `${p.brand || ''}|${p.name}`); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
-  const allGroups = [...groups.values()];
+  let allGroups = [...groups.values()];
+  if (COVER) {
+    // the first page of every view, in the Armory's own order (the site's catalog + assets/js/order.js)
+    const catJs = path.resolve(arg('catalog-js', 'assets/data/catalog.js'));
+    let items;
+    try { const w = {}; new Function('window', await readFile(catJs, 'utf8'))(w); items = w.AA_CATALOG.items; }
+    catch (e) { console.error(`✗ --cover needs the site catalog (${path.relative(process.cwd(), catJs)}): run npm run build:catalog first`); process.exit(1); }
+    const order = createRequire(import.meta.url)(arg('order-js', null) ? path.resolve(arg('order-js')) : '../assets/js/order.js');
+    const { ids, views } = order.coverIds(items, { page: COVER });
+    const at = new Map(ids.map((id, n) => [id, n]));
+    allGroups = allGroups.filter((g) => g.some((p) => at.has(p.id)))
+      .map((g) => g.slice().sort((a, b) => (at.get(a.id) ?? 1e9) - (at.get(b.id) ?? 1e9)))   // the card shoppers see stands for its line
+      .sort((a, b) => at.get(a[0].id) - at.get(b[0].id));
+    console.log(`→ cover: the first ${COVER} cards of ${views} views (All, each department, each category) = ${ids.length} products`);
+  }
   const work = LIMIT ? allGroups.slice(0, LIMIT) : allGroups;
-  console.log(`→ ${todo.length} products without a photo, ${allGroups.length} ${PER_VARIANT ? 'searches' : 'product lines'} to look up; this run: ${work.length} (budget ${BUDGET} searches${sharp ? `, resizing to ${SIZE}px` : ', sharp not installed: saving as-is'})`);
+  const est = (n) => `$${(n * 0.005).toFixed(2)}`;
+  console.log(`→ ${todo.length} products without a photo, ${allGroups.length} ${PER_VARIANT ? 'searches' : 'product lines'} to look up; this run: ${work.length}`);
+  console.log(`  about ${work.length}–${Math.min(BUDGET, Math.round(work.length * 1.6))} searches (${est(work.length)}–${est(Math.min(BUDGET, work.length * 1.6))} at $5 per 1,000), never more than ${BUDGET} (--budget)${sharp ? `; photos saved as ${SIZE}px WebP` : ''}`);
+  if (!sharp && !DRY && !flag('no-resize') && work.length > 20) {
+    console.error('✗ install the photo resizer first, so a couple of thousand full-size photos never land in the repo:\n    npm install sharp\n  then run this again (or add --no-resize to save photos as they come)');
+    process.exit(1);
+  }
 
   let calls = 0, found = 0, none = 0, last = 0, looked = 0;
   const search = async (q) => {
@@ -168,7 +199,7 @@ async function main() {
           if (DRY) { chosen = { r }; break; }
           try {
             let b = await download(r.image); let ext = extOf(b);
-            if (sharp) { b = await sharp(b).rotate().flatten({ background: '#ffffff' }).resize({ width: SIZE, height: SIZE, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer(); ext = '.jpg'; }
+            if (sharp) { b = await sharp(b).rotate().flatten({ background: '#ffffff' }).resize({ width: SIZE, height: SIZE, fit: 'inside', withoutEnlargement: true }).webp({ quality: 78 }).toBuffer(); ext = '.webp'; }
             const name = `${p.id}-1${ext}`;
             await writeFile(path.join(IMG_DIR, name), b);
             chosen = { r, file: `${IMG_REL}/${name}` };
