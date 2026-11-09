@@ -75,7 +75,15 @@ eq(imgs('hornady-lever').length, 2, 'products that already have photos are left 
 eq(readdirSync(path.join(d, 'img')).length, 4, 'four photo files written');
 
 /* ---------- find-images.mjs against a mock image-search API ---------- */
-const { scoreResult, queriesFor } = await import('./find-images.mjs');
+const { scoreResult, queriesFor, framing } = await import('./find-images.mjs');
+// a white 100×50 frame with dark rectangles painted in (RGB)
+const frame = (...rects) => { const px = Buffer.alloc(100 * 50 * 3, 255); for (const [x0, y0, x1, y1] of rects) for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) px.fill(40, (y * 100 + x) * 3, (y * 100 + x) * 3 + 3); return framing(px, 100, 50); };
+eq(frame([10, 20, 89, 30]).cut, [], 'framing: a rifle floating in white is not cut off');
+eq(frame([0, 20, 79, 30]).cut, ['left'], 'framing: a stock running into the left edge, white on the right, is cut off');
+eq(frame([0, 20, 99, 30]).cut, [], 'framing: touching both ends is a full-width shot, not a cut');
+eq(frame([0, 0, 60, 49]).cut, [], 'framing: a box covering the whole left edge is full-bleed, not a cut');
+eq(frame([25, 10, 74, 39]).fill, 0.6, 'framing: how much of the frame the product spans');
+eq(frame().blank, true, 'framing: an all-white photo is blank');
 eq(queriesFor({ brand: 'Hornady', name: 'LEVERevolution', sku: '82741', variant: { 'Rifle Caliber': '45-70 Government', 'Rounds Per Box': '20' } }, '090255827415'),
   ['Hornady LEVERevolution 45-70 Government', 'Hornady 090255827415', 'Hornady 82741'], 'queries: line + variant, then UPC, then part number');
 eq(scoreResult({ host: 'www.hornady.com', title: 'LEVERevolution 30-30', image: 'x.jpg', width: 1200, height: 900 }, { brand: 'Hornady', name: 'LEVERevolution' }, '90255827415') >

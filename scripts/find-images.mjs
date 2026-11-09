@@ -38,7 +38,10 @@
  *   --rps N        searches per second (default 1, the basic plan's limit)
  *   --size 800     longest side in px, saved as WebP (~40 KB). Needs the resizer once:
  *                  npm install sharp   (runs over 20 products refuse to start without it,
- *                  so full-size photos never bloat the repo; --no-resize to override)
+ *                  so full-size photos never bloat the repo; --no-resize to override).
+ *                  With it, each photo is also trimmed to the product plus a small
+ *                  white margin, and one cut off by its frame (a stock or barrel
+ *                  running into one edge) is skipped for the next result.
  *   --retry        search again for products marked "none" earlier
  *   --per-variant  search each variant on its own (default: one search per product
  *                  line, shared by its variants — several times fewer searches)
@@ -106,6 +109,41 @@ export function scoreResult(r, p, upc) {
   if (JUNK.test(r.image)) s -= 5;
   if (/gearfire\.com/i.test(r.image)) s -= 20;               // its image server refuses downloads
   return s;
+}
+
+// Where the product sits in a photo on white (raw RGB pixels): its box, and whether
+// it runs into one edge with white space on the opposite side, i.e. a stock or
+// barrel cut off by the frame. A product crossing 3–40% of an edge is cut off;
+// one covering more of it is a full-bleed box or mat, which is fine.
+export function framing(data, w, h, ch = 3) {
+  const ink = (x, y) => { const i = (y * w + x) * ch; return data[i] < 225 || data[i + 1] < 225 || data[i + 2] < 225; };
+  let x0 = w, x1 = -1, y0 = h, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (ink(x, y)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return { blank: true, cut: [] };
+  const run = (n, f) => { let best = 0, cur = 0; for (let k = 0; k < n; k++) { cur = f(k) ? cur + 1 : 0; if (cur > best) best = cur; } return best; };
+  const contact = { left: run(h, (y) => ink(0, y)) / h, right: run(h, (y) => ink(w - 1, y)) / h, top: run(w, (x) => ink(x, 0)) / w, bottom: run(w, (x) => ink(x, h - 1)) / w };
+  const margin = { left: x0 / w, right: (w - 1 - x1) / w, top: y0 / h, bottom: (h - 1 - y1) / h };
+  const opposite = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
+  const cut = Object.keys(contact).filter((s) => contact[s] >= 0.03 && contact[s] < 0.4 && margin[opposite[s]] >= 0.004);
+  return { box: { x0, x1, y0, y1 }, cut, fill: Math.max((x1 - x0 + 1) / w, (y1 - y0 + 1) / h) };
+}
+
+// Crop to the product plus a 4% white margin, so it fills its card; refuse a cut-off photo
+export async function fitPhoto(sharp, buf, size) {
+  const flat = await sharp(buf).rotate().flatten({ background: '#ffffff' }).removeAlpha().toBuffer();
+  const { data, info } = await sharp(flat).raw().toBuffer({ resolveWithObject: true });
+  const f = framing(data, info.width, info.height, info.channels);
+  if (f.blank) throw new Error('blank photo');
+  if (f.cut.length) throw new Error(`cut off at the ${f.cut.join('/')} edge`);
+  let img = sharp(flat);
+  if (f.fill < 0.92) {
+    const { x0, x1, y0, y1 } = f.box;
+    const pad = Math.round(0.04 * Math.max(x1 - x0 + 1, y1 - y0 + 1));
+    const left = Math.max(0, x0 - pad), top = Math.max(0, y0 - pad);
+    const width = Math.min(info.width, x1 + pad + 1) - left, height = Math.min(info.height, y1 + pad + 1) - top;
+    if (width >= 40 && height >= 20) img = img.extract({ left, top, width, height });
+  }
+  return img.resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -199,7 +237,7 @@ async function main() {
           if (DRY) { chosen = { r }; break; }
           try {
             let b = await download(r.image); let ext = extOf(b);
-            if (sharp) { b = await sharp(b).rotate().flatten({ background: '#ffffff' }).resize({ width: SIZE, height: SIZE, fit: 'inside', withoutEnlargement: true }).webp({ quality: 78 }).toBuffer(); ext = '.webp'; }
+            if (sharp) { b = await fitPhoto(sharp, b, SIZE); ext = '.webp'; }   // trimmed to the product; cut-off photos skipped
             const name = `${p.id}-1${ext}`;
             await writeFile(path.join(IMG_DIR, name), b);
             chosen = { r, file: `${IMG_REL}/${name}` };
