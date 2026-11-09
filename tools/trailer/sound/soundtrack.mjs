@@ -94,6 +94,25 @@ const MUSIC = {
     lead: (B) => beats(21.2, B, [[74, 0.5], [79, 0.5], [82, 0.75], [81, 0.25], [79, 1.25]]),
     kick: { f0: 200, f1: 46, decay: 0.13 }, fade: [30.2, 31.95],
   },
+  'the-eye': {
+    key: 'D Phrygian', bpm: 96, grid: 3.0, sub: 26, wind: 0.28,
+    chords: [[38, [50, 53, 57, 62]], [39, [51, 55, 58, 63]], [38, [50, 53, 57, 62]], [36, [48, 52, 55, 60]]],
+    calmAt: 36.0, calm: [[38, [50, 57, 62, 64]], [34, [50, 53, 58, 62]]],
+    steps: [62, 63, 65, 67, 69, 70, 72, 74],
+    fontPitch: { runic: 74, oldworld: 69, future: 76 },
+    arp: [0, 1, 2, 3, 2, 4, 3, 1],
+    sections: [
+      { a: 3.0, z: 11.6, groove: 'ritual', lvl: 0.5, arp: 'slow8' },
+      { a: 11.6, z: 14.0, groove: 'ritual', lvl: 0.85, arp: 'pluck16' },
+      { a: 14.0, z: 15.6, groove: 'roll', lvl: 0.9 },
+      { a: 16.4, z: 23.0, groove: 'four', lvl: 0.75, arp: 'pluck' },
+      { a: 23.0, z: 29.6, groove: 'four', lvl: 1, arp: 'pluck' },
+      { a: 29.6, z: 33.0, groove: 'four', lvl: 1.1, arp: 'pluck', clap: true, stabs: true },
+      { a: 33.0, z: 36.0, groove: 'drift', lvl: 0.6, arp: 'slow' },
+    ],
+    lead: (B) => beats(29.6, B, [[69, 0.5], [70, 0.5], [69, 0.5], [65, 0.5], [74, 1], [75, 0.5], [74, 1.5]]),
+    kick: { f0: 210, f1: 48, decay: 0.12 }, fade: [40.2, 41.95],
+  },
 };
 
 function score(film) {
@@ -211,6 +230,18 @@ function score(film) {
           if (sec.arp === 'pluck8' && s % 2 === 0) arpNote(sec, t, k / 2);
           break;
         }
+        case 'ritual': {
+          // hand drums round a fire: low toms on one and the and-of-two, a mid tom on two and
+          // four, a shaker on every sixteenth; the kick joins once it builds
+          if (s === 0 || s === 6 || s === 10) put(mix, 'toms', TL, t, { gain: (0.45 + 0.1 * (s === 0)) * lvl, pan: s === 6 ? -0.2 : 0 });
+          if (s === 4 || s === 12) put(mix, 'toms', TM, t, { gain: 0.38 * lvl, pan: 0.25 });
+          if (s === 15 && k % 32 >= 16) put(mix, 'toms', TH, t, { gain: 0.26 * lvl, pan: -0.3 });
+          put(mix, 'hats', HAT, t, { gain: (s % 4 === 2 ? 0.06 : 0.03) * lvl, pan: s % 2 ? 0.3 : -0.3 });
+          if (lvl > 0.7 && (s === 0 || s === 8)) kick(t, 0.6 * lvl);
+          if (s === 0) bass(t, BAR * 0.9, root, 0.35 + 0.3 * lvl, 200 + 260 * lvl);
+          if (sec.arp && s % (sec.arp === 'pluck16' ? 1 : 2) === 0) arpNote(sec, t, sec.arp === 'pluck16' ? k : k / 2);
+          break;
+        }
         case 'roll': {
           // a snare roll that doubles and swells into the next moment
           const p = (t - sec.a) / (sec.z - sec.a);
@@ -281,6 +312,21 @@ function score(film) {
       case 'tunnel': put(mix, 'fx', D.whoosh({ dur: 1.6, seed: s }), t, { gain: 0.4 }); put(mix, 'fx', D.riser({ dur: 3.6, f0: 300, f1: 10000, seed: s + 'r' }), t, { gain: 0.3 }); break;
       case 'line': put(mix, 'hit', D.impact({ size: 1.0, seed: s }), t, { gain: 0.62 }); put(mix, 'hit', D.makeCrash(s + 'c'), t, { gain: 0.3 }); break;
 
+      /* the eye: the saucer's passes, the eye waking, the click, a redaction lifting */
+      case 'swoop': put(mix, 'fx', D.whoosh({ dur: 1.4, f0: 260, fPeak: 3400, f1: 420, panFrom: -0.85, panTo: 0.85, seed: s }), t - 0.3, { gain: 0.34 });
+        put(mix, 'ui', D.blip({ f: D.mtof(step('swoop') + 12), len: 0.07 }), t, { gain: 0.08 }); break;
+      case 'orbit': hum(mix, 'hum', { t0: t, t1: t + 3.4, f: D.mtof(tonic[0] - 12), gain: 0.05, pan: -0.3 });
+        hum(mix, 'hum', { t0: t + 0.2, t1: t + 3.2, f: D.mtof(tonic[0] - 12) * 1.498, gain: 0.03, pan: 0.3 });
+        put(mix, 'ping', D.sonarPing({ f: D.mtof(tonic[0] + 12), dur: 2.4, soft: 0.5, seed: s }), t, { gain: 0.18 }); break;
+      case 'wake': put(mix, 'fx', D.reverseSwell({ dur: 1.2, notes: [51, 55, 58, 63], seed: s }), t - 0.9, { gain: 0.4 });
+        put(mix, 'ping', bell(75, { len: 2.8, vel: 0.7 }), t + 0.3, { gain: 0.16 });
+        put(mix, 'hit', D.subDrop({ f0: 70, f1: 36, dur: 1.6 }), t + 0.3, { gain: 0.26 }); break;
+      case 'open': put(mix, 'hit', D.impact({ size: 0.8, seed: s }), t, { gain: 0.5 });
+        put(mix, 'hit', D.makeCrash(s + 'c'), t, { gain: 0.24 });
+        put(mix, 'fx', D.riser({ dur: 1.4, f0: 400, f1: 12000, seed: s + 'r' }), t, { gain: 0.34 }); break;
+      case 'reveal': put(mix, 'fx', D.glitch({ dur: 0.22, f: 3200, seed: s }), t, { gain: 0.16 });
+        put(mix, 'ping', bell(step('reveal') + 12, { len: 2.2, vel: 0.6 }), t + 0.05, { gain: 0.14 }); break;
+
       /* the peak, the come-down, the calm, and the brand */
       case 'peak': {
         // (where the film already hits — the white hole, the line — the chord alone)
@@ -300,7 +346,12 @@ function score(film) {
         put(mix, 'fx', D.reverseSwell({ dur: 1.2, notes: tonic.slice(1), seed: s + 'r' }), t, { gain: 0.36 }); break;
       case 'calm': put(mix, 'fx', D.reverseSwell({ dur: 1.6, notes: chordAt(t + 0.1)[1], seed: s }), t - 1.4, { gain: 0.22 }); break;
       case 'seal': {
-        if (film.key === 'phase-shift') {
+        if (film.key === 'the-eye') {
+          // the seal rises out of the eye's pupil: a glass arpeggio, up and up, and a low bell when it lands
+          [62, 65, 69, 74, 77, 81, 86].forEach((m, i) => put(mix, 'ping', bell(m, { len: 2.4, vel: 0.55 }), t + i * 0.16, { gain: 0.1, pan: Math.sin(i) * 0.5 }));
+          put(mix, 'harp', harp(50, { len: 3.4, vel: 0.7, seed: s + 'h' }), t + 2.6, { gain: 0.4 });
+          put(mix, 'ping', bell(74, { len: 3.6, vel: 0.8 }), t + 2.6, { gain: 0.16 });
+        } else if (film.key === 'phase-shift') {
           // the seal climbs the gate's light: a harp up the Dorian scale, an octave and a half
           const scale = [57, 59, 60, 62, 64, 66, 67, 69, 71, 72, 74, 76, 78, 79, 81];
           scale.forEach((m, i) => put(mix, 'harp', harp(m, { len: 2.6, vel: 0.55 + 0.02 * i, bright: 0.5 + 0.02 * i, seed: s + i }), t + i * 0.23, { gain: 0.42, pan: Math.sin(i * 0.9) * 0.4 }));
