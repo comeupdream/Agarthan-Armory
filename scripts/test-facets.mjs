@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* test-facets.mjs — categories and filter values from lib-facets.mjs, and the
  * maker names build-catalog.mjs merges.   node scripts/test-facets.mjs */
-import { caliberOf, subOf, facetsOf, normCaliber } from './lib-facets.mjs';
+import { caliberOf, subOf, facetsOf, normCaliber, splitFits } from './lib-facets.mjs';
 import { normBrand, classify, displayName, buildItems } from './build-catalog.mjs';
 
 let pass = 0, fail = 0;
@@ -108,6 +108,12 @@ const S = (dept, cat, sub) => subOf(dept, { name: 'x', categories: ['Shooting Sp
 eq([S('sidearms', 'Handguns', 'Semi-Automatic'), S('sidearms', 'Handguns', 'Revolvers'), S('nfa', 'NFA/Suppressors', 'Firearms / Suppressor Packages'), S('gear', 'Holster & Magazine Pouches', 'Holsters'), S('ammo', 'Reloading Supplies', 'Primers')],
   ['Semi-Auto Pistols', 'Revolvers', 'Suppressor Packages', 'Holsters & Pouches', 'Reloading'], 'gearfire: categories');
 eq(facetsOf('gear', 'Holsters & Pouches', GF('Holster & Magazine Pouches', 'Holsters', 'X', {})).kind, 'Holsters', 'gearfire gear: the store subcategory is a Type filter');
+f = facetsOf('gear', 'Holsters & Pouches', GF('Holster & Magazine Pouches', 'Holsters', 'Schema', { 'Firearm Fit': 'Glock 17 19', Style: 'Inside Waistband Holster', Hand: 'Right Hand' }));
+eq([f.fits, f.style, f.hand], [['Glock 17', 'Glock 19'], 'Inside the waistband (IWB)', 'Right hand'], 'holster: fits each model, style grouped, hand');
+f = facetsOf('gear', 'Magazines', GF('Magazines', 'Handgun', 'Glock 17, 19, 26 Magazines', { Caliber: '9MM', Capacity: '20' }, { subtitle: 'ProMag, Magazine, 9MM, 20 Rounds, Fits Glock 17/19/26, Polymer' }));
+eq([f.fits, f.caliber, f.capacity], [['Glock 17', 'Glock 19', 'Glock 26'], '9mm Luger', '20 rounds'], 'magazine: fits read from the variant title');
+eq(splitFits('Ruger 10/22'), ['Ruger 10/22'], 'a model name with a slash stays whole');
+eq(splitFits('AR Rifles'), ['AR-15'], 'AR naming merged');
 const [bp] = buildItems([GF('Black Powder Guns & Accessories', 'Rifles', 'Hawken', {}, { id: 'bp', price: 400, firearm: false, nfa: false })]);
 eq([bp.dept, bp.firearm], ['longarms', false], 'gearfire: black powder is shelved with rifles but is not a firearm (the store says so)');
 const [can] = buildItems([GF('NFA/Suppressors', 'Suppressors', 'Obsidian 45', {}, { id: 'can', price: 900, firearm: false, nfa: true })]);
@@ -119,6 +125,9 @@ const [mk18, bfr, pcc, g19] = buildItems([pistol('mk18', 'Large Format Pistols',
 eq([mk18.dept, mk18.sub, mk18.f.action, mk18.type, mk18.firearm], ['longarms', 'AR & Rifle-Caliber Pistols', 'Semi-Auto', 'ar', true], 'a 5.56 pistol is an AR pistol, with the rifles');
 eq([bfr.dept, bfr.sub, bfr.f.action, bfr.type], ['longarms', 'AR & Rifle-Caliber Pistols', 'Revolver', 'revolver'], 'a .45-70 revolver joins it, its action kept');
 eq([pcc.dept, g19.dept], ['sidearms', 'sidearms'], 'a 9mm pistol of any size stays a handgun');
+const [ar16, mk18b] = buildItems([GF('Rifles', 'Semi-Automatic', 'AR', { 'Rifle Caliber': '5.56 NATO', 'Barrel Length': '16.1"' }, { id: 'ar16', price: 900, firearm: true }),
+  pistol('mk18b', 'Large Format Pistols', '5.56 NATO', { 'Barrel Length': '10.3"' })]);
+eq([ar16.f.barrel, ar16.specs.barrel, mk18b.f.barrel], ['16–18"', '16.1"', '8–10.5"'], 'barrel filter by range, the exact length kept on the card');
 eq([normCaliber('7.62 mm NATO'), normCaliber('.45 (Long) Colt'), normCaliber('.32 Auto (ACP)')], ['7.62x51 NATO', '.45 Colt', '.32 ACP'], 'more caliber spellings');
 const [box] = buildItems([{ ...lever, id: 'lv', price: 58.99 }]);
 eq(box.cpr, 2.95, 'price per round');

@@ -159,6 +159,30 @@ export function normCaliber(v) {
   const dotted = /^\d{2,3}(?=[\s-]|$)/.test(s) && !/^\d+\s?(?:ga\b|gauge|bore|mm)/i.test(s) ? '.' + s : s;
   return caliberOf(dotted) || dotted.replace(/\b(acp|nato|s&w|blk|hmr|wmr|lr|prc|wsm)\b/gi, (m) => m.toUpperCase());
 }
+/** "Fits Glock 17/19/26, Polymer…" → "Glock 17/19/26" */
+const fitsFromTitle = (t) => { const m = /\b(?:fits|for)\s+([^,]{2,40})/i.exec(String(t || '')); return m ? m[1].trim() : null; };
+/** "Glock 17/19/26" → Glock 17, Glock 19, Glock 26 (so a Glock 19 owner finds it); "Ruger 10/22" is one model */
+export function splitFits(v) {
+  const s = String(v).trim().replace(/\b([A-Z])([A-Z]{3,})\b/g, (m, a, b) => a + b.toLowerCase());   // GLOCK → Glock
+  const out = [];
+  for (const part of s.split(/\s*[;,]\s*|\s+(?:and|&)\s+(?=[A-Z])/)) {
+    // "Glock 17/19/26" or "Glock 17 19": one maker, several model numbers
+    const m = /^(.*?[A-Za-z][A-Za-z&.\- ]*?)\s?(\d+[A-Za-z]{0,3})((?:[\/ ]\d+[A-Za-z]{0,3})+)$/.exec(part);
+    if (m && !/\b10\/22\b|\b15\/22\b/.test(part)) out.push(`${m[1]} ${m[2]}`, ...m[3].split(/[\/ ]/).filter(Boolean).map((n) => `${m[1]} ${n}`));
+    else if (part) out.push(part);
+  }
+  const AR = (x) => (/^ar[- ]?15s?(?: rifles?)?$|^ar rifles?$|^ar[- ]platform$/i.test(x) ? 'AR-15' : x);
+  return [...new Set(out.map((x) => AR(x.replace(/\s+/g, ' ').trim())))].slice(0, 8);
+}
+// the store's ~40 holster styles → what a buyer picks by
+const STYLES = [
+  [/mag(?:azine)? pouch|shell holder|light holder|^pouch/i, 'Mag & gear pouches'], [/inside (?:the )?waistband|\biwb\b|appendix/i, 'Inside the waistband (IWB)'],
+  [/pocket/i, 'Pocket'], [/ankle/i, 'Ankle'], [/belly band/i, 'Belly band'], [/chest/i, 'Chest'], [/shoulder/i, 'Shoulder'],
+  [/retention|duty|level-?i|als|sls/i, 'Duty & retention'], [/paddle/i, 'Paddle'],
+  [/outside (?:the )?waistband|\bowb\b|belt holster|hip|leg holster|tactical/i, 'Outside the waistband (OWB)'], [/concealment/i, 'Concealment'],
+  [/adapter|mount|fork|plate|clip|buckle|insert|kit|accessor|attachment|shroud|qas|qls|mls|vest|rig/i, 'Parts & adapters'],
+];
+const holsterStyle = (v) => { for (const [re, name] of STYLES) if (re.test(v)) return name; return v; };
 const yes = (v) => /^(y|yes|true|1)$/i.test(String(v || '').trim());
 const num0 = (v) => { const m = String(v || '').match(/\d+(?:\.\d+)?/); return m ? +m[0] : null; };
 const bulletName = (v) => { const t = T(v); const hit = BULLETS.find(([re]) => re.test(t)); return hit ? hit[1] : String(v).trim(); };
@@ -213,7 +237,11 @@ export function facetsOf(dept, sub, p) {
   if (dept === 'gear') {
     if (sp && sp.sub && sp.sub !== sub) f.kind = sp.sub;
     if (/magazine/i.test(sub || '')) { const cap = num0(A(p, /capacity/i)) || (tv.match(/\b(\d{1,3})[\s-]?(?:rd|rds|round)s?\b/) || [])[1]; if (cap) f.capacity = `${parseInt(cap, 10)} rounds`; }
-    const fits = A(p, /fit \/ used for|^fits?$|compatib|^model fit/i); if (fits) f.fits = fits;
+    // what gun it fits: the store's row (holsters), else the variant title ("Fits Glock 17/19/26", "For GLOCK 17")
+    const fitRow = A(p, /fit \/ used for|^fits?$|compatib|^model fit|firearm fit/i) || fitsFromTitle(p.subtitle);
+    if (fitRow) f.fits = splitFits(fitRow);
+    const hand = A(p, /^hand(?:ed(?:ness)?)?$/i); if (hand) f.hand = /amb/i.test(hand) ? 'Ambidextrous' : /left/i.test(hand) ? 'Left hand' : /right/i.test(hand) ? 'Right hand' : hand;
+    const style = A(p, /^(?:holster )?style$|^carry (?:style|position)$/i); if (style && /holster/i.test(sub || '')) f.style = holsterStyle(style);
     const col = A(p, /^colou?r$|^finish$/i); if (col) f.color = col;
   }
   if (dept === 'optics') {
@@ -280,5 +308,5 @@ export const FACET_LABELS = {
   barrel: 'Barrel length', action: 'Action', capacity: 'Capacity',
   mag: 'Magnification', objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
   sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color',
-  height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits',
+  height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits', hand: 'Hand', style: 'Style',
 };
