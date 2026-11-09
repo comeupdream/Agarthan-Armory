@@ -57,6 +57,16 @@ window.AA_CONFIG = {
     nfa: 20,                       // only shown when ffl.sot is true
   },
 
+  // The red NFA label on product covers, by kind of item. Every NFA item stays
+  // flagged in the catalogue whatever this says, so setting a kind back to true
+  // brings its labels back. (The Silent Vault line on the home page names which
+  // items wear the label; change it there too.)
+  nfaLabels: {
+    suppressor: false,             // suppressors and suppressor packages
+    sbr: true,                     // short-barreled rifles
+    sbs: true,                     // short-barreled shotguns
+  },
+
   // Requisition list + contact form delivery. With an endpoint (Formspree,
   // Basin, the store's own form handler) the form POSTs JSON there; without
   // one it opens the visitor's mail app addressed to `email`.
