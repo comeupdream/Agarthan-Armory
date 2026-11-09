@@ -130,6 +130,31 @@ fr = await runFind([], { BRAVE_API_KEY: 'test-key' });
 eq(searches, before, 'second run searches nothing (found + marked none are skipped)');
 fr = await runFind(['--retry', '--budget', '1'], { BRAVE_API_KEY: 'test-key' });
 eq(searches - before, 1, '--retry searches again, within --budget');
+// --cover: only the lines behind the first page of each view, in the Armory's order
+const cd = mkdtempSync(path.join(tmpdir(), 'aa-cover-'));
+mkdirSync(path.join(cd, 'scraped'), { recursive: true });
+writeFileSync(path.join(cd, 'scraped', 'catalog.json'), JSON.stringify([
+  { id: 'hst-a', line: 'hst', name: 'HST 9mm 147gr', brand: 'Federal', attributes: { UPC: '029465064549' } },
+  { id: 'hst-b', line: 'hst', name: 'HST 9mm 147gr', brand: 'Federal', attributes: { UPC: '029465064550' } },
+  { id: 'deep', line: 'deep', name: 'Federal Deep Page Load', brand: 'Federal', attributes: { UPC: '029465000001' } },
+]));
+writeFileSync(path.join(cd, 'catalog.js'), 'window.AA_CATALOG = ' + JSON.stringify({ items: [
+  { id: 'hst-a', ln: 'hst', dept: 'ammo', sub: 'Handgun', status: 'ship', rank: 0 },
+  { id: 'hst-b', ln: 'hst', dept: 'ammo', sub: 'Handgun', status: 'ship', rank: 1 },
+  { id: 'deep', ln: 'deep', dept: 'ammo', sub: 'Handgun', status: 'ship', rank: 2 },
+] }) + ';');
+const before2 = searches;
+const cov = await new Promise((res) => {
+  const c = spawn(process.execPath, [path.join(HERE, 'find-images.mjs'), '--cover', '1', '--catalog-dir', path.join(cd, 'scraped'), '--catalog-js', path.join(cd, 'catalog.js'), '--img-dir', path.join(cd, 'img'), '--rps', '50'],
+    { cwd: cd, env: { ...process.env, BRAVE_API_KEY: 'test-key', BRAVE_API_BASE: `http://127.0.0.1:${api.address().port}` } });
+  let out = ''; c.stdout.on('data', (x) => (out += x)); c.stderr.on('data', (x) => (out += x)); c.on('close', (code) => res({ code, out }));
+});
+eq(cov.code, 0, 'cover run exits 0\n' + cov.out);
+const cc = JSON.parse(readFileSync(path.join(cd, 'scraped', 'catalog.json'), 'utf8'));
+const cby = (id) => cc.find((p) => p.id === id);
+eq([cby('hst-a').localImages, cby('hst-b').localImages], [['img/hst-a-1.jpg'], ['img/hst-a-1.jpg']], 'cover: the first card\'s line gets a photo, shared by its variant');
+eq(cby('deep').photoSearch, undefined, 'cover: a product past the first page is not searched');
+eq(searches - before2, 1, 'cover: one search for the one line on the cover');
 api.close();
 
 srv.close();
