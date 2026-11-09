@@ -48,13 +48,13 @@ window.AA_CONFIG = {
     tiktok: null,
   },
 
-  // Transfer fees (numbers, USD). null renders "Call".
+  // Transfer fees (numbers, USD). null renders "Call". One flat $20 for every kind of firearm.
   fees: {
-    longGun: null,
-    handgun: null,
-    additional: null,              // each additional firearm, same 4473
-    privateParty: null,
-    nfa: null,                     // only shown when ffl.sot is true
+    longGun: 20,
+    handgun: 20,
+    additional: 20,                // each additional firearm, same 4473
+    privateParty: 20,
+    nfa: 20,                       // only shown when ffl.sot is true
   },
 
   // Requisition list + contact form delivery. With an endpoint (Formspree,
