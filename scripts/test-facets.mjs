@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* test-facets.mjs — categories and filter values from lib-facets.mjs, and the
  * maker names build-catalog.mjs merges.   node scripts/test-facets.mjs */
-import { caliberOf, subOf, facetsOf, normCaliber, splitFits } from './lib-facets.mjs';
+import { caliberOf, subOf, facetsOf, normCaliber, splitFits, caseName } from './lib-facets.mjs';
 import { normBrand, classify, displayName, buildItems } from './build-catalog.mjs';
 
 let pass = 0, fail = 0;
@@ -114,6 +114,26 @@ f = facetsOf('gear', 'Magazines', GF('Magazines', 'Handgun', 'Glock 17, 19, 26 M
 eq([f.fits, f.caliber, f.capacity], [['Glock 17', 'Glock 19', 'Glock 26'], '9mm Luger', '20 rounds'], 'magazine: fits read from the variant title');
 eq(splitFits('Ruger 10/22'), ['Ruger 10/22'], 'a model name with a slash stays whole');
 eq(splitFits('AR Rifles'), ['AR-15'], 'AR naming merged');
+
+/* the smaller gaps */
+eq([caseName('Nickel-Plated'), caseName('Nickel'), caseName('Nickel Alloy Steel'), caseName('Brass'), caseName('aluminum')], ['Nickel-plated', 'Nickel-plated', 'Steel', 'Brass', 'Aluminum'], 'case: one name per material');
+eq(facetsOf('ammo', 'Rifle', GF('Ammunition', 'Rifle Ammo', 'Rifle', { 'Rifle Caliber': '7.62x39mm' }, { subtitle: 'Tula, 7.62x39, 122 Grain, Hollow Point, Steel Case, 20 Round Box' })).casing, 'Steel', 'case: "Steel Case" in the title when there is no row');
+eq(facetsOf('ammo', 'Shotgun', GF('Ammunition', 'Shotgun Ammo', 'Target', { Cartridge: '12 Gauge' })).casing, undefined, 'case: never guessed');
+eq(facetsOf('sidearms', 'Revolvers', GF('Handguns', 'Revolvers', 'Pug', { 'Barrel Length': '1"', Caliber: '22 WMR' })).barrel, '1"', 'barrel: a 1" pocket revolver from its spec row');
+f = facetsOf('nfa', 'Suppressors', GF('NFA/Suppressors', 'Suppressors', 'Tisha', { Caliber: '5.56 mm NATO', 'Mount Style': 'Quick Detach', Material: '17-4PH Stainless Steel', 'Suppressor Type': '5.56 Rifle', 'Suppressor Modular': 'No' }));
+eq([f.kind, f.mount, f.material, f.modular, f.caliber], ['5.56 Rifle', 'Quick Detach', 'Stainless steel', 'Fixed length', '5.56 NATO'], 'suppressor: type, mount, material, modular');
+f = facetsOf('longarms', 'Receivers & Frames', GF('Receivers & Frames', 'Upper', 'Upper', { 'Receiver Size': 'AR-15', Stripped: 'No', 'Barrel Length': '16"' }));
+eq([f.kind, f.platform, f.build, f.barrel], ['Upper', 'AR-15', 'Complete', '16"'], 'receiver: type, platform, build, barrel');
+const thor = GF('Optics', 'Thermal Optics', 'Thor 5', { Monocular: 'Yes' }, { subtitle: 'ATN, Thor 5, 640, 4-32X, Smart HD Thermal Scope, 30mm', id: 'thor', price: 3000, variant: { Cameras: 'No', Magnification: '4-32x' } });
+f = facetsOf('optics', 'Thermal', thor);
+eq([f.vision, f.form], [['Thermal'], 'Rifle scope'], 'thermal rifle scope: vision and type (the title wins over a Monocular row)');
+const [thorItem] = buildItems([thor]);
+eq([thorItem.sub, thorItem.also, thorItem.name], ['Thermal', ['Riflescopes'], 'Thor 5 — 4-32x'], 'a thermal rifle scope also shows with the riflescopes; a "No" spec stays out of its name');
+eq(facetsOf('optics', 'Night Vision', GF('Optics', 'Night Vision Optics', 'PVS-14', {}, { subtitle: 'PVS-14' })).vision, ['Night vision (tube)'], 'a PVS-14 is tube night vision');
+eq(facetsOf('optics', 'Night Vision', GF('Optics', 'Night Vision Optics', 'X-Sight 5', {}, { subtitle: 'ATN, X-Sight 5, Night Vision Rifle Scope, 3-15x' })).vision, ['Digital night vision'], 'an X-Sight is digital night vision');
+const dot = (brand, name) => facetsOf('optics', 'Red Dots & Holographic', GF('Optics', 'Red Dots / Holographic', name, {}, { brand })).footprint;
+eq([dot('Trijicon', 'SRO'), dot('Shield Sights', 'SMS2'), dot('Steiner', 'MPS 2.0'), dot('Steiner', 'MPS-C'), dot('EOTech', 'EXPS3'), dot('EOTech', 'EFLX')],
+  [['Trijicon RMR'], ['Shield RMSc'], ['Aimpoint ACRO'], undefined, ['Picatinny'], ['Docter / DeltaPoint']], 'red dot footprints by model (unsure models left out)');
 const [bp] = buildItems([GF('Black Powder Guns & Accessories', 'Rifles', 'Hawken', {}, { id: 'bp', price: 400, firearm: false, nfa: false })]);
 eq([bp.dept, bp.firearm], ['longarms', false], 'gearfire: black powder is shelved with rifles but is not a firearm (the store says so)');
 const [can] = buildItems([GF('NFA/Suppressors', 'Suppressors', 'Obsidian 45', {}, { id: 'can', price: 900, firearm: false, nfa: true })]);

@@ -17,12 +17,12 @@
   const FACETS = {
     '': ['brand'],
     ammo: ['caliber', 'use', 'bullet', 'grain', 'count', 'casing', 'shot', 'shell', 'kind', 'brand'],
-    optics: ['footprint', 'mag', 'objective', 'tube', 'height', 'focal', 'illum', 'reticle', 'dot', 'sensor', 'phosphor', 'laser', 'platform', 'color', 'brand'],
+    optics: ['vision', 'form', 'footprint', 'mag', 'objective', 'tube', 'height', 'focal', 'illum', 'reticle', 'dot', 'sensor', 'phosphor', 'laser', 'platform', 'color', 'brand'],
     sidearms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
-    longarms: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
+    longarms: ['caliber', 'barrel', 'action', 'capacity', 'kind', 'platform', 'build', 'color', 'brand'],
     shotguns: ['caliber', 'barrel', 'action', 'capacity', 'color', 'brand'],
-    gear: ['kind', 'fits', 'caliber', 'capacity', 'style', 'hand', 'color', 'brand'],
-    nfa: ['caliber', 'barrel', 'capacity', 'color', 'brand'],
+    gear: ['kind', 'fits', 'caliber', 'capacity', 'barrel', 'style', 'hand', 'color', 'brand'],
+    nfa: ['kind', 'caliber', 'mount', 'material', 'modular', 'barrel', 'capacity', 'color', 'brand'],
   };
   const LABEL = {
     brand: 'Manufacturer', caliber: 'Caliber / gauge', use: 'Use', bullet: 'Bullet type', grain: 'Bullet weight', count: 'Rounds per box',
@@ -30,6 +30,7 @@
     objective: 'Objective', tube: 'Tube / ring size', focal: 'Focal plane', illum: 'Illumination', footprint: 'Mount / footprint',
     sensor: 'Sensor', phosphor: 'Phosphor', laser: 'Laser', casing: 'Case', reticle: 'Reticle', dot: 'Dot size', color: 'Color / finish',
     height: 'Ring height', platform: 'Made for', kind: 'Type', fits: 'Fits', hand: 'Hand', style: 'Style',
+    vision: 'Vision', form: 'Type', build: 'Build', mount: 'Mount', material: 'Material', modular: 'Modular',
   };
   const NUMERIC = new Set(['grain', 'count', 'barrel', 'capacity', 'objective', 'mag']);
   const valsOf = (i, k) => (k === 'brand' ? (i.brand ? [i.brand] : []) : [].concat((i.f || {})[k] || []));
@@ -138,7 +139,7 @@
   };
   function passes(i, skip) {
     if (state.dept && i.dept !== state.dept) return false;
-    if (state.sub && i.sub !== state.sub && skip !== 'sub') return false;
+    if (state.sub && i.sub !== state.sub && !(i.also && i.also.includes(state.sub)) && skip !== 'sub') return false;
     if (state.stock && !(i.status === 'in' || i.status === 'low' || i.status === 'ship')) return false;
     const lo = parseFloat(state.pmin), hi = parseFloat(state.pmax);
     if (!isNaN(lo) && !(i.price >= lo)) return false;
@@ -153,7 +154,7 @@
   function renderSubs() {
     const scope = items.filter((i) => passes(i, 'sub'));
     const counts = {};
-    scope.forEach((i) => { if (i.sub) counts[i.sub] = (counts[i.sub] || 0) + 1; });
+    scope.forEach((i) => { for (const s of [i.sub, ...(i.also || [])]) if (s) counts[s] = (counts[s] || 0) + 1; });
     const subs = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     $('#subSet').hidden = !state.dept || subs.length < 2;
     subChips.innerHTML = subs.map(([s, n]) => `<button type="button" class="chip" data-sub="${esc(s)}" aria-pressed="${s === state.sub}">${esc(s)}<small>${n}</small></button>`).join('');

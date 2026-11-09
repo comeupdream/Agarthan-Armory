@@ -100,6 +100,7 @@ export const ARP = 'AR & Rifle-Caliber Pistols';
  *  16" line (AR pistols, SBR lengths) and by 2" above it; shotguns from home-defense to bird-gun lengths */
 const RANGES = {
   sidearms: [3, 4, 5, 6], longarms: [8, 10.5, 12.5, 14.5, 16, 18, 20, 22, 24], nfa: [8, 10.5, 12.5, 14.5, 16], shotguns: [18.5, 20, 24, 26, 28],
+  gear: [4, 6, 8, 10.5, 12.5, 14.5, 16, 18, 20, 22, 24],   // barrels and uppers sold as parts
 };
 export function barrelRange(dept, sub, inches) {
   if (!(inches > 0)) return null;
@@ -236,7 +237,11 @@ export function displayName(p, dept, f) {
     add(f.caliber); add(f.grain); add([].concat(f.bullet || [])[0]); add(f.shot); add(f.shell);
     return bits.length ? `${base} ${bits.join(' ')}` : base;
   }
-  for (const [k, v] of Object.entries(p.variant || {})) add(/capacity|rounds/i.test(k) && /^\d+$/.test(v) ? `${v} rounds` : v);
+  // a yes/no spec says its name when yes ("Laser Rangefinder") and nothing when no
+  for (const [k, v] of Object.entries(p.variant || {})) {
+    if (/^no$/i.test(v)) continue;
+    add(/^yes$/i.test(v) ? k : /capacity|rounds/i.test(k) && /^\d+$/.test(v) ? `${v} rounds` : v);
+  }
   return bits.length ? `${base} — ${bits.join(', ')}` : base;
 }
 
@@ -267,7 +272,9 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
     }
     // barrel length filters by range (16–18"); the exact length stays on the card and in the spec sheet
     const exactBarrel = f.barrel;
-    if (f.barrel && FIREARM_DEPTS.has(dept)) f.barrel = barrelRange(dept, sub, parseFloat(f.barrel)) || f.barrel;
+    if (f.barrel && RANGES[dept]) f.barrel = barrelRange(dept, sub, parseFloat(f.barrel)) || f.barrel;
+    // a night vision or thermal rifle scope also belongs with the riflescopes
+    const also = f.form === 'Rifle scope' && (sub === 'Night Vision' || sub === 'Thermal') ? ['Riflescopes'] : undefined;
     const price = o.price !== undefined ? o.price : p.price ?? null;
     const rounds = dept === 'ammo' && f.count ? parseInt(f.count, 10) : 0;
     items.push({
@@ -296,7 +303,8 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       url: p.permalink || null,
       sku: p.sku || null,
       shelf: p.storeStock || undefined,   // on the store's own shelf (not a distributor's)
-      ln: p.line ? String(p.line).slice(0, 8) : undefined,   // its product line (variants share one), for the default order
+      ln: p.line ? String(p.line).slice(0, 8) : undefined,
+      also,   // other categories it shows under   // its product line (variants share one), for the default order
       featured: Boolean(o.featured),
       rank: p.rank ?? items.length,
     });
