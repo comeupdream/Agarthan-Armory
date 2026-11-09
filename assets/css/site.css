@@ -320,12 +320,17 @@ html[data-theme="mono"] .seal::after { display: none; }
   border-block: 1px solid var(--line); background: var(--band-bg); overflow: hidden; position: relative;
 }
 .band-track { display: flex; width: max-content; animation: tick 44s linear infinite; }
-.band-track span {
-  font: 800 clamp(18px, 2.4vw, 28px)/1 var(--f-display); letter-spacing: .16em; color: transparent;
+/* each word is a link to its department; the scroll holds still under the pointer or keyboard */
+.band:hover .band-track, .band:focus-within .band-track { animation-play-state: paused; }
+.band-set { display: flex; }
+.band-set a {
+  font: 800 clamp(18px, 2.4vw, 28px)/1 var(--f-display); letter-spacing: .16em; color: transparent; text-decoration: none;
   -webkit-text-stroke: 1px rgba(var(--soft-rgb), .55); padding: 22px 0; white-space: nowrap;
+  transition: color .2s, -webkit-text-stroke-color .2s, text-shadow .2s;
 }
-.band-track span::after { content: '◇'; -webkit-text-stroke: 0; color: var(--cyan); margin: 0 34px; font-size: .6em; vertical-align: middle; }
-.band-track span:nth-child(3n+2) { color: var(--frost); -webkit-text-stroke: 0; }
+.band-set a::after { content: '◇'; -webkit-text-stroke: 0; color: var(--cyan); margin: 0 34px; font-size: .6em; vertical-align: middle; }
+.band-set a:nth-child(3n+2) { color: var(--frost); -webkit-text-stroke: 0; }
+.band-set a:hover, .band-set a:focus-visible { color: var(--cyan); -webkit-text-stroke: 0; text-shadow: 0 0 18px rgba(var(--accent-rgb), .55); outline: none; }
 
 /* =====================================================================
    DEPARTMENTS
@@ -826,6 +831,8 @@ dialog::backdrop { background: var(--backdrop); -webkit-backdrop-filter: blur(6p
   .reveal { opacity: 1; transform: none; }
   html { scroll-behavior: auto; }
   .ticker-track, .band-track { animation: none; }
+  .band { overflow-x: auto; }               /* no scroll animation: swipe the band instead */
+  .band-set[aria-hidden] { display: none; }
 }
 
 /* gate already passed on this device (set by the inline head script) */
