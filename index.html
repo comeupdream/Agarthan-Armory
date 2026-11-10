@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=bc12d44c5b">
+<link rel="stylesheet" href="assets/css/site.css?v=96ba7d1668">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -141,10 +141,18 @@
   <!-- ================= DEPARTMENTS ================= -->
   <section class="section" id="departments">
     <div class="wrap">
-      <div class="section-head reveal">
-        <span class="eyebrow">01 — The departments</span>
-        <h2>Choose your expedition</h2>
-        <p>Six vaults, one outpost. Everything we stock, sorted for the journey you are planning.</p>
+      <div class="head-plate">
+        <div class="section-head reveal">
+          <span class="eyebrow">01 — The departments</span>
+          <h2>Choose your expedition</h2>
+          <p>Six vaults, one outpost. Everything we stock, sorted for the journey you are planning.</p>
+        </div>
+        <!-- Inner Earth only: a crystal from below, floating free of its photograph -->
+        <figure class="realm-only realm-float reveal" data-realms="inner-earth">
+          <img data-realm="inner-earth" src="assets/img/feature/realm/inner-earth/rhodochrosite-760.webp" width="760" height="634" loading="lazy" decoding="async" alt="A rhodochrosite specimen: rose-red crystal blades with dark sphalerite and pale quartz">
+          <figcaption><b>Rhodochrosite</b>, the ember stone.
+            <small>Photo: Robert M. Lavinsky · <a href="https://commons.wikimedia.org/wiki/File:Fluorite-Quartz-Rhodochrosite-ed10a.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener" target="_blank">CC BY-SA 3.0</a> · background removed</small></figcaption>
+        </figure>
       </div>
       <div class="depts" id="deptGrid">
         <a class="dept hud brackets reveal" href="armory.html?dept=sidearms" data-dept="sidearms" data-icon="pistol">
@@ -261,6 +269,38 @@
     </figure>
   </section>
 
+  <!-- ================= THE WAY DOWN — Polar Night only ================= -->
+  <section class="realm-only realm-vista" data-realms="polar" aria-label="Under the ice">
+    <figure class="vista-frame reveal">
+      <img data-realm="polar" src="assets/img/feature/realm/polar/ice-cave-1600.webp" srcset="assets/img/feature/realm/polar/ice-cave-1600.webp 1600w, assets/img/feature/realm/polar/ice-cave-2600.webp 2600w" sizes="100vw"
+        width="1600" height="1066" loading="lazy" decoding="async" alt="A glacier cave of blue ice, lit from inside by one explorer’s lamp">
+      <figcaption class="vista-cap">
+        <div class="wrap">
+          <span class="eyebrow">The way in</span>
+          <h2>Under the ice</h2>
+          <p>A glacier cave in Iceland. Blue ice for a ceiling, and one lamp to show how far down it goes.</p>
+          <small>Photo: Eric Kilby · <a href="https://commons.wikimedia.org/wiki/File:Ice_Cave_Explorer_-_Iceland.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by-sa/2.0/" rel="noopener" target="_blank">CC BY-SA 2.0</a></small>
+        </div>
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ================= THE WAY DOWN — Agarthan Crystal only ================= -->
+  <section class="realm-only realm-vista" data-realms="crystal" aria-label="Amethyst">
+    <figure class="vista-frame reveal">
+      <img data-realm="crystal" src="assets/img/feature/realm/crystal/amethyst-geode-1600.webp" srcset="assets/img/feature/realm/crystal/amethyst-geode-1600.webp 1600w, assets/img/feature/realm/crystal/amethyst-geode-2600.webp 2600w" sizes="100vw"
+        width="1600" height="1066" loading="lazy" decoding="async" alt="The inside of a giant amethyst geode, lined with violet crystal, with one pale calcite crystal on its rim">
+      <figcaption class="vista-cap">
+        <div class="wrap">
+          <span class="eyebrow">The heart of the crystal</span>
+          <h2>Amethyst</h2>
+          <p>A geode from Planalto, Brazil, hollow and lined with violet crystal, opened like a door. In the mineral gallery of the Muséum national d’Histoire naturelle, Paris.</p>
+          <small>Photo: Marie-Lan Taÿ Pamart · <a href="https://commons.wikimedia.org/wiki/File:Amethyst_geode_Planalto_MNHN_Min%C3%A9ralogie_n3.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a></small>
+        </div>
+      </figcaption>
+    </figure>
+  </section>
+
   <!-- ================= THE MAP ================= -->
   <section class="section map-section" id="map">
     <div class="wrap">
@@ -276,6 +316,16 @@
           <img data-realm="mono" src="assets/img/feature/realm/mono/symmes-hole-980.webp" width="980" height="696" loading="lazy" decoding="async" alt="An engraving of the globe, drawn as light lines on dark, with a great glowing opening at the north pole">
           <figcaption><b>Symmes Hole.</b> In 1818 John Cleves Symmes Jr. declared the earth hollow and open at the poles. Drawn here in 1882.
             <small>Public domain · <a href="https://commons.wikimedia.org/wiki/File:Symmes_Hole.jpg" rel="noopener" target="_blank">source</a> · inverted and recoloured</small></figcaption>
+        </figure>
+        <figure class="realm-only realm-plate hud brackets reveal" data-realms="polar">
+          <img data-realm="polar" src="assets/img/feature/realm/polar/ice-cave-exit-980.webp" width="980" height="735" loading="lazy" decoding="async" alt="Daylight at the mouth of a glacier cave, seen through walls of blue ice">
+          <figcaption><b>The way out.</b> Daylight at the mouth of a glacier cave, through ice that has been blue for longer than anyone has been counting.
+            <small>Photo: Gillfoto · <a href="https://commons.wikimedia.org/wiki/File:Ice_Cave_Exit_268.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener" target="_blank">CC BY-SA 4.0</a></small></figcaption>
+        </figure>
+        <figure class="realm-only realm-plate hud brackets reveal" data-realms="crystal">
+          <img data-realm="crystal" src="assets/img/feature/realm/crystal/endurance-dawn-980.webp" width="980" height="694" loading="lazy" decoding="async" alt="The ship Endurance held in pack ice beside a pressure ridge, the snow lit pink by the rising sun">
+          <figcaption><b>The Endurance, 1915.</b> Shackleton’s ship held in the Weddell Sea ice, lit pink by the rising sun. Her captain, Frank Worsley, is the face on the Antarctica $20.
+            <small>Photo: Frank Hurley · <a href="https://commons.wikimedia.org/wiki/File:The_%27Endurance%27,_The_pink_glow_of_the_rising_sun_shining_on_a_pressure_ridge,_1915_-_photographed_by_Frank_Hurley_(3534602329).jpg" rel="noopener" target="_blank">source</a> · public domain</small></figcaption>
         </figure>
       </div>
       <div class="map-layout">
@@ -304,10 +354,28 @@
   <!-- ================= FEATURED ================= -->
   <section class="section" id="featured">
     <div class="wrap">
-      <div class="section-head reveal">
-        <span class="eyebrow">04 — Recovered relics</span>
-        <h2>Fresh from the vault</h2>
-        <p>A few of the things on our racks right now. The full inventory lives in the Armory.</p>
+      <div class="head-plate">
+        <div class="section-head reveal">
+          <span class="eyebrow">04 — Recovered relics</span>
+          <h2>Fresh from the vault</h2>
+          <p>A few of the things on our racks right now. The full inventory lives in the Armory.</p>
+        </div>
+        <!-- each realm its own relic -->
+        <figure class="realm-only realm-plate hud brackets reveal" data-realms="polar">
+          <img data-realm="polar" src="assets/img/feature/realm/polar/fluorite-980.webp" width="980" height="651" loading="lazy" decoding="async" alt="Cubes of blue fluorite grown together on white quartz">
+          <figcaption><b>Fluorite.</b> Blue cubes of it, grown in the dark, in the natural history museum in Milan.
+            <small>Photo: Giovanni Dall’Orto · <a href="https://commons.wikimedia.org/wiki/File:9104_-_Milano_-_Museo_storia_naturale_-_Fluorite_-_Foto_Giovanni_Dall%27Orto_22-Apr-2007.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by-sa/2.5/it/" rel="noopener" target="_blank">CC BY-SA 2.5 it</a></small></figcaption>
+        </figure>
+        <figure class="realm-only realm-plate hud brackets reveal portrait" data-realms="inner-earth">
+          <img data-realm="inner-earth" src="assets/img/feature/realm/inner-earth/petra-treasury-700.webp" width="700" height="993" loading="lazy" decoding="async" alt="The Treasury at Petra, a temple front carved into a rose-red sandstone cliff">
+          <figcaption><b>The Treasury, Petra.</b> Cut straight out of the rose-red cliff about two thousand years ago.
+            <small>Photo: Diego Delso · <a href="https://commons.wikimedia.org/wiki/File:The_Treasury,_Petra,_Jordan1.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener" target="_blank">CC BY-SA 3.0</a></small></figcaption>
+        </figure>
+        <figure class="realm-only realm-plate hud brackets reveal" data-realms="crystal">
+          <img data-realm="crystal" src="assets/img/feature/realm/crystal/atomium-980.webp" width="980" height="789" loading="lazy" decoding="async" alt="The Atomium in Brussels at night, its steel spheres lit with points of light under an orange sky">
+          <figcaption><b>The Atomium, Brussels, 1958.</b> One crystal of iron, magnified 165 billion times, lit for the night.
+            <small>Photo: Diego Delso · <a href="https://commons.wikimedia.org/wiki/File:Atomium,_Bruselas,_B%C3%A9lgica,_2021-12-15,_DD_148-150_HDR.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener" target="_blank">CC BY-SA 4.0</a></small></figcaption>
+        </figure>
       </div>
       <div class="grid" id="featuredGrid"></div>
       <div style="margin-top:34px;text-align:center"><a class="btn btn-ghost arrow" href="armory.html">See the full Armory</a></div>

@@ -37,6 +37,15 @@ ONLY = {
     # light lines on the dark site read as an etched schematic rather than a sheet of paper
     'symmes-hole': {'src': 'symmes-hole.jpg', 'realms': ['inner-earth', 'mono'], 'widths': [980],
                     'crop': (14, 14, 997, 712), 'invert': True},
+    # the picks matched to a realm by their own colours (keep: shown as photographed, not recoloured)
+    'ice-cave': {'src': 'ice-cave.jpg', 'realms': ['polar'], 'widths': [1600, 2600], 'keep': True},
+    'ice-cave-exit': {'src': 'ice-cave-exit.jpg', 'realms': ['polar'], 'widths': [980], 'keep': True},
+    'fluorite': {'src': 'fluorite.jpg', 'realms': ['polar'], 'widths': [980], 'keep': True},
+    'amethyst-geode': {'src': 'amethyst-geode.jpg', 'realms': ['crystal'], 'widths': [1600, 2600], 'keep': True},
+    'endurance-dawn': {'src': 'endurance-dawn.jpg', 'realms': ['crystal'], 'widths': [980], 'keep': True},
+    'atomium': {'src': 'atomium.jpg', 'realms': ['crystal'], 'widths': [980], 'keep': True},
+    'petra-treasury': {'src': 'petra-treasury.jpg', 'realms': ['inner-earth'], 'widths': [700], 'keep': True},
+    'rhodochrosite': {'src': 'rhodochrosite.png', 'realms': ['inner-earth'], 'widths': [760], 'keep': True},
 }
 # A realm-only photo is mostly near-white or grey (crystal, an engraving), so moving its hues does
 # little; instead its lightness is mapped through the realm's own ramp, dark to light (a tone map).
@@ -155,7 +164,18 @@ def tone(rgb, stops, mix=0.88):
 
 def render_only():
     for name, spec in ONLY.items():
-        master = Image.open(os.path.join(MASTERS, spec['src'])).convert('RGB')
+        master = Image.open(os.path.join(MASTERS, spec['src']))
+        if spec.get('keep'):
+            # as photographed (a cut-out keeps its transparency): only sized
+            master = master.convert('RGBA' if master.mode in ('RGBA', 'LA', 'P') else 'RGB')
+            for theme in spec['realms']:
+                os.makedirs(os.path.join(OUT, theme), exist_ok=True)
+                for w in spec['widths']:
+                    im = master if master.width == w else master.resize((w, round(master.height * w / master.width)), Image.LANCZOS)
+                    im.save(os.path.join(OUT, theme, f'{name}-{w}.webp'), 'WEBP', quality=82, method=6)
+                    print(f'{theme}/{name}-{w}.webp', im.size, flush=True)
+            continue
+        master = master.convert('RGB')
         if spec.get('crop'):
             master = master.crop(spec['crop'])
         if spec.get('invert'):
