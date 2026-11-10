@@ -43,10 +43,20 @@ for (const realm of realms) {
   }
 }
 
-// every page that shows the owner's art loads site.js, which does the swap
-for (const page of ['index.html', 'armory.html', 'forbidden.html']) {
+// every page that shows the owner's art loads site.js, which does the swap,
+// and every picture a page names (src or srcset, realm-only copies included) is on disk
+for (const page of ['index.html', 'armory.html', 'forbidden.html', 'transfers.html', '404.html']) {
   const html = readFileSync(path.join(ROOT, page), 'utf8');
   ok(/assets\/js\/site\.js/.test(html), `${page} loads site.js`);
+  for (const [, ref] of html.matchAll(/(assets\/img\/[^\s"',?]+\.(?:webp|jpe?g|png|svg|gif))/g))
+    ok(existsSync(path.join(ROOT, ref)), `${page} names ${ref}, which exists`);
+}
+
+// a realm-only piece has a copy for each realm it is shown in
+const home = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+for (const [, realmsAttr, body] of home.matchAll(/class="realm-only[^"]*" data-realms="([^"]+)"([\s\S]*?)<\/(?:figure|section)>/g)) {
+  for (const realm of realmsAttr.split(/\s+/))
+    ok(new RegExp(`data-realm="${realm}"`).test(body), `a realm-only piece shown in ${realm} has a ${realm} picture`);
 }
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);

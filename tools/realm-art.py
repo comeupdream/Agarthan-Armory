@@ -3,6 +3,7 @@ realm-art.py — recolour the owner's art for each realm (colour theme).
 
     python3 tools/realm-art.py            writes assets/img/feature/realm/<theme>/<file>.webp
     python3 tools/realm-art.py --sheet S  also writes a contact sheet to S
+    python3 tools/realm-art.py --only     just the realm-only pieces (ONLY below)
 
 Polar Night (the default) shows the art as delivered. For the other realms each
 picture keeps its own light and dark (OKLab lightness is untouched, so lettering
@@ -10,6 +11,10 @@ stays as readable as it was) and its colours are moved onto the realm's palette:
 the warm half of the picture (reds, oranges, pinks, skin) takes the realm's warm
 colour, the cool half (blues, violets, greens) its cool one, with a smooth blend
 between them. Gentle colours (skin, paper) move only part of the way. Black & White drops the colour altogether.
+
+Realm-only pieces (ONLY) are pictures that belong to some realms and not others;
+site.css's .realm-only shows each realm its own copy. Their masters live in
+assets/img/realm-src/, and each named realm gets a copy at every listed width.
 """
 import os
 import sys
@@ -24,6 +29,18 @@ OUT = os.path.join(SRC, 'realm')
 # the owner's art, as the site serves it
 FILES = ['manifesto-1280.webp', 'manifesto-2400.webp', 'tiny-cans-640.webp', 'tiny-cans-1100.webp',
          'antarctica-dollars-750.webp', 'antarctica-20-front.webp', 'antarctica-20-both.webp']
+
+# art that belongs to some realms only: master in assets/img/realm-src/, realms, widths to serve
+ONLY = {
+    'naica': {'src': 'naica.jpg', 'realms': ['inner-earth', 'mono'], 'widths': [1600, 2600]},
+    'symmes-hole': {'src': 'symmes-hole.jpg', 'realms': ['inner-earth', 'mono'], 'widths': [1000]},
+}
+# A realm-only photo is mostly near-white or grey (crystal, an engraving), so moving its hues does
+# little; instead its lightness is mapped through the realm's own ramp, dark to light (a tone map).
+TONES = {
+    'inner-earth': ['#0e0402', '#5a160a', '#c4521c', '#f39a3c', '#ffe7c4'],   # ember -> molten amber -> pale gold
+}
+MASTERS = os.path.join(ROOT, 'assets/img/realm-src')
 
 # warm / cool targets per realm, taken from that realm's own colours in site.css
 REALMS = {
@@ -119,7 +136,40 @@ def render(name, theme):
     return res
 
 
+def tone(rgb, stops, mix=0.88):
+    L = to_oklab(rgb)[..., 0]
+    ramp = np.array([to_oklab(np.array([[int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]]))[0] for h in stops])
+    # stops spread by their own lightness, so the ramp lands where the picture's light already is
+    Ls = ramp[:, 0]
+    t = np.clip((L - Ls[0]) / (Ls[-1] - Ls[0]), 0, 1) * (len(stops) - 1)
+    i = np.minimum(t.astype(int), len(stops) - 2)
+    f = (t - i)[..., None]
+    lab = ramp[i] * (1 - f) + ramp[i + 1] * f
+    lab[..., 0] = L                     # keep the picture's own light exactly
+    toned = linear_to_srgb(to_linear(lab))
+    return toned * mix + rgb * (1 - mix)
+
+
+def render_only():
+    for name, spec in ONLY.items():
+        master = Image.open(os.path.join(MASTERS, spec['src'])).convert('RGB')
+        big = master.copy()
+        big.thumbnail((max(spec['widths']), max(spec['widths'])), Image.LANCZOS)
+        arr = np.asarray(big).astype(np.float64) / 255
+        for theme in spec['realms']:
+            os.makedirs(os.path.join(OUT, theme), exist_ok=True)
+            px = tone(arr, TONES[theme]) if theme in TONES else recolour(arr, REALMS[theme])
+            res = Image.fromarray(np.round(np.clip(px, 0, 1) * 255).astype(np.uint8), 'RGB')
+            for w in spec['widths']:
+                im = res if res.width == w else res.resize((w, round(res.height * w / res.width)), Image.LANCZOS)
+                im.save(os.path.join(OUT, theme, f'{name}-{w}.webp'), 'WEBP', quality=82, method=6)
+                print(f'{theme}/{name}-{w}.webp', im.size, flush=True)
+
+
 def main():
+    if '--only' in sys.argv:
+        render_only()
+        return
     sheet = sys.argv[sys.argv.index('--sheet') + 1] if '--sheet' in sys.argv else None
     rows = []
     for theme in REALMS:
@@ -131,6 +181,7 @@ def main():
             row.append(res)
         rows.append(row)
         print(theme, 'done', flush=True)
+    render_only()
     if sheet:
         pick = [0, 2, 4, 5]
         H = 260

@@ -1152,3 +1152,36 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
   .gate-money { place-items: end center; padding-bottom: 40px; }
   .gate-money picture { width: 100%; }
 }
+
+/* =====================================================================
+   REALM-ONLY ART — a piece that belongs to some realms and not others.
+   <x class="realm-only" data-realms="inner-earth mono"> shows only in
+   those realms; inside it, <img data-realm="mono"> is that realm's copy.
+   Hidden pictures are lazy, so a realm never downloads another's art.
+   ===================================================================== */
+.realm-only, .realm-only [data-realm] { display: none; }
+html:not([data-theme]) :is(.realm-only[data-realms~="polar"], .realm-only [data-realm="polar"]),
+html[data-theme="inner-earth"] :is(.realm-only[data-realms~="inner-earth"], .realm-only [data-realm="inner-earth"]),
+html[data-theme="mono"] :is(.realm-only[data-realms~="mono"], .realm-only [data-realm="mono"]),
+html[data-theme="crystal"] :is(.realm-only[data-realms~="crystal"], .realm-only [data-realm="crystal"]),
+html[data-theme="vril"] :is(.realm-only[data-realms~="vril"], .realm-only [data-realm="vril"]) { display: block; }
+
+/* the way down: a full-width picture between two sections, words laid over its lower edge */
+.realm-vista { position: relative; margin: clamp(10px, 2vw, 24px) 0; }
+.vista-frame { position: relative; margin: 0; overflow: hidden; border-block: 1px solid var(--line); background: var(--void); }
+.vista-frame img { width: 100%; height: clamp(360px, 62vw, 760px); object-fit: cover; object-position: 50% 45%; }
+.vista-frame::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, var(--void) 0%, transparent 18%, transparent 52%, rgba(var(--bg-rgb), .86) 88%, var(--void) 100%); }
+.vista-cap { position: absolute; z-index: 1; left: 0; right: 0; bottom: clamp(22px, 4vw, 52px); }
+.vista-cap h2 { font-size: clamp(30px, 5vw, 64px); margin: 12px 0 0; text-shadow: 0 2px 24px rgba(0, 0, 0, .7); }
+.vista-cap p { max-width: 580px; margin: 12px 0 0; color: var(--sub); font-size: 17px; text-shadow: 0 1px 12px rgba(0, 0, 0, .8); }
+.vista-cap small, .realm-plate small { display: block; margin-top: 10px; font: 400 11px/1.4 var(--f-mono); letter-spacing: .06em; color: var(--muted); }
+.vista-cap small a, .realm-plate small a { color: inherit; }
+
+/* a plate beside a section heading */
+.head-plate { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 24px clamp(24px, 4vw, 56px); margin-bottom: clamp(28px, 4vw, 48px); }
+.head-plate > .section-head { flex: 1 1 420px; margin-bottom: 0; }
+.realm-plate { flex: 0 1 380px; margin: 0; padding: 12px; }
+.realm-plate img { width: 100%; height: auto; border: 1px solid var(--line); }
+.realm-plate figcaption { margin-top: 10px; font-size: 14px; color: var(--sub); }
+.realm-plate figcaption b { color: var(--frost); font-weight: 600; }
