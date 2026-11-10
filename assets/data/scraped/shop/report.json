@@ -1,23 +1,23 @@
 {
   "site": "https://shop.agarthanarmory.com",
-  "startedAt": "2026-11-08T08:22:02.834Z",
+  "startedAt": "2026-11-09T22:57:39.049Z",
   "platform": "gearfire",
   "tried": [
     {
       "mode": "gearfire",
-      "products": 9232
+      "products": 19820
     }
   ],
   "warnings": [
-    "19671 product pages failed to load"
+    "3 product pages failed: HTTP 403 × 2, network error × 1"
   ],
   "counts": {
-    "products": 9232,
-    "withPrice": 9232,
+    "products": 19820,
+    "withPrice": 19820,
     "callForPrice": 0,
-    "withDescription": 9232,
-    "withSpecs": 9232,
-    "withImages": 9230
+    "withDescription": 19820,
+    "withSpecs": 19820,
+    "withImages": 19810
   },
   "sitemapsDeclared": [
     "https://shop.agarthanarmory.com/sitemap.xml"
@@ -29,5 +29,17 @@
     "gearfire": true,
     "bigcommerce": false
   },
-  "finishedAt": "2026-11-08T09:10:01.713Z"
+  "failed": {
+    "byCause": {
+      "HTTP 403": 2,
+      "network error": 1
+    },
+    "examples": [
+      "HTTP 403 https://shop.agarthanarmory.com/shooting-sports/gear-accessories/miscellaneous-bags/organizer-admin/detail/8daddaad-27d4-48f1-a11b-58c59bfb75ee/98f43222-c316-403e-8a6e-e4b8ae4e2317",
+      "HTTP 403 https://shop.agarthanarmory.com/shooting-sports/holster-magazine-pouches/accessories/map-admin-double/detail/3dae892d-a09a-460d-ae53-149d253c0402/d337108f-0173-4baa-a912-fb9374df39a4",
+      "network error https://shop.agarthanarmory.com/shooting-sports/gear-accessories/flashlights/cl1-predator/detail/345dc118-585d-435c-b5ca-338e8b4a043f/00d172ce-77fe-4ede-8457-a2a5f0054032"
+    ]
+  },
+  "emptyLines": 15049,
+  "finishedAt": "2026-11-10T02:47:03.697Z"
 }
