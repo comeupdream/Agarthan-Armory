@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600">
+<defs>
+<pattern id="g" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#5de4ff" stroke-opacity=".07" stroke-width=".5"/></pattern>
+<radialGradient id="r" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#0d2440"/><stop offset="1" stop-color="#050d1b"/></radialGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<style>.i *{fill:none;stroke:#5de4ff;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}.i .hf *{fill:#5de4ff;fill-opacity:.1}.i .hl *{stroke-opacity:.7}</style>
+</defs>
+<rect width="240" height="240" fill="url(#r)"/><rect width="240" height="240" fill="url(#g)"/>
+<g class="i" filter="url(#glow)" transform="translate(12 66) scale(.9)"><g class="hf"><path d="M58 86.7L63.3 44Q65.4 26.8 83.6 24.7L100.7 14H156.4Q174.6 16.1 176.7 33.3L182 76L164.9 86.7Z"/><path d="M58 86.7L63.3 44Q65.4 26.8 83.6 24.7H139.3Q157.4 26.8 159.6 44L164.9 86.7Z"/><path d="M53.7 86.7H169.2V95.3H53.7Z"/><path d="M169.2 86.7L186.3 76V84.6L169.2 95.3Z"/><path d="M70.8 95.3H152.1L157.4 100.7L152.1 106H70.8L65.4 100.7Z"/><circle cx="179.9" cy="97.4" r="5.3"/><circle cx="111.4" cy="57.9" r="2.8"/></g><g class="hl"><path d="M72.9 80.3L77.2 47.2Q79.3 36.5 91.1 35.4H131.8Q143.5 36.5 145.7 47.2L150 80.3Z"/><circle cx="111.4" cy="57.9" r="12.3"/><path d="M82.6 48.2Q84.7 41.8 92.2 40.7"/><rect x="104" y="80.3" width="15" height="6.4" rx="1.6"/><path d="M151 30L168.1 19.3"/><path d="M164.9 86.7L182 76"/><ellipse cx="122.1" cy="19.3" rx="5.3" ry="2.6"/><path d="M168.1 52.5L173.5 49.3V58.9L168.1 62.1Z"/><path d="M169.2 67.5L174.6 64.3V71.8L169.2 75Z"/><circle cx="64.4" cy="91" r="1.7"/><circle cx="158.5" cy="91" r="1.7"/><path d="M77.2 100.7L145.7 100.7"/><path d="M176.7 97.4L183.1 97.4"/></g></g>
+<text x="120" y="214" text-anchor="middle" font-family="monospace" font-size="7.5" letter-spacing="2.5" fill="#5de4ff" fill-opacity=".55">IMAGE · BEYOND THE WALL</text>
+</svg>

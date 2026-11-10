@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600">
+<defs>
+<pattern id="g" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#5de4ff" stroke-opacity=".07" stroke-width=".5"/></pattern>
+<radialGradient id="r" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#0d2440"/><stop offset="1" stop-color="#050d1b"/></radialGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<style>.i *{fill:none;stroke:#5de4ff;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}.i .hf *{fill:#5de4ff;fill-opacity:.1}.i .hl *{stroke-opacity:.7}</style>
+</defs>
+<rect width="240" height="240" fill="url(#r)"/><rect width="240" height="240" fill="url(#g)"/>
+<g class="i" filter="url(#glow)" transform="translate(12 66) scale(.9)"><g class="hf"><rect x="13" y="35.3" width="214" height="61.7" rx="9.3"/><path d="M99.4 35.3V25Q99.4 16.8 107.7 16.8H132.3Q140.6 16.8 140.6 25V35.3H134.4V26Q134.4 23 131.3 23H108.7Q105.6 23 105.6 26V35.3Z"/><rect x="41.8" y="42.5" width="18.5" height="18.5" rx="2.1"/><rect x="83" y="42.5" width="18.5" height="18.5" rx="2.1"/><rect x="150.9" y="42.5" width="18.5" height="18.5" rx="2.1"/><rect x="192" y="42.5" width="18.5" height="18.5" rx="2.1"/><circle cx="210.5" cy="97" r="6.2"/><circle cx="29.5" cy="98.1" r="2.6"/></g><g class="hl"><path d="M13 50.7L41.8 50.7"/><path d="M60.3 50.7L83 50.7"/><path d="M101.5 50.7L150.9 50.7"/><path d="M169.4 50.7L192 50.7"/><path d="M210.5 50.7L227 50.7"/><path d="M13 53.8L41.8 53.8"/><path d="M60.3 53.8L83 53.8"/><path d="M101.5 53.8L150.9 53.8"/><path d="M169.4 53.8L192 53.8"/><path d="M210.5 53.8L227 53.8"/><path d="M45.9 55.9L56.2 55.9"/><path d="M87.1 55.9L97.4 55.9"/><path d="M155 55.9L165.3 55.9"/><path d="M196.1 55.9L206.4 55.9"/><rect x="27.4" y="64.1" width="185.2" height="24.7" rx="4.1"/><rect x="111.8" y="70.3" width="16.5" height="12.3" rx="3.1"/><circle cx="120" cy="76.5" r="2.6"/><circle cx="210.5" cy="97" r="2.1"/></g></g>
+<text x="120" y="214" text-anchor="middle" font-family="monospace" font-size="7.5" letter-spacing="2.5" fill="#5de4ff" fill-opacity=".55">IMAGE · BEYOND THE WALL</text>
+</svg>

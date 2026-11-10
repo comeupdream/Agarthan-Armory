@@ -14,3 +14,6 @@ assets/data/scraped/**/progress.json*
 assets/data/scraped/**/lines.json
 assets/data/scraped/**/empty-lines.json
 __pycache__/
+
+# WooCommerce skin render audit screenshots (npm run theme:test)
+.skin-audit/

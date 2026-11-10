@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600">
+<defs>
+<pattern id="g" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#5de4ff" stroke-opacity=".07" stroke-width=".5"/></pattern>
+<radialGradient id="r" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#0d2440"/><stop offset="1" stop-color="#050d1b"/></radialGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<style>.i *{fill:none;stroke:#5de4ff;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}.i .hf *{fill:#5de4ff;fill-opacity:.1}.i .hl *{stroke-opacity:.7}</style>
+</defs>
+<rect width="240" height="240" fill="url(#r)"/><rect width="240" height="240" fill="url(#g)"/>
+<g class="i" filter="url(#glow)" transform="translate(12 66) scale(.9)"><g class="hf"><path d="M12 49.7L12.6 72.5Q13.2 73.7 15.7 73.4L64.9 63Q70.4 61.8 75.3 65.8L78.3 68.5L83.2 67.9Q83.2 63.3 86.2 60L178.7 57Q181.1 56.7 181.1 54.8L180.5 53H82Q75.3 53.6 71 51.8Q65.5 49.7 60.7 49.7L14.4 48.7Z"/><path d="M80.8 53.3V48.7Q80.8 46.3 83.8 46.3H114.2Q115.4 46.6 115.4 48.1V53.3Z"/><rect x="115.4" y="48.7" width="112.6" height="3.7"/><rect x="158" y="48.1" width="3.3" height="9.1" rx="0.4"/><rect x="99.3" y="58.5" width="7.6" height="3" rx="0.7"/><path d="M223.4 48.7V47H225.3V48.7Z"/><path d="M132.5 48.7V47.2H136.1V48.7Z"/></g><g class="hl"><path d="M14.1 49L14.7 73.1"/><path d="M86.5 60Q86.8 63.7 90.5 64H95.4Q97.8 63.7 97.8 59.8"/><path d="M91.4 59.8Q90.5 61.5 91.7 63"/><circle cx="85.6" cy="50.3" r="0.7"/><circle cx="111.5" cy="50.3" r="0.7"/><path d="M82.6 47.8L113.6 47.8"/><path d="M82 53.3L115.4 53.3"/></g></g>
+<text x="120" y="214" text-anchor="middle" font-family="monospace" font-size="7.5" letter-spacing="2.5" fill="#5de4ff" fill-opacity=".55">IMAGE · BEYOND THE WALL</text>
+</svg>
