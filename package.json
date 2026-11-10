@@ -10,7 +10,7 @@
     "scrape:shop": "node scripts/scrape.mjs --site https://shop.agarthanarmory.com --out assets/data/scraped/shop --max-images 0",
     "build:catalog": "node scripts/build-catalog.mjs",
     "sync": "npm run scrape && npm run build:catalog",
-    "test": "node scripts/test-scrape.mjs && node scripts/test-images.mjs && node scripts/test-facets.mjs",
+    "test": "node scripts/test-scrape.mjs && node scripts/test-images.mjs && node scripts/test-facets.mjs && node scripts/test-realm-art.mjs",
     "build:wall": "node tools/build-wall.mjs",
     "build:icons": "node tools/build-icons.mjs",
     "stamp": "node tools/stamp-partials.mjs",
