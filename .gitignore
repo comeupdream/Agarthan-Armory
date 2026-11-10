@@ -14,3 +14,4 @@ assets/data/scraped/**/progress.json*
 assets/data/scraped/**/lines.json
 assets/data/scraped/**/empty-lines.json
 __pycache__/
+.screens/
