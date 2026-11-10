@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600">
+<defs>
+<pattern id="g" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#5de4ff" stroke-opacity=".07" stroke-width=".5"/></pattern>
+<radialGradient id="r" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#0d2440"/><stop offset="1" stop-color="#050d1b"/></radialGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<style>.i *{fill:none;stroke:#5de4ff;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}.i .hf *{fill:#5de4ff;fill-opacity:.1}.i .hl *{stroke-opacity:.7}</style>
+</defs>
+<rect width="240" height="240" fill="url(#r)"/><rect width="240" height="240" fill="url(#g)"/>
+<g class="i" filter="url(#glow)" transform="translate(12 66) scale(.9)"><g class="hf"><path d="M92.6 19.6L98.7 17.6H119L123 19.6Q127.1 60.3 143.4 97.8L109.8 102.9Q94.6 64.3 92.6 19.6Z"/><path d="M107.8 100.9L145.4 95.3L147.4 101.9L110.3 108Z"/><path d="M96.6 12H114.9L117.5 13H120C124.1 13 128.1 14.1 131.2 14.7C128.1 15.4 124.1 16.5 120 16.5H117.5L114.9 17.6H96.6Z"/></g><g class="hl"><path d="M95.8 29.8L121.5 28.3"/><path d="M96.2 34.9L122.2 33.3"/><path d="M96.8 39.9L123.1 38.4"/><path d="M97.4 45L124 43.5"/><path d="M104.8 80.6L133.5 79"/><path d="M106.3 85.7L135.3 84.1"/><path d="M107.9 90.7L137.3 89.2"/><path d="M100 52.1L124 50.6L129.8 72.4L104.6 74Z"/><path d="M114.9 12L114.9 17.6"/></g></g>
+<text x="120" y="214" text-anchor="middle" font-family="monospace" font-size="7.5" letter-spacing="2.5" fill="#5de4ff" fill-opacity=".55">IMAGE · BEYOND THE WALL</text>
+</svg>

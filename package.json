@@ -20,7 +20,10 @@
     "films:check": "node tools/trailer/flash-check.mjs media/films/*.mp4",
     "images": "node scripts/match-images.mjs",
     "find-images": "node scripts/find-images.mjs",
-    "save-pages": "node scripts/save-pages.mjs"
+    "save-pages": "node scripts/save-pages.mjs",
+    "theme:test": "php woocommerce/tools/test-theme.php && node woocommerce/tools/skin-audit.mjs --out .skin-audit",
+    "theme:holo": "node woocommerce/tools/build-holo.mjs",
+    "theme:pack": "node woocommerce/tools/skin-audit.mjs --theme-shot --out .skin-audit && node woocommerce/tools/pack.mjs"
   },
   "engines": {
     "node": ">=18"

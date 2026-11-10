@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600">
+<defs>
+<pattern id="g" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#5de4ff" stroke-opacity=".07" stroke-width=".5"/></pattern>
+<radialGradient id="r" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#0d2440"/><stop offset="1" stop-color="#050d1b"/></radialGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<style>.i *{fill:none;stroke:#5de4ff;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}.i .hf *{fill:#5de4ff;fill-opacity:.1}.i .hl *{stroke-opacity:.7}</style>
+</defs>
+<rect width="240" height="240" fill="url(#r)"/><rect width="240" height="240" fill="url(#g)"/>
+<g class="i" filter="url(#glow)" transform="translate(12 66) scale(.9)"><g class="hf"><path d="M12 50.1L12.5 73.4Q13.1 74.2 15.2 74L61.4 64Q67.8 62.4 73.2 62.7L79.9 59.7V48.7Q71 50.3 65.1 51.7Q60.3 50.3 57.1 50.1L14.1 49.5Z"/><path d="M79.9 48.7Q80.7 46.9 83.4 46.9H119.3Q120.7 47.1 120.7 48.7V59.2H79.9Z"/><rect x="81.5" y="45.8" width="3" height="1.2" rx="0.3"/><rect x="120.7" y="50.2" width="107.3" height="4.5"/><path d="M120.7 55.2H219.1Q221 55.2 221 57.2Q221 59.2 219.1 59.2H120.7Z"/><rect x="129" y="53.8" width="41.9" height="8" rx="2.4"/><circle cx="226.4" cy="49.5" r="0.7"/></g><g class="hl"><path d="M15.2 49.5L15.8 73.8"/><path d="M81.8 59.2Q81.8 63.3 85.5 63.5H91.4Q94.6 63.3 94.6 59.2"/><path d="M87.7 59.2Q86.9 60.8 87.9 62.4"/><path d="M96.5 59.4L96.5 61.3"/><path d="M82.3 49.5L118.3 49.5"/><path d="M133.3 55.7L133.3 60"/><path d="M137 55.7L137 60"/><path d="M140.8 55.7L140.8 60"/><path d="M144.6 55.7L144.6 60"/><path d="M148.3 55.7L148.3 60"/><path d="M152.1 55.7L152.1 60"/><path d="M155.8 55.7L155.8 60"/><path d="M159.6 55.7L159.6 60"/><path d="M163.3 55.7L163.3 60"/><path d="M167.1 55.7L167.1 60"/><path d="M120.7 56.5L129 56.5"/><rect x="213.8" y="50.1" width="2.7" height="9.4" rx="0.3"/></g></g>
+<text x="120" y="214" text-anchor="middle" font-family="monospace" font-size="7.5" letter-spacing="2.5" fill="#5de4ff" fill-opacity=".55">IMAGE · BEYOND THE WALL</text>
+</svg>
