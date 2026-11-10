@@ -941,17 +941,27 @@ html[data-font="runic"] { --f-display: 'Cinzel Decorative', 'Cinzel', Georgia, s
    DISPLAY SETTINGS (top bar) + CURSORS
    ===================================================================== */
 .topbar { position: relative; z-index: 80; }
-.prefs { position: absolute; z-index: 70; right: 0; top: 0; height: 30px; display: flex; align-items: center; padding: 0 var(--gutter) 0 48px;
-  background: linear-gradient(90deg, transparent, var(--ticker-1) 40%); }
+/* the Realm button sits in the sticky header, right of Requisition, so it can be reached anywhere on the page */
+.prefs { position: relative; display: flex; align-items: center; flex-shrink: 0; }
 .prefs-btn {
-  display: inline-flex; align-items: center; gap: 7px; height: 22px; padding: 0 10px; cursor: pointer;
-  background: rgba(var(--accent-rgb), .1); border: 1px solid var(--line-strong); color: var(--frost);
-  font: 400 10px/1 var(--f-mono); letter-spacing: .22em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; cursor: pointer;
+  background: rgba(var(--accent-rgb), .08); border: 1px solid var(--line-strong); color: var(--frost);
+  font: 400 12px/1 var(--f-mono); letter-spacing: .16em; text-transform: uppercase;
 }
-.prefs-btn:hover, .prefs-btn[aria-expanded="true"] { background: rgba(var(--accent-rgb), .22); }
-.prefs-btn svg { width: 13px; height: 13px; }
-.prefs-panel { position: absolute; right: var(--gutter); top: 36px; width: min(460px, calc(100vw - 32px)); padding: 20px; z-index: 90;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .55); }
+.prefs-btn:hover, .prefs-btn[aria-expanded="true"] { background: rgba(var(--accent-rgb), .18); }
+.prefs-btn svg { width: 15px; height: 15px; }
+.prefs-panel { position: absolute; right: 0; top: calc(100% + 15px); width: min(460px, calc(100vw - 32px)); padding: 20px; z-index: 90;
+  max-height: calc(100vh - var(--nav-h) - 24px); overflow-y: auto; box-shadow: 0 24px 60px rgba(0, 0, 0, .55); }
+/* solid, not frosted: inside the header's own blur the glass effect can't blur the page, and products showed through */
+.prefs .prefs-panel { background-color: var(--drawer-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (max-width: 980px) {
+  /* beside the menu button the panel hangs from the header's right edge instead, so it never runs off the screen */
+  .nav { position: relative; }
+  .prefs { position: static; }
+  .prefs-panel { right: 0; top: calc(100% + 1px); }
+  .prefs-btn span { display: none; }
+  .prefs-btn { width: 42px; height: 42px; padding: 0; justify-content: center; }
+}
 .prefs-panel fieldset { border: 0; padding: 0; margin: 0 0 16px; }
 .prefs-panel fieldset:last-of-type { margin-bottom: 0; }
 .prefs-panel legend { font: 400 10px/1 var(--f-mono); letter-spacing: .26em; color: var(--muted); text-transform: uppercase; margin-bottom: 9px; padding: 0; }
@@ -970,7 +980,7 @@ html[data-font="runic"] { --f-display: 'Cinzel Decorative', 'Cinzel', Georgia, s
 .prefs-opt .cur { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center; }
 .prefs-opt .cur img { width: 26px; height: 26px; }
 .prefs-note { margin: 14px 0 0; font-size: 11px; color: var(--muted); }
-@media (max-width: 560px) { .prefs-btn span { display: none; } .prefs { padding-left: 28px; } }
+
 
 /* custom cursors (data URIs built in prefs.js, tinted to the theme) */
 html[data-cursor] body { cursor: var(--cursor, auto); }
