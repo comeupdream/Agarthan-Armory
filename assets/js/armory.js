@@ -271,7 +271,8 @@
     fig.closest('.page-hero').classList.toggle('has-art', !!art);
     if (!art) return;
     const img = fig.querySelector('img');
-    if (img.getAttribute('src') !== ART_DIR + art[0]) { img.src = ART_DIR + art[0]; img.alt = art[1]; }
+    const src = AA.realmSrc(ART_DIR + art[0]);   // the owner's art follows the realm's colours
+    if (img.getAttribute('src') !== src) { img.src = src; img.alt = art[1]; }
   }
 
   function openItem(id, push) {

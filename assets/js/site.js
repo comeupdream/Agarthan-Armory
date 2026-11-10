@@ -565,6 +565,27 @@
     });
   }
 
+  /* ---------- the owner's art, in the realm's colours ----------
+   * The banner, the Tiny Cans poster and the Antarctica notes have a recoloured
+   * copy per realm in assets/img/feature/realm/<theme>/ (made by
+   * tools/realm-art.py). Polar Night shows them as delivered. Any <img> or
+   * <source> pointing at one of them follows html[data-theme], now and when it
+   * changes; the browser keeps the old picture up until the new one arrives. */
+  const REALMS = new Set(['inner-earth', 'mono', 'crystal', 'vril']);
+  const REALM_ART = /assets\/img\/feature\/(?:realm\/[a-z-]+\/)?((?:manifesto-\d+|tiny-cans-\d+|antarctica-dollars-750|antarctica-20-(?:front|both))\.webp)/g;
+  AA.realmSrc = (s, theme = document.documentElement.dataset.theme) =>
+    s.replace(REALM_ART, (m, file) => `assets/img/feature/${REALMS.has(theme) ? `realm/${theme}/` : ''}${file}`);
+  function realmArt() {
+    for (const el of $$('img[src*="assets/img/feature/"], img[srcset*="assets/img/feature/"], source[srcset*="assets/img/feature/"]'))
+      for (const a of ['srcset', 'src']) {
+        const v = el.getAttribute(a);
+        if (v && AA.realmSrc(v) !== v) el.setAttribute(a, AA.realmSrc(v));
+      }
+  }
+  AA.realmArt = realmArt;
+  realmArt();   // before the lazy images start loading, so a visitor in another realm downloads one copy
+  new MutationObserver(realmArt).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
   /* ---------- structured data: only once the real facts are filled in ---------- */
   function jsonLd() {
     const a = cfg.address || {};
