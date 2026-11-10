@@ -80,5 +80,16 @@ for (const [key, file] of [['optics/Lasers', 'lasers-900'], ['optics/Night Visio
   ok(new RegExp(`'${key}': \\['${file}\\.webp', '[^']*', NO_GREEN\\]`).test(armory), `the Armory ${key} header is marked to sit out those realms`);
 ok(/art\[2\]\.includes\(document\.documentElement\.dataset\.theme\)/.test(armory), 'showArt honours a header\'s sit-out realms');
 
+// Inner Earth: the Silent Vault and the gate share one bed of rhodochrosite, and no other realm asks for it
+const tile = path.join(FEATURE, 'realm', 'inner-earth', 'geode-tile.webp');
+ok(existsSync(tile), 'the geode tile exists (tools/realm-art.py --geodes)');
+if (existsSync(tile)) { const [w, h] = size(tile); ok(w === h && w >= 800, `the geode tile is a square of at least 800 px (${w}×${h})`); }
+const field = home.match(/<div class="geode-field">([\s\S]*?)\n  <\/div>\n/);
+ok(!!field, 'the home page has a geode field');
+if (field) for (const id of ['silent-vault', 'gate-in-the-wall']) ok(field[1].includes(`id="${id}"`), `the geode field holds #${id}`);
+const tileRules = [...css.matchAll(/([^{}]+)\{[^{}]*geode-tile\.webp[^{}]*\}/g)].map((m) => m[1].trim().split('\n').pop().trim());
+ok(tileRules.length > 0 && tileRules.every((sel) => sel.startsWith('html[data-theme="inner-earth"]')),
+  `only Inner Earth asks for the geode tile (rules: ${tileRules.join(' | ')})`);
+
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
