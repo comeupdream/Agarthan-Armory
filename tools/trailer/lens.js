@@ -18,6 +18,11 @@
  *   tunnel [mix, depth, twist, sun]  the page wrapped round a tunnel, a sun at its end
  *   sky [aurora, stars, nebula], page (opacity), accent, accent2
  *   bloom, white, black, grain
+ *   breathe [amount, phase]          the page's art swells and settles (the trip's breathing surface)
+ *   edge [amount, echoes, spread, phase]  the art's own outlines, echoed outward in colour and
+ *                                    pulsing with the phase: tracers round the edges of the art
+ *   bubble [amount, scale, drift]    the print melting into gooey psychedelic bubbles that keep
+ *                                    the picture's colours
  *   plates [{i, x, y, h, rot, a, add}]  images (wordmark…) drawn over, in screen units
  * ===========================================================================*/
 (function () {
@@ -57,6 +62,7 @@
   uniform float uHue, uSat, uWarp, uChroma, uTrails, uKal, uKalN, uBloom, uPageA;
   uniform vec4 uBH, uDisk, uTun; uniform float uSwirl;
   uniform vec3 uSky, uAcc, uAcc2;
+  uniform vec4 uEdge; uniform vec2 uBreathe; uniform vec3 uBubble;
   float A;
 
   vec3 space(vec2 p){
@@ -106,15 +112,74 @@
     }
     return c;
   }
+  // ---- the trip's surface: breathing, tracers round the edges of the art, bubble print ----
+  vec3 pal(float t){ return 0.5 + 0.5 * cos(6.2831853 * (t + vec3(0.0, 0.33, 0.67))); }
+  float lumAt(vec2 uv){ return dot(textureLod(uPage, uv, 0.5).rgb, vec3(0.299, 0.587, 0.114)); }
+  float edgeAt(vec2 uv){
+    vec2 px = 1.6 / uRes;
+    float l = lumAt(uv - vec2(px.x, 0.0)), r = lumAt(uv + vec2(px.x, 0.0));
+    float d = lumAt(uv - vec2(0.0, px.y)), u = lumAt(uv + vec2(0.0, px.y));
+    return length(vec2(r - l, u - d));
+  }
+  // the art's outlines, echoed outward from the middle of the frame, each echo a step round the
+  // colour wheel and fainter; the spread swells and settles with the phase, so the edges breathe
+  vec3 edgeTrace(vec2 uv){
+    vec3 acc = vec3(0.0);
+    float spread = uEdge.z * (0.55 + 0.45 * sin(uEdge.w));
+    for (int k = 0; k < 9; k++) {
+      float fk = float(k);
+      if (fk >= uEdge.y) break;
+      vec2 q = 0.5 + (uv - 0.5) * (1.0 - spread * fk);
+      float e = smoothstep(0.035, 0.2, edgeAt(q));
+      float pulse = 0.65 + 0.35 * sin(uEdge.w * 2.0 - fk * 0.9);
+      acc += e * pal(fk * 0.11 + uT * 0.09) * (1.0 - fk / max(uEdge.y, 1.0)) * pulse;
+    }
+    return acc;
+  }
+  // metaball bubbles on a drifting cell grid: each cell's size and colour come from the picture
+  // under it, so the print melts into bubbles of its own colours, rimmed in shifting colour
+  vec3 bubbles(vec2 uv){
+    float ar = uRes.x / uRes.y;
+    vec2 drift = vec2(uT * 0.04, -uT * 0.025) * uBubble.z;
+    vec2 p = uv * vec2(ar, 1.0) * uBubble.y + drift;
+    vec2 ip = floor(p), fp = fract(p);
+    float field = 0.0; vec3 fc = vec3(0.0);
+    for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+      vec2 g = vec2(float(i), float(j));
+      vec2 o = vec2(hash(ip + g), hash(ip + g + 7.31));
+      o = 0.5 + 0.36 * sin(uT * 0.7 + 6.2831853 * o);
+      vec2 cuv = ((ip + g + o) - drift) / uBubble.y / vec2(ar, 1.0);
+      vec3 pc = textureLod(uPage, clamp(cuv, 0.0, 1.0), 2.5).rgb;
+      float l = dot(pc, vec3(0.299, 0.587, 0.114));
+      float r = 0.2 + 0.55 * l;
+      float d = length(g + o - fp);
+      float m = r * r / (d * d + 0.002);
+      field += m; fc += m * pc;
+    }
+    vec3 base = fc / max(field, 1e-3);
+    float inside = smoothstep(0.9, 1.3, field);
+    float rim = smoothstep(0.75, 0.95, field) * (1.0 - smoothstep(0.95, 1.2, field));
+    vec3 psy = pal(dot(base, vec3(0.3, 0.55, 0.15)) * 1.7 + uT * 0.07);
+    vec3 body = mix(base, base * 0.55 + psy * 0.6, 0.55);
+    return mix(base * 0.25, body, inside) + rim * psy * 1.1;
+  }
   vec3 pageColor(vec2 uv){
+    if (uBreathe.x > 0.0) {
+      // the surface swells and settles, with a slow ripple running out from the middle
+      vec2 cq = uv - 0.5;
+      float r = length(cq * vec2(A, 1.0));
+      uv = 0.5 + cq * (1.0 - 0.045 * uBreathe.x * sin(uBreathe.y)) + normalize(cq + 1e-5) * 0.006 * uBreathe.x * sin(r * 26.0 - uBreathe.y * 2.0);
+    }
     vec2 dir = (uv - 0.5) * uChroma;
     vec3 c;
     if (uChroma > 0.0) c = vec3(samplePage(uv + dir, 0.0).r, samplePage(uv, 0.0).g, samplePage(uv - dir, 0.0).b);
     else c = samplePage(uv, 0.0);
+    if (uBubble.x > 0.0) c = mix(c, bubbles(uv), uBubble.x);
     if (uBloom > 0.0) {
       vec3 b = textureLod(uPage, uv, 4.0).rgb * 0.6 + textureLod(uPage, uv, 6.0).rgb * 0.6;
       c += max(b - 0.28, 0.0) * uBloom * 1.8;
     }
+    if (uEdge.x > 0.0) c += edgeTrace(uv) * uEdge.x;
     return c;
   }
 
@@ -328,6 +393,9 @@
       gl.uniform1f(U.uSwirl, d('swirl', 0));
       const tn = d('tunnel', [0, 0, 0, 0]); gl.uniform4f(U.uTun, tn[0], tn[1], tn[2], tn[3]);
       const sky = d('sky', [0.6, 1, 1]); gl.uniform3f(U.uSky, sky[0], sky[1], sky[2]);
+      const ed = d('edge', [0, 0, 0, 0]); gl.uniform4f(U.uEdge, ed[0], ed[1], ed[2], ed[3]);
+      const br = d('breathe', [0, 0]); gl.uniform2f(U.uBreathe, br[0], br[1]);
+      const bu = d('bubble', [0, 40, 1]); gl.uniform3f(U.uBubble, bu[0], bu[1], bu[2]);
       const ac = d('accent', [0.365, 0.894, 1]); gl.uniform3f(U.uAcc, ac[0], ac[1], ac[2]);
       const ac2 = d('accent2', [0.365, 1, 0.694]); gl.uniform3f(U.uAcc2, ac2[0], ac2[1], ac2[2]);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tPage); gl.uniform1i(U.uPage, 0);
