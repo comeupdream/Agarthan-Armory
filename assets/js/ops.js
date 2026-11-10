@@ -2,19 +2,26 @@
  * ops.js — the Agarthan Armory Ops Console (ops.html).
  *
  * Ported from the PAMAX and XAT consoles, cut to what an FFL store needs:
- *   Deck         counts, setup checklist, what needs attention
- *   Inventory    every product: search, filters, price / featured / photo /
- *                hidden, a full editor; edits are STAGED here, then published
- *   Photos       first-page cards still without a photo, pulled photos
- *   Corrections  everything overrides.json changes, hidden products included
- *   Store        store facts (hours, phone, fees…), site notices, search synonyms
- *   Inbox        requisitions (hold requests) and messages from the site
- *   Traffic      page views and searches that found nothing
- *   Orders       WooCommerce orders and 30-day sales (read only)
- *   Tools        CSV diff, export / import, apply to a list, backup
+ *   Deck           counts, setup checklist, what needs attention
+ *   Inventory      every product: search, filters, price / featured / photo /
+ *                  hidden, a full editor with photo uploads; edits are STAGED
+ *                  here, then published
+ *   Your listings  used / consignment / one-off products the feed never carries
+ *   Photos & gaps  cards without a photo, pulled photos, data-gap worklists
+ *   Corrections    everything overrides.json changes, hidden products included
+ *   Store          store facts (hours, phone, fees…) and site notices
+ *   Spotlight      home-page slides (photo or YouTube), with a preview
+ *   Search         what people search for, dead ends, synonyms, pins
+ *   Inbox          requisitions (hold requests) and messages from the site
+ *   Traffic        page views and searches that found nothing
+ *   Orders         WooCommerce orders, detail, firearm release, sales chart
+ *   History        every publish: what, who, when
+ *   Tools          site check, test email, CSV diff, export / import, backup
+ *   Guide          how to do each common job
  *
- * Publishing sends every staged change to the server in one request; the
- * server commits overrides.json / site-settings.json to the repo, Render
+ * Publishing sends every staged change (and the photos picked for it) to the
+ * server in one request; the server commits overrides.json, site-settings.json,
+ * custom-products.json and the photos to the repo as one commit, Render
  * redeploys, and the boot build applies them (scripts/boot.mjs).
  * Everything shown is escaped; the page runs under a strict CSP (no inline code).
  * ===========================================================================*/
