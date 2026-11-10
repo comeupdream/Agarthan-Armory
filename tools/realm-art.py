@@ -4,6 +4,7 @@ realm-art.py — recolour the owner's art for each realm (colour theme).
     python3 tools/realm-art.py            writes assets/img/feature/realm/<theme>/<file>.webp
     python3 tools/realm-art.py --sheet S  also writes a contact sheet to S
     python3 tools/realm-art.py --only     just the realm-only pieces (ONLY below)
+    python3 tools/realm-art.py --files a.webp,b.webp   just those pictures of the owner's art
 
 Polar Night (the default) shows the art as delivered. For the other realms each
 picture keeps its own light and dark (OKLab lightness is untouched, so lettering
@@ -28,7 +29,8 @@ OUT = os.path.join(SRC, 'realm')
 
 # the owner's art, as the site serves it
 FILES = ['manifesto-1280.webp', 'manifesto-2400.webp', 'tiny-cans-640.webp', 'tiny-cans-1100.webp',
-         'antarctica-dollars-750.webp', 'antarctica-20-front.webp', 'antarctica-20-both.webp']
+         'antarctica-dollars-750.webp', 'antarctica-20-front.webp', 'antarctica-20-both.webp',
+         'holo-laser-900.webp', 'holo-laser-1600.webp']
 
 # art that belongs to some realms only: master in assets/img/realm-src/, realms, widths to serve
 ONLY = {
@@ -198,6 +200,14 @@ def main():
         render_only()
         return
     sheet = sys.argv[sys.argv.index('--sheet') + 1] if '--sheet' in sys.argv else None
+    if '--files' in sys.argv:
+        names = sys.argv[sys.argv.index('--files') + 1].split(',')
+        for theme in REALMS:
+            os.makedirs(os.path.join(OUT, theme), exist_ok=True)
+            for name in names:
+                render(name, theme).save(os.path.join(OUT, theme, name), 'WEBP', quality=84, method=6)
+            print(theme, 'done', flush=True)
+        return
     rows = []
     for theme in REALMS:
         os.makedirs(os.path.join(OUT, theme), exist_ok=True)

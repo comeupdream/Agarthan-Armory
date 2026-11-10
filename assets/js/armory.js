@@ -271,19 +271,22 @@
     sensor: 'Sensor', detection: 'Detection range', display: 'Display', output: 'Output', battery: 'Battery', fits: 'Fits',
     interior: 'Interior', locks: 'Locks', wheels: 'Wheels', includes: 'Includes', fire: 'Fire rating', lock: 'Lock' };
   const DETAILS = new Map();   // id → { desc, images, specs, url } from assets/data/items/<id>.json
-  // a picture beside the title for the departments and categories that have one
+  // a picture beside the title for the departments and categories that have one;
+  // a third entry names the realms it sits out (green laser beams clash with Inner Earth's ember and Crystal's violet)
   const ART_DIR = 'assets/img/feature/';
+  const NO_LASERS = ['inner-earth', 'crystal'];
   const ART = {
     '': ['manifesto-1280.webp', 'Agarthan Armory: for those who seek what lies beyond the known world'],
     nfa: ['tiny-cans-640.webp', 'Tiny guns, tiny cans: a compact pistol wearing a short Stealth Additive Works suppressor'],
     optics: ['holo-laser-900.webp', 'A rifle in blue light with a holographic sight and a laser unit'],
-    'optics/Lasers': ['lasers-900.webp', 'A rifle firing a green laser, under the word Lasers'],
+    'optics/Lasers': ['lasers-900.webp', 'A rifle firing a green laser, under the word Lasers', NO_LASERS],
     'optics/Red Dots & Holographic': ['holo-laser-900.webp', 'A rifle in blue light with a holographic sight and a laser unit'],
     'optics/Night Vision': ['night-vision-416.webp', 'Seen through night vision: a shooter firing in green light'],
   };
   function showArt() {
     const fig = $('#armoryArt'); if (!fig) return;
-    const art = ART[state.dept + '/' + state.sub] || (state.sub ? null : ART[state.dept]) || null;
+    let art = ART[state.dept + '/' + state.sub] || (state.sub ? null : ART[state.dept]) || null;
+    if (art && art[2] && art[2].includes(document.documentElement.dataset.theme)) art = null;
     fig.hidden = !art;
     fig.closest('.page-hero').classList.toggle('has-art', !!art);
     if (!art) return;
@@ -291,6 +294,7 @@
     const src = AA.realmSrc(ART_DIR + art[0]);   // the owner's art follows the realm's colours
     if (img.getAttribute('src') !== src) { img.src = src; img.alt = art[1]; }
   }
+  new MutationObserver(showArt).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   function openItem(id, push) {
     const base = AA.items.get(id); if (!base) return;

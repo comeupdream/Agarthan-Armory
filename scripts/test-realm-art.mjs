@@ -34,7 +34,7 @@ function size(file) {
 }
 
 const originals = readdirSync(FEATURE).filter((f) => art.test(`assets/img/feature/${f}`));
-ok(originals.length === 7, `seven pictures of the owner's art are swapped (found ${originals.length}: ${originals})`);
+ok(originals.length === 9, `nine pictures of the owner's art are swapped (found ${originals.length}: ${originals})`);
 for (const realm of realms) {
   for (const f of originals) {
     const copy = path.join(FEATURE, 'realm', realm, f);
@@ -58,6 +58,23 @@ for (const [, realmsAttr, body] of home.matchAll(/class="realm-only[^"]*" data-r
   for (const realm of realmsAttr.split(/\s+/))
     ok(new RegExp(`data-realm="${realm}"`).test(body), `a realm-only piece shown in ${realm} has a ${realm} picture`);
 }
+
+// the green-laser pictures sit out Inner Earth and Agarthan Crystal, on the home page and in the Armory
+const NO_LASERS = ['inner-earth', 'crystal'];
+const lasersArt = home.match(/<a class="ch-art realm-only" data-realms="([^"]+)" href="armory\.html\?dept=optics&amp;sub=Lasers"[\s\S]*?<\/a>/);
+ok(!!lasersArt, 'the Lasers chapter pictures are realm-only');
+if (lasersArt) {
+  const shown = lasersArt[1].split(/\s+/);
+  ok(NO_LASERS.every((r) => !shown.includes(r)) && ['polar', 'mono', 'vril'].every((r) => shown.includes(r)),
+    `the Lasers chapter pictures show in Polar, Black & White and Vril only (data-realms="${lasersArt[1]}")`);
+  for (const f of ['green-laser-rifle', 'laser-cave']) ok(lasersArt[0].includes(f), `the Lasers chapter still carries ${f}`);
+}
+const armory = readFileSync(path.join(ROOT, 'assets/js/armory.js'), 'utf8');
+const sitsOut = (armory.match(/const NO_LASERS = (\[[^\]]*\])/) || [])[1];
+ok(sitsOut && JSON.stringify(JSON.parse(sitsOut.replace(/'/g, '"')).sort()) === JSON.stringify([...NO_LASERS].sort()),
+  `the Armory's laser header sits out ${NO_LASERS} (found ${sitsOut})`);
+ok(/'optics\/Lasers': \['lasers-900\.webp', '[^']*', NO_LASERS\]/.test(armory), 'the Armory Lasers header is marked to sit out those realms');
+ok(/art\[2\]\.includes\(document\.documentElement\.dataset\.theme\)/.test(armory), 'showArt honours a header\'s sit-out realms');
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

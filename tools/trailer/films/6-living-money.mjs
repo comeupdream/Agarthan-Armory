@@ -139,6 +139,34 @@ function act(t, S) {
   if (t < 27.4) return;
 
   /* ---------- THE LIVING MONEY ---------- */
+  // a real butterfly's right wing (forewing and hindwing) in its own box, hinge on the left edge
+  const WING = [[0.02, 0.4], [0.12, 0.2], [0.3, 0.06], [0.55, 0.0], [0.8, 0.02], [0.96, 0.1], [1.0, 0.22], [0.95, 0.34], [0.82, 0.43], [0.66, 0.49],
+    [0.74, 0.56], [0.8, 0.68], [0.77, 0.81], [0.65, 0.93], [0.48, 1.0], [0.3, 0.96], [0.16, 0.85], [0.06, 0.68], [0.0, 0.54]];
+  // the note's rectangle and the wing, as the same 72 points round the box's middle, so one can morph into the other
+  const shapes = S.memo('wing', () => {
+    const hit = (ang) => {
+      const dx = Math.cos(ang), dy = Math.sin(ang); let best = Infinity;
+      for (let i = 0; i < WING.length; i++) {
+        const [x1, y1] = WING[i], [x2, y2] = WING[(i + 1) % WING.length], ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex;
+        if (Math.abs(den) < 1e-9) continue;
+        const tt = ((x1 - 0.5) * ey - (y1 - 0.5) * ex) / den, uu = ((x1 - 0.5) * dy - (y1 - 0.5) * dx) / den;
+        if (tt > 0 && uu >= 0 && uu <= 1 && tt < best) best = tt;
+      }
+      return [0.5 + best * dx, 0.5 + best * dy];
+    };
+    const rect = [], wing = [];
+    for (let i = 0; i < 72; i++) {
+      const ang = (i / 72) * 2 * Math.PI, dx = Math.cos(ang), dy = Math.sin(ang), q = 0.5 / Math.max(Math.abs(dx), Math.abs(dy));
+      rect.push([0.5 + dx * q, 0.5 + dy * q]); wing.push(hit(ang));
+    }
+    return { rect, wing };
+  });
+  const clip = (m, mirror) => 'polygon(' + shapes.rect.map((r, i) => {
+    let x = lerp(r[0], shapes.wing[i][0], m), yy = lerp(r[1], shapes.wing[i][1], m);
+    if (mirror) x = 1 - x;
+    return `${(x * 100).toFixed(2)}% ${(yy * 100).toFixed(2)}%`;
+  }).join(',') + ')';
+
   let T = document.getElementById('__trip');
   if (!T) {
     const real = document.querySelector('#gate-in-the-wall .gate-money img');
@@ -155,13 +183,11 @@ function act(t, S) {
       if (Math.hypot(x, yy) <= 2 * R + 1) geo.push(`<circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${R}" style="stroke:var(--cyan)"/>`);
     }
     for (const rr of [290, 340, 470]) geo.push(`<circle cx="0" cy="0" r="${rr}" style="stroke:var(--amber)"/>`);
-    for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; geo.push(`<line x1="${(300 * Math.cos(a)).toFixed(1)}" y1="${(300 * Math.sin(a)).toFixed(1)}" x2="${(560 * Math.cos(a)).toFixed(1)}" y2="${(560 * Math.sin(a)).toFixed(1)}" style="stroke:var(--cyan)"/>`); }
-    // (the back, Worsley's Endurance route, is a pale map: it takes a darker grade than the front)
-    const face = (pos, back) => `<div style="position:absolute;inset:0;background:url('${both}') 0 ${pos}px/${w}px ${w}px no-repeat;backface-visibility:hidden;${back ? 'transform:rotateY(180deg);' : ''}filter:url(#__liq) ${back ? 'brightness(.74) saturate(1.45) contrast(1.1)' : 'brightness(.94) saturate(1.2)'};box-shadow:0 0 60px rgba(var(--accent-rgb),.35)"></div>`;
-    // a butterfly: the $2's front and back, hinged at the middle
-    const fly = (id, cls) => `<div id="${id}" class="${cls}" style="position:absolute;left:0;top:0;width:1500px;height:370px;transform-style:preserve-3d;transform-origin:750px 185px;opacity:0">
-        <div class="__wl" style="position:absolute;left:0;top:0;width:750px;height:370px;background:url('${two}') 0 0/750px 750px no-repeat;transform-origin:100% 50%;${cls === '__ghost' ? 'filter:brightness(.8) saturate(1.4);' : 'filter:url(#__liq) brightness(.82) saturate(1.45) contrast(1.08);'}"></div>
-        <div class="__wr" style="position:absolute;left:750px;top:0;width:750px;height:370px;background:url('${two}') 0 -378px/750px 750px no-repeat;transform-origin:0 50%;${cls === '__ghost' ? 'filter:brightness(.8) saturate(1.4);' : 'filter:url(#__liq) brightness(.82) saturate(1.45) contrast(1.08);'}"></div></div>`;
+    for (let i = 0; i < 24; i++) { const a2 = i * Math.PI / 12; geo.push(`<line x1="${(300 * Math.cos(a2)).toFixed(1)}" y1="${(300 * Math.sin(a2)).toFixed(1)}" x2="${(560 * Math.cos(a2)).toFixed(1)}" y2="${(560 * Math.sin(a2)).toFixed(1)}" style="stroke:var(--cyan)"/>`); }
+    // the 20's two faces (the back, Worsley's Endurance route, is a pale map: a darker grade)
+    const face = (pos, back) => `<div style="position:absolute;inset:0;background:url('${both}') 0 ${pos}px/${w}px ${w}px no-repeat;backface-visibility:hidden;${back ? 'transform:rotateY(180deg);' : ''}filter:url(#__liq) ${back ? 'brightness(.8) saturate(1.45) contrast(1.08)' : 'brightness(.94) saturate(1.2)'};box-shadow:0 0 60px rgba(var(--accent-rgb),.35)"></div>`;
+    // the peak's spiral: the 20's back nested inside itself, smaller and turned each time
+    const nest = () => `<div class="__nest" style="position:absolute;left:0;top:0;width:${w}px;height:${h}px;background:url('${both}') 0 ${-406 * k}px/${w}px ${w}px no-repeat;transform-origin:50% 50%;opacity:0;filter:brightness(.8) saturate(1.45) contrast(1.08);box-shadow:0 0 40px rgba(0,0,0,.7)"></div>`;
     T = document.createElement('div'); T.id = '__trip';
     T.style.cssText = 'position:fixed;inset:0;z-index:2147482400;pointer-events:none;perspective:1700px;overflow:hidden';
     T.innerHTML = `<div id="__dark" style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 55%, #1b0c36 0%, #0a0516 60%, #04020a 100%);opacity:0"></div>
@@ -169,98 +195,92 @@ function act(t, S) {
         <feTurbulence id="__turb" type="fractalNoise" baseFrequency="0.006 0.009" numOctaves="2" seed="7" result="n"/>
         <feDisplacementMap id="__disp" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
       <svg id="__geo" viewBox="-960 -540 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;mix-blend-mode:screen;fill:none;stroke-width:1.6">${geo.join('')}</svg>
-      ${Array.from({ length: 7 }, (_, i) => `<img class="__echo" src="${front}" style="position:absolute;left:0;top:0;width:${w}px;opacity:0">`).join('')}
       <div id="__b20" style="position:absolute;left:0;top:0;width:${w}px;height:${h}px;transform-style:preserve-3d">${face(0, false)}${face(-406 * k, true)}</div>
-      ${[1, 2, 3, 4].map((i) => fly('__g' + i, '__ghost')).join('')}
-      ${[1, 2, 3, 4, 5].map((i) => fly('__s' + i, '__swarm')).join('')}
-      ${fly('__bf', '__main')}
+      ${Array.from({ length: 9 }, nest).join('')}
+      <div id="__bf" style="position:absolute;left:0;top:0;width:1500px;height:370px;transform-style:preserve-3d;opacity:0">
+        <div class="__wl" style="position:absolute;left:0;top:0;width:750px;height:100%;transform-origin:100% 50%">
+          <div class="__wa" style="position:absolute;inset:0;background:url('${two}') 0 0/750px 750px no-repeat;filter:url(#__liq) brightness(.86) saturate(1.5) contrast(1.1)"></div></div>
+        <div class="__wr" style="position:absolute;left:750px;top:0;width:750px;height:100%;transform-origin:0 50%">
+          <div class="__wa" style="position:absolute;inset:0;background:url('${two}') 0 0/750px 750px no-repeat;transform:scaleX(-1);filter:url(#__liq) brightness(.86) saturate(1.5) contrast(1.1);opacity:0"></div>
+          <div class="__wb" style="position:absolute;inset:0;background:url('${two}') 0 -378px/750px 750px no-repeat;filter:brightness(.86) saturate(1.5) contrast(1.1)"></div></div>
+        <div class="__body" style="position:absolute;left:734px;width:32px;border-radius:50%;background:linear-gradient(180deg,#4b1f7a,#1a0830 60%,#0c0418);box-shadow:0 0 22px rgba(199,155,255,.75);opacity:0"></div>
+        <svg class="__ant" viewBox="0 0 200 160" style="position:absolute;left:650px;width:200px;height:160px;overflow:visible;opacity:0;fill:none;stroke:#e9d6ff;stroke-width:3;stroke-linecap:round">
+          <path d="M96 158 C 88 110, 60 60, 30 20"/><path d="M104 158 C 112 110, 140 60, 170 20"/><circle cx="30" cy="20" r="6" fill="#ffd27a" stroke="none"/><circle cx="170" cy="20" r="6" fill="#ffd27a" stroke="none"/></svg>
+      </div>
       <div id="__veil" style="position:absolute;inset:0;background:#05020c;opacity:0"></div>`;
     document.body.appendChild(T);
     real.style.visibility = 'hidden';
   }
   const [x0, y0, w20, h20] = S.memo('r20', () => [W / 2, H / 2, 1440, 702]);
 
-  // the beat: 120 BPM, a pulse on every beat through the build and the peak
-  const beat = (tt) => Math.exp(-(((tt % 0.5) + 0.5) % 0.5) * 7);
-  const liquid = sm(seg(t, 30.0, 33.0)) * 22 + sm(seg(t, 33.8, 34.6)) * 14 * (1 - sm(seg(t, 37.6, 38.4))) - sm(seg(t, 38.0, 41.0)) * 22;
+  // the morphing ripple through the money (the print swims), and its slow drift
+  const liquid = sm(seg(t, 31.6, 34.0)) * 14 + sm(seg(t, 33.8, 34.6)) * 8 * (1 - sm(seg(t, 37.6, 38.4))) - sm(seg(t, 38.0, 41.0)) * 14;
   document.getElementById('__disp').setAttribute('scale', Math.max(0, liquid).toFixed(2));
   document.getElementById('__turb').setAttribute('baseFrequency', `${(0.005 + 0.002 * Math.sin(t * 0.45)).toFixed(5)} ${(0.008 + 0.003 * Math.sin(t * 0.6 + 1)).toFixed(5)}`);
 
-  /* the $20: comes forward, breathes, tilts, turns over to its back and back again, settles */
-  const A = [840, 640, 0.9], B = [960, 650, 0.92];
-  const build = sm(seg(t, 30.0, 34.0)), peak = sm(seg(t, 33.8, 34.6)) * (1 - sm(seg(t, 37.8, 38.6))), down = sm(seg(t, 38.0, 41.0));
+  /* the $20: beside the $2, then turned over to its back, which fills the frame and holds there,
+     swaying gently, while the trip happens to its art (lens: breathing, tracers round its edges, bubble print) */
+  const A20 = [840, 640, 0.9], CEN = [960, 545, 1.16], END = [960, 650, 0.92];
+  const down = sm(seg(t, 38.0, 41.0)), peak = sm(seg(t, 34.0, 34.8)) * (1 - down);
   let cx, cy, s;
-  if (t < 29.0) { const k = ease.inOut(seg(t, 27.4, 29.0)); cx = lerp(x0, A[0], k); cy = lerp(y0, A[1], k); s = lerp(1, A[2], k); }
-  else if (t < 38.0) { const k = ease.inOut(seg(t, 30.0, 32.0)); cx = lerp(A[0], 960, k); cy = lerp(A[1], 560, k); s = lerp(A[2], 1.0, k); }
-  else { cx = lerp(960, B[0], down); cy = lerp(560, B[1], down); s = lerp(1.0, B[2], down); }
-  const alive = Math.max(build, peak) * (1 - down);
-  s *= 1 + (0.025 * Math.sin(t * Math.PI) + 0.045 * beat(t) * peak) * alive;
-  // over to the back (33.0-34.6), a whole turn through the peak, and home to the front for the come-down
-  const flipY = 180 * ease.inOut(seg(t, 32.6, 34.0)) + 360 * ease.inOut(seg(t, 34.6, 37.6)) + 180 * ease.inOut(seg(t, 38.0, 39.8));
-  const rx = 9 * Math.sin(t * 0.9) * alive, rz = (3 * Math.sin(t * 0.7) + 6 * Math.sin(t * 1.1) * peak) * (1 - down);
-  const b20 = document.getElementById('__b20');
-  b20.style.transform = `translate(${cx - w20 / 2}px, ${cy - h20 / 2}px) scale(${s}) rotateX(${rx}deg) rotateY(${flipY}deg) rotateZ(${rz}deg)`;
+  if (t < 29.0) { const k = ease.inOut(seg(t, 27.4, 29.0)); cx = lerp(x0, A20[0], k); cy = lerp(y0, A20[1], k); s = lerp(1, A20[2], k); }
+  else if (t < 38.0) { const k = ease.inOut(seg(t, 30.0, 31.8)); cx = lerp(A20[0], CEN[0], k); cy = lerp(A20[1], CEN[1], k); s = lerp(A20[2], CEN[2], k); }
+  else { cx = lerp(CEN[0], END[0], down); cy = lerp(CEN[1], END[1], down); s = lerp(CEN[2], END[2], down); }
+  const sway = sm(seg(t, 31.6, 33.0)) * (1 - down);
+  const flipY = 180 * ease.inOut(seg(t, 30.0, 31.6));
+  const rx = 6 * Math.sin(t * 0.8) * sway, rz = 3.5 * Math.sin((t - 31.6) * 0.6) * sway;
+  cx += 26 * Math.sin((t - 31.6) * 0.7) * sway; cy += 14 * Math.sin((t - 31.6) * 1.1) * sway;
+  document.getElementById('__b20').style.transform = `translate(${cx - w20 / 2}px, ${cy - h20 / 2}px) scale(${s}) rotateX(${rx}deg) rotateY(${flipY}deg) rotateZ(${rz}deg)`;
 
-  // echoes of the $20 bloom outwards behind it, each a step round the colour wheel
-  const echo = sm(seg(t, 30.6, 33.4)) * (1 - sm(seg(t, 38.0, 40.0)));
-  document.querySelectorAll('#__trip .__echo').forEach((e, i0) => {
+  // PEAK: the back of the 20 nested inside itself, turning: the fractal
+  const spiral = sm(seg(t, 34.2, 35.2)) * (1 - sm(seg(t, 37.4, 38.4)));
+  document.querySelectorAll('#__trip .__nest').forEach((e, i0) => {
     const i = i0 + 1;
-    const es = s * (1 + 0.16 * i * (1 + 0.5 * peak) + 0.05 * Math.sin(t * 1.7 + i));
-    e.style.transform = `translate(${cx - w20 / 2}px, ${cy - h20 / 2}px) scale(${es}) rotate(${(i * 5 * Math.sin(t * 0.6 + i * 0.4) + 14 * i * peak * Math.sin(t * 0.5)).toFixed(2)}deg)`;
-    e.style.transformOrigin = '50% 50%';
-    e.style.opacity = (echo * 0.22 * (1 - i / 8.5)).toFixed(3);
-    e.style.filter = `hue-rotate(${i * 48 + t * 40 * peak}deg) saturate(1.6) brightness(${0.72 - 0.04 * i})`;
+    const ns = s * Math.pow(0.8, i), ang = rz + (i * 13 + (t - 34.2) * 24) * spiral;
+    e.style.transform = `translate(${cx - w20 / 2}px, ${cy - h20 / 2}px) scale(${ns}) rotate(${ang}deg)`;
+    e.style.opacity = (spiral * Math.pow(0.93, i)).toFixed(3);
   });
 
-  // sacred geometry turning behind, breathing on the beat
-  const geoA = 0.5 * sm(seg(t, 31.0, 34.0)) + 0.25 * peak - 0.75 * sm(seg(t, 38.0, 40.0));
+  // sacred geometry, faint, turning behind
   const g = document.getElementById('__geo');
-  g.style.opacity = Math.max(0, geoA).toFixed(3);
-  g.style.transform = `rotate(${t * 14}deg) scale(${1 + 0.08 * Math.sin(t * 1.2) + 0.05 * beat(t) * peak})`;
+  g.style.opacity = Math.max(0, 0.3 * sm(seg(t, 32.0, 34.0)) - 0.3 * down).toFixed(3);
+  g.style.transform = `rotate(${t * 14}deg) scale(${1 + 0.08 * Math.sin(t * 1.2)})`;
 
-  /* the $2: folded down the beam, opened beside the $20, then a butterfly round it, trailing tracers */
-  const REST = [1470, 262, 0.44], HOME = [960, 236, 0.46];
-  const flight = (tt) => {
-    const q = tt - 30.0;
-    return [960 + 600 * Math.cos(0.85 * q + 0.45), 520 + 290 * Math.sin(1.7 * q)];
-  };
-  const pose = (tt) => {
-    // [x, y, scale, wing angle, roll]
-    if (tt < 27.6) return [SHIP[0], SHIP[1] + 40, 0.3, 82, 0];
-    if (tt < 29.2) {
-      const k = ease.inOut(seg(tt, 27.8, 29.2));
-      return [lerp(SHIP[0], REST[0], k), lerp(SHIP[1] + 40, REST[1], k), lerp(0.3, REST[2], k), 82 * (1 - ease.inOut(seg(tt, 28.5, 29.2))), 0];
-    }
-    if (tt < 30.0) return [REST[0], REST[1], REST[2], 0, 0];
-    const flap = 10 + 52 * (0.5 - 0.5 * Math.cos(2 * Math.PI * 1.25 * (tt - 30.0)));
-    if (tt < 38.0) {
-      const k = sm(seg(tt, 30.0, 31.0));
-      const f = flight(tt), f2 = flight(tt + 0.05);
-      const roll = Math.atan2(f2[1] - f[1], f2[0] - f[0]) * 180 / Math.PI;
-      return [lerp(REST[0], f[0], k), lerp(REST[1], f[1], k), lerp(REST[2], 0.5, k), flap * k, Math.max(-25, Math.min(25, roll * 0.25)) * k];
-    }
-    const k = ease.inOut(seg(tt, 38.0, 40.6)), f = flight(38.0);
-    return [lerp(f[0], HOME[0], k), lerp(f[1], HOME[1], k), lerp(0.5, HOME[2], k), flap * (1 - sm(seg(tt, 39.8, 40.6))), 0];
-  };
-  const place = (el, P, a = 1, hue = 0) => {
-    el.style.transform = `translate(${P[0] - 750}px, ${P[1] - 185}px) scale(${P[2]}) rotateZ(${P[4]}deg) rotateX(${12 * Math.sin(t * 0.8)}deg)`;
-    el.firstElementChild.style.transform = `rotateY(${P[3]}deg)`;
-    el.lastElementChild.style.transform = `rotateY(${-P[3]}deg)`;
-    el.style.opacity = a.toFixed(3);
-    if (hue) el.style.filter = `hue-rotate(${hue}deg)`;
-  };
-  place(document.getElementById('__bf'), pose(t), seg(t, 27.6, 27.9));
-  const trail = sm(seg(t, 30.2, 31.0)) * (1 - sm(seg(t, 39.0, 40.4)));
-  [1, 2, 3, 4].forEach((k) => place(document.getElementById('__g' + k), pose(t - 0.085 * k), trail * 0.36 * (1 - k / 5), k * 50 + t * 30));
-  // the swarm: five more round the $20 at the peak, then folded back into the one
-  const swarm = sm(seg(t, 33.6, 34.4)) * (1 - sm(seg(t, 37.8, 38.8)));
-  [1, 2, 3, 4, 5].forEach((k) => {
-    const a = 1.3 * t + k * 2 * Math.PI / 6, rad = lerp(0, 1, swarm);
-    const fl = 10 + 52 * (0.5 - 0.5 * Math.cos(2 * Math.PI * 1.25 * (t - 30.0) + k));
-    const M = pose(t);
-    const P = [lerp(M[0], 960 + 560 * Math.cos(a), rad), lerp(M[1], 540 + 340 * Math.sin(a), rad), 0.32, fl, (a * 180 / Math.PI + 90) % 360 * 0.08];
-    place(document.getElementById('__s' + k), P, swarm, k * 60);
-  });
+  /* the $2: folded down the beam and opened beside the 20; then it morphs into a real butterfly,
+     printed with the note's face, flies over the 20's back, and lands and turns back into the note */
+  const REST = [1470, 262, 0.44], HOME = [960, 236, 0.44];
+  const morph = ease.inOut(seg(t, 30.4, 32.0)) * (1 - ease.inOut(seg(t, 39.6, 40.8)));
+  const flight = (tt) => { const q = tt - 32.0; return [960 + 520 * Math.cos(0.8 * q + 0.5), 500 + 250 * Math.sin(1.6 * q)]; };
+  const flap = (tt) => 12 + 58 * (0.5 - 0.5 * Math.cos(2 * Math.PI * 1.6 * (tt - 32.0)));
+  let P;   // [x, y, scale, wing angle, roll]
+  if (t < 27.6) P = [SHIP[0], SHIP[1] + 40, 0.3, 82, 0];
+  else if (t < 29.2) { const k = ease.inOut(seg(t, 27.8, 29.2)); P = [lerp(SHIP[0], REST[0], k), lerp(SHIP[1] + 40, REST[1], k), lerp(0.3, REST[2], k), 82 * (1 - ease.inOut(seg(t, 28.5, 29.2))), 0]; }
+  else if (t < 32.0) P = [REST[0], REST[1], REST[2], 0, 0];
+  else if (t < 38.0) {
+    const k = sm(seg(t, 32.0, 33.0)), f = flight(t), f2 = flight(t + 0.05);
+    const roll = Math.max(-22, Math.min(22, Math.atan2(f2[1] - f[1], f2[0] - f[0]) * 180 / Math.PI * 0.22));
+    P = [lerp(REST[0], f[0], k), lerp(REST[1], f[1], k), REST[2] * (1 + 0.15 * peak), flap(t) * k, roll * k];
+  } else {
+    const k = ease.inOut(seg(t, 38.0, 39.6)), f = flight(38.0);
+    P = [lerp(f[0], HOME[0], k), lerp(f[1], HOME[1], k), HOME[2], flap(t) * (1 - sm(seg(t, 38.8, 39.6))), 0];
+  }
+  const bf = document.getElementById('__bf');
+  const Hw = 370 * (1 + 0.95 * morph);   // the note's height, then the wing's
+  bf.style.height = Hw + 'px';
+  bf.style.transformOrigin = `750px ${Hw / 2}px`;
+  bf.style.transform = `translate(${P[0] - 750}px, ${P[1] - Hw / 2}px) scale(${P[2]}) rotateZ(${P[4]}deg) rotateX(${10 * Math.sin(t * 0.8) * morph}deg)`;
+  bf.style.opacity = seg(t, 27.6, 27.9).toFixed(3);
+  const wl = bf.querySelector('.__wl'), wr = bf.querySelector('.__wr');
+  wl.style.transform = `rotateY(${P[3]}deg)`; wr.style.transform = `rotateY(${-P[3]}deg)`;
+  wl.style.clipPath = clip(morph, true); wr.style.clipPath = clip(morph, false);
+  const bgS = `750px ${750 * Hw / 370}px`;
+  wl.firstElementChild.style.backgroundSize = bgS;
+  const wa = wr.querySelector('.__wa'), wb = wr.querySelector('.__wb');
+  wa.style.backgroundSize = bgS; wa.style.opacity = morph.toFixed(3);
+  wb.style.backgroundSize = bgS; wb.style.backgroundPosition = `0 ${-378 * Hw / 370}px`; wb.style.opacity = (1 - morph).toFixed(3);
+  const body = bf.querySelector('.__body'), ant = bf.querySelector('.__ant');
+  body.style.top = (Hw * 0.12) + 'px'; body.style.height = (Hw * 0.78) + 'px'; body.style.opacity = morph.toFixed(3);
+  ant.style.top = (Hw * 0.12 - 150) + 'px'; ant.style.opacity = morph.toFixed(3);
 
   document.getElementById('__dark').style.opacity = sm(seg(t, 27.4, 28.4)).toFixed(3);
   // CALM: a veil over the money for the name
@@ -311,25 +331,24 @@ function lens(t) {
     // the money comes forward; the mothership's light
     const k = sm(seg(26.0, 28.0)), beam = sm(seg(27.8, 28.3)) * (1 - sm(seg(29.3, 29.8)));
     u.bloom = 0.3 - 0.1 * k + 0.08 * beam; u.glow = 0.45 - 0.12 * k + 0.12 * beam; u.trails = 0.12 + 0.08 * k;
-  } else if (t >= 30.0 && t < 34.0) {
-    // it comes alive: tracers lengthen, the page sways and pours, mirrors creep in
-    const T = sm(seg(30.0, 34.0));
-    u.trails = 0.2 + 0.38 * T; u.warp = 0.003 + 0.013 * T; u.chroma = 0.002 + 0.007 * T;
-    u.kaleido = 0.28 * T * T; u.kalN = 6;
-    u.cam = [1, 4 * T * Math.sin(t * 0.5), 3 * T * Math.sin(t * 0.37)];
-    u.zoom = 1 + 0.03 * T * beat(t);
-    u.bloom = 0.2 + 0.06 * T; u.glow = 0.33 + 0.1 * T;
-  } else if (t >= 34.0 && t < 41.2) {
-    // PEAK 34-38: a money mandala, a tunnel of money; COME DOWN 38-41: it all unwinds
-    const peak = sm(seg(34.0, 34.8)) * (1 - down);
+  } else if (t >= 30.0 && t < 41.2) {
+    // the back of the 20 comes alive: it breathes (a breath a bar), the edges of its art pulse outward
+    // in colour (tracers), and the print melts into bubbles; PEAK 34-38 compounds it all into the fractal
+    // (mirrors, the spiral, the tunnel); COME DOWN 38-41 unwinds it
+    const B = (t - 30.0) * Math.PI;   // one breath every two seconds, on the bar
+    const T = sm(seg(31.4, 34.0)), peak = sm(seg(34.0, 34.8)) * (1 - down);
+    const on = T * (1 - down);
+    u.breathe = [on, B];
+    u.edge = [0.9 * on, 3 + 6 * T, 0.011 + 0.005 * peak, B];
+    u.bubble = [Math.max(0, 0.3 * sm(seg(32.6, 34.0)) + 0.38 * sm(seg(34.0, 35.6)) - 0.68 * down), 40 - 10 * peak, 1 + 0.8 * peak];
+    u.trails = 0.14 + 0.14 * on + 0.08 * peak;
+    u.warp = 0.002 + 0.006 * on + 0.006 * peak; u.chroma = 0.0015 + 0.004 * on + 0.004 * peak;
+    u.kaleido = 0.86 * peak; u.kalN = 6 + 2 * sm(seg(34.0, 34.6));
     const tun = sm(seg(35.2, 35.9)) * (1 - sm(seg(36.9, 37.6)));
-    u.kaleido = 0.28 * (1 - sm(seg(34.0, 34.6))) + 0.86 * peak; u.kalN = 6 + 2 * sm(seg(34.0, 34.6));
-    u.tunnel = [0.62 * tun, (t - 35.2) * 2.6, 0.35, 0.45 * tun];
-    u.trails = 0.56 * (1 - down) + 0.1 + 0.06 * peak;
-    u.warp = 0.016 * (1 - down) + 0.004 * peak; u.chroma = 0.009 * (1 - down) + 0.0015 + 0.002 * peak;
-    u.zoom = 1 + 0.05 * peak * beat(t);
-    u.cam = [1, 4 * (1 - down) * Math.sin(t * 0.5), 3 * (1 - down) * Math.sin(t * 0.37)];
-    u.bloom = 0.24 + 0.06 * peak; u.glow = 0.4 + 0.08 * peak;
+    u.tunnel = [0.55 * tun, (t - 35.2) * 2.6, 0.35, 0.4 * tun];
+    u.zoom = 1 + 0.04 * peak * beat(t);
+    u.cam = [1, 3 * on * Math.sin(t * 0.5), 2.2 * on * Math.sin(t * 0.37)];
+    u.bloom = 0.12 + 0.04 * peak; u.glow = 0.26 + 0.06 * peak;
   } else if (t >= 41.2) {
     // CALM: the name over the money, walking the scripts; a slow ripple at each change; the dark
     let rip = 0;
@@ -354,7 +373,7 @@ function lens(t) {
 
 export default {
   key: 'living-money',
-  poster: 35.6,
+  poster: 33.2,
   title: 'The Living Money — every realm’s own art, then the Antarctica $20 and $2 come alive',
   dur: 49,
   url: '/index.html',
