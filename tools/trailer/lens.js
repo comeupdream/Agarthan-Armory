@@ -114,17 +114,18 @@
   }
   // ---- the trip's surface: breathing, tracers round the edges of the art, bubble print ----
   vec3 pal(float t){ return 0.5 + 0.5 * cos(6.2831853 * (t + vec3(0.0, 0.33, 0.67))); }
-  float lumAt(vec2 uv){ return dot(textureLod(uPage, uv, 0.5).rgb, vec3(0.299, 0.587, 0.114)); }
+  float lumAt(vec2 uv){ return dot(textureLod(uPage, uv, 1.2).rgb, vec3(0.299, 0.587, 0.114)); }
   float edgeAt(vec2 uv){
-    vec2 px = 1.6 / uRes;
+    vec2 px = 2.6 / uRes;   // read a little blurred and wide, so an outline has some body
     float l = lumAt(uv - vec2(px.x, 0.0)), r = lumAt(uv + vec2(px.x, 0.0));
     float d = lumAt(uv - vec2(0.0, px.y)), u = lumAt(uv + vec2(0.0, px.y));
     return length(vec2(r - l, u - d));
   }
   // the art's outlines, echoed outward from the middle of the frame, each echo a step round the
-  // colour wheel and fainter; the spread swells and settles with the phase, so the edges breathe
-  vec3 edgeTrace(vec2 uv){
-    vec3 acc = vec3(0.0);
+  // colour wheel and fainter; the spread swells and settles with the phase, so the edges breathe.
+  // Returns the echoes' colour and how much of them there is, to be painted on, never added as light.
+  vec4 edgeTrace(vec2 uv){
+    vec3 acc = vec3(0.0); float wsum = 0.0;
     float spread = uEdge.z * (0.55 + 0.45 * sin(uEdge.w));
     for (int k = 0; k < 9; k++) {
       float fk = float(k);
@@ -132,9 +133,10 @@
       vec2 q = 0.5 + (uv - 0.5) * (1.0 - spread * fk);
       float e = smoothstep(0.035, 0.2, edgeAt(q));
       float pulse = 0.65 + 0.35 * sin(uEdge.w * 2.0 - fk * 0.9);
-      acc += e * pal(fk * 0.11 + uT * 0.09) * (1.0 - fk / max(uEdge.y, 1.0)) * pulse;
+      float wk = e * (1.0 - fk / max(uEdge.y, 1.0)) * pulse;
+      acc += wk * pal(fk * 0.11 + uT * 0.09); wsum += wk;
     }
-    return acc;
+    return vec4(acc / max(wsum, 1e-3), wsum);
   }
   // metaball bubbles on a drifting cell grid: each cell's size and colour come from the picture
   // under it, so the print melts into bubbles of its own colours, rimmed in shifting colour
@@ -160,8 +162,8 @@
     float inside = smoothstep(0.9, 1.3, field);
     float rim = smoothstep(0.75, 0.95, field) * (1.0 - smoothstep(0.95, 1.2, field));
     vec3 psy = pal(dot(base, vec3(0.3, 0.55, 0.15)) * 1.7 + uT * 0.07);
-    vec3 body = mix(base, base * 0.55 + psy * 0.6, 0.55);
-    return mix(base * 0.25, body, inside) + rim * psy * 1.1;
+    vec3 body = base * 0.35 + psy * 0.5;
+    return mix(base * 0.2, body, inside) + rim * psy * 0.75;
   }
   vec3 pageColor(vec2 uv){
     if (uBreathe.x > 0.0) {
@@ -174,12 +176,15 @@
     vec3 c;
     if (uChroma > 0.0) c = vec3(samplePage(uv + dir, 0.0).r, samplePage(uv, 0.0).g, samplePage(uv - dir, 0.0).b);
     else c = samplePage(uv, 0.0);
+    // the trip needs room: a pale print is brought down to the middle tones before anything is painted on it
+    float fx = max(uEdge.x, uBubble.x);
+    if (fx > 0.0) c *= 1.0 - 0.45 * fx;
     if (uBubble.x > 0.0) c = mix(c, bubbles(uv), uBubble.x);
     if (uBloom > 0.0) {
       vec3 b = textureLod(uPage, uv, 4.0).rgb * 0.6 + textureLod(uPage, uv, 6.0).rgb * 0.6;
       c += max(b - 0.28, 0.0) * uBloom * 1.8;
     }
-    if (uEdge.x > 0.0) c += edgeTrace(uv) * uEdge.x;
+    if (uEdge.x > 0.0) { vec4 et = edgeTrace(uv); c = mix(c, et.rgb * 1.15, clamp(et.a * 1.3, 0.0, 1.0) * uEdge.x); }
     return c;
   }
 

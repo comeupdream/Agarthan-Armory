@@ -341,14 +341,14 @@ function lens(t) {
     u.breathe = [on, B];
     u.edge = [0.9 * on, 3 + 6 * T, 0.011 + 0.005 * peak, B];
     u.bubble = [Math.max(0, 0.3 * sm(seg(32.6, 34.0)) + 0.38 * sm(seg(34.0, 35.6)) - 0.68 * down), 40 - 10 * peak, 1 + 0.8 * peak];
-    u.trails = 0.14 + 0.22 * on + 0.16 * peak;
+    u.trails = 0.14 + 0.14 * on + 0.08 * peak;
     u.warp = 0.002 + 0.006 * on + 0.006 * peak; u.chroma = 0.0015 + 0.004 * on + 0.004 * peak;
     u.kaleido = 0.86 * peak; u.kalN = 6 + 2 * sm(seg(34.0, 34.6));
     const tun = sm(seg(35.2, 35.9)) * (1 - sm(seg(36.9, 37.6)));
     u.tunnel = [0.55 * tun, (t - 35.2) * 2.6, 0.35, 0.4 * tun];
     u.zoom = 1 + 0.04 * peak * beat(t);
     u.cam = [1, 3 * on * Math.sin(t * 0.5), 2.2 * on * Math.sin(t * 0.37)];
-    u.bloom = 0.2 + 0.06 * peak; u.glow = 0.34 + 0.1 * peak;
+    u.bloom = 0.12 + 0.04 * peak; u.glow = 0.26 + 0.06 * peak;
   } else if (t >= 41.2) {
     // CALM: the name over the money, walking the scripts; a slow ripple at each change; the dark
     let rip = 0;
