@@ -53,4 +53,54 @@
       `Name: ${d.name}\nContact: ${d.contact}\nTopic: ${d.topic}\n\n${d.message}`);
     if (ok) f.reset();
   });
+
+  /* ---------- Spotlight: the store's promotion slides, from the Ops Console ---------- */
+  (function spotlight() {
+    const box = document.getElementById('spotlight');
+    const sp = AA.cfg.spotlight;
+    if (!box || !sp || !Array.isArray(sp.slides)) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const slides = sp.slides.filter((x) => x && x.on !== false && x.title && (!x.start || x.start <= today) && (!x.end || x.end >= today));
+    if (!slides.length) return;
+    const esc = AA.esc;
+    const safeLink = (l) => (l && (/^\/(?!\/)/.test(l) || /^https:\/\//.test(l)) ? l : '');
+    const media = (x) => {
+      if (x.video && /^[\w-]{11}$/.test(x.video)) {
+        const poster = x.image ? esc(x.image) : `https://i.ytimg.com/vi/${esc(x.video)}/hqdefault.jpg`;
+        return `<button type="button" class="sp-media sp-video" data-yt="${esc(x.video)}" aria-label="Play the video: ${esc(x.title)}"><img src="${poster}" alt="" loading="lazy"><span aria-hidden="true">▶</span></button>`;
+      }
+      if (x.image) return `<div class="sp-media${/^assets\/img\/(products|uploads)\//.test(x.image) ? ' sp-plate' : ''}"><img src="${esc(x.image)}" alt="" loading="lazy"></div>`;
+      return '<div class="sp-media sp-holo" aria-hidden="true">' + (AA.icon ? AA.icon('case') : '') + '</div>';
+    };
+    box.innerHTML = `<div class="sp-track">${slides.map((x, i) => `<article class="sp-slide hud brackets" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}" ${i ? 'hidden' : ''}>
+        ${media(x)}<div class="sp-text">${x.eyebrow ? `<span class="eyebrow">${esc(x.eyebrow)}</span>` : ''}<h2>${esc(x.title)}</h2>${x.text ? `<p>${esc(x.text)}</p>` : ''}
+        ${safeLink(x.link) ? `<a class="btn btn-ice arrow" href="${esc(safeLink(x.link))}"${/^https:/.test(x.link) ? ' target="_blank" rel="noopener"' : ''}>${esc(x.cta || 'Take a look')}</a>` : ''}</div></article>`).join('')}</div>
+      ${slides.length > 1 ? `<div class="sp-nav"><button type="button" class="sp-arrow" data-d="-1" aria-label="Previous slide">‹</button>${slides.map((_, i) => `<button type="button" class="sp-dot" data-i="${i}" aria-label="Slide ${i + 1}" aria-pressed="${!i}"></button>`).join('')}<button type="button" class="sp-arrow" data-d="1" aria-label="Next slide">›</button></div>` : ''}`;
+    box.hidden = false;
+    const all = [...box.querySelectorAll('.sp-slide')], dots = [...box.querySelectorAll('.sp-dot')];
+    let at = 0, timer = null, held = false;
+    const show = (n) => {
+      at = (n + all.length) % all.length;
+      all.forEach((el, i) => { el.hidden = i !== at; });
+      dots.forEach((d, i) => d.setAttribute('aria-pressed', String(i === at)));
+    };
+    const tick = () => { clearInterval(timer); if (all.length > 1 && !AA.reduced) timer = setInterval(() => { if (!held && !document.hidden) show(at + 1); }, Math.max(4, Math.min(30, sp.interval || 7)) * 1000); };
+    box.addEventListener('click', (e) => {
+      const d = e.target.closest('.sp-dot'), a = e.target.closest('.sp-arrow'), v = e.target.closest('.sp-video');
+      if (d) { show(+d.dataset.i); tick(); }
+      if (a) { show(at + +a.dataset.d); tick(); }
+      if (v) {
+        held = true;
+        const f = document.createElement('iframe');
+        f.className = 'sp-media yt-frame'; f.title = 'Video'; f.allow = 'autoplay; encrypted-media; picture-in-picture'; f.allowFullscreen = true;
+        f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.dataset.yt)}?autoplay=1&rel=0`;
+        v.replaceWith(f);
+      }
+    });
+    box.addEventListener('mouseenter', () => { held = true; });
+    box.addEventListener('mouseleave', () => { if (!box.querySelector('iframe')) held = false; });
+    box.addEventListener('focusin', () => { held = true; });
+    box.addEventListener('focusout', () => { if (!box.querySelector('iframe')) held = false; });
+    tick();
+  })();
 })();

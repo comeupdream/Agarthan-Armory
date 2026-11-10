@@ -8,11 +8,14 @@
  *   POST /api/inbox           a requisition (hold request) or contact message
  *   POST /api/hit             anonymous page view / search with no results
  * Console (Authorization: Bearer <token>):
- *   GET  /api/ops/settings    overrides.json + site-settings.json at the repo's head
- *   POST /api/ops/publish     product patch and/or settings → one commit to the repo
+ *   GET  /api/ops/settings    overrides.json, site-settings.json and custom-products.json at the repo's head
+ *   POST /api/ops/publish     product edits, settings, listings and photos → one commit to the repo
+ *   GET  /api/ops/history     the console's commits: what, who, when
+ *   POST /api/ops/mail/test   a test email to ALERT_EMAIL
+ *   GET  /api/ops/check/woo   does the WooCommerce store run the Agarthan theme (and which version)
  *   GET  /api/ops/deploy      deployed commit vs the repo's head
  *   GET  /api/ops/inbox       messages;  POST /api/ops/inbox/update  status / note
- *   GET  /api/ops/traffic     page views and searches that found nothing
+ *   GET  /api/ops/traffic     page views, and every search with how many products it found
  *   GET  /api/ops/woo/...     read-only WooCommerce orders / sales / products
  *   GET  /api/ops/backup      everything the console keeps, as one JSON download
  * ===========================================================================*/
@@ -20,12 +23,14 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { opsConfigured, passMatches, issueToken, tokenValid, bearer, clientIp, lockout, keyHash, rateLimited } from './auth.mjs';
-import { githubConfigured, githubInfo, commitFiles, headSha, readAt } from './github.mjs';
+import { githubConfigured, githubInfo, commitFiles, headSha, readAt, history } from './github.mjs';
+import { mailStatus, send as sendMail, inboxAlert } from './mail.mjs';
 import { diskStatus, readJson, update } from './store.mjs';
-import { validateProductPatch, applyProductPatch, validateSettings, isEditError } from './edits.mjs';
+import { validateProductPatch, applyProductPatch, validateSettings, validateCustomChange, applyCustomChange, validateUploads, photosIn, isEditError } from './edits.mjs';
 
 const OVERRIDES = 'assets/data/overrides.json';
 const SETTINGS = 'assets/data/site-settings.json';
+const CUSTOM = 'assets/data/custom-products.json';
 
 let ROOT = process.cwd();
 export const setRoot = (r) => { ROOT = r; };
@@ -35,7 +40,7 @@ const send = (res, status, body, extra = {}) => {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...extra });
   res.end(JSON.stringify(body));
 };
-const LIMIT = { '/api/ops/publish': 2_000_000, default: 64_000 };
+const LIMIT = { '/api/ops/publish': 20_000_000, default: 64_000 };
 function readBody(req, max) {
   return new Promise((resolve, reject) => {
     let size = 0, over = false; const chunks = [];
@@ -87,9 +92,13 @@ function countHit(doc, b) {
   const p = s(b.p, 120).replace(/[?#].*$/, '') || '/';
   if (!/^\/[\w\-./]*$/.test(p)) return;
   const d = (doc.days[DAY()] = doc.days[DAY()] || { views: 0, pages: {} });
-  if (b.q !== undefined) {                                          // a search that found nothing
+  if (b.q !== undefined) {                                          // a search, and how many products it found
     const q = s(b.q, 60).toLowerCase();
-    if (q) { const e = (doc.searches[q] = doc.searches[q] || { n: 0, last: '' }); e.n++; e.last = DAY(); }
+    const found = b.found === undefined ? 0 : Math.max(0, Math.min(1e6, parseInt(b.found, 10) || 0));
+    if (q) {
+      const e = (doc.searches[q] = doc.searches[q] || { n: 0, zero: 0, last: '' });
+      e.n++; if (!found) e.zero = (e.zero || 0) + 1; e.found = found; e.last = DAY();
+    }
     const keys = Object.keys(doc.searches);
     if (keys.length > 600) keys.sort((a, c) => doc.searches[a].n - doc.searches[c].n).slice(0, keys.length - 500).forEach((k) => delete doc.searches[k]);
     return;
@@ -131,9 +140,10 @@ export async function handleApi(req, res, url) {
     // --- public -----------------------------------------------------------
     if (p === '/api/ops/status' && req.method === 'GET') {
       const disk = await diskStatus();
-      const out = { live: opsConfigured(), github: githubConfigured(), disk: disk.ok, woo: wooConfigured() };
-      // the repository and the disk's path only for a signed-in console
-      if (tokenValid(bearer(req))) Object.assign(out, githubInfo(), { diskWhy: disk.ok ? undefined : disk.why, deployed: deployed() });
+      const mail = mailStatus();
+      const out = { live: opsConfigured(), github: githubConfigured(), disk: disk.ok, woo: wooConfigured(), mail: mail.configured && !!mail.to };
+      // the repository, the disk's path and the alert address only for a signed-in console
+      if (tokenValid(bearer(req))) Object.assign(out, githubInfo(), { diskWhy: disk.ok ? undefined : disk.why, deployed: deployed(), mailTo: mail.to, mailKey: mail.configured });
       return send(res, 200, out);
     }
     if (p === '/api/ops/unlock' && req.method === 'POST') {
@@ -154,7 +164,15 @@ export async function handleApi(req, res, url) {
       if (!disk.ok) return send(res, 503, { error: 'inbox off', why: disk.why });
       if (rateLimited(ip, 'inbox', 6, 10 * 60_000)) return send(res, 429, { error: 'Too many messages — please call us instead.' });
       const rec = inboxRecord(await readBody(req, 24_000));
-      if (rec) await update('inbox.json', [], (list) => { list.unshift(rec); if (list.length > 5000) list.length = 5000; });
+      if (rec) {
+        await update('inbox.json', [], (list) => { list.unshift(rec); if (list.length > 5000) list.length = 5000; });
+        const m = mailStatus();
+        if (m.to) {                                                  // the store hears about it by email; never holds up the visitor
+          const site = process.env.SITE_URL || (req.headers.host ? `https://${s(req.headers.host, 120)}` : '');
+          const a = inboxAlert(rec, site);
+          sendMail({ to: m.to, subject: a.subject, text: a.text, replyTo: a.replyTo }).catch(() => {});
+        }
+      }
       return send(res, 200, { ok: true });
     }
     if (p === '/api/hit' && req.method === 'POST') {
@@ -174,17 +192,33 @@ export async function handleApi(req, res, url) {
     if (p === '/api/ops/settings' && req.method === 'GET') {
       if (githubConfigured()) {
         const head = await headSha();
-        const [o, st] = await Promise.all([readAt(head, OVERRIDES), readAt(head, SETTINGS)]);
-        return send(res, 200, { source: 'github', head, overrides: parse(o, {}), settings: parse(st, {}) });
+        const [o, st, cu] = await Promise.all([readAt(head, OVERRIDES), readAt(head, SETTINGS), readAt(head, CUSTOM)]);
+        return send(res, 200, { source: 'github', head, overrides: parse(o, {}), settings: parse(st, {}), custom: parse(cu, []) });
       }
-      return send(res, 200, { source: 'local', head: deployed(), overrides: parse(await localText(OVERRIDES), {}), settings: parse(await localText(SETTINGS), {}) });
+      return send(res, 200, { source: 'local', head: deployed(), overrides: parse(await localText(OVERRIDES), {}), settings: parse(await localText(SETTINGS), {}), custom: parse(await localText(CUSTOM), []) });
     }
     if (p === '/api/ops/publish' && req.method === 'POST') {
       if (!githubConfigured()) return send(res, 503, { error: 'Publishing is not connected', setup: 'Set GH_TOKEN (fine-grained token, this repository only, Contents: Read and write) on the Render service. Until then use Export in Tools and commit the file.' });
       const body = await readBody(req, LIMIT['/api/ops/publish']);
-      const patch = body.products ? validateProductPatch(body.products) : null;
-      const settings = body.settings ? validateSettings(body.settings) : null;
-      if (!patch && !settings) return send(res, 400, { error: 'nothing to publish' });
+      const patch = body.products && Object.keys(body.products).length ? validateProductPatch(body.products) : null;
+      const settings = body.settings && Object.keys(body.settings).length ? validateSettings(body.settings) : null;
+      const custom = body.custom && ((body.custom.upsert || []).length || (body.custom.remove || []).length) ? validateCustomChange(body.custom) : null;
+      const uploads = Array.isArray(body.uploads) && body.uploads.length ? validateUploads(body.uploads) : [];
+      if (!patch && !settings && !custom && !uploads.length) return send(res, 400, { error: 'nothing to publish' });
+      // every photo the change points at must be in this publish, on this server, or already in the repo
+      const sending = new Set(uploads.map((u) => u.path));
+      const unseen = [];
+      for (const ph of photosIn({ patch, custom, settings })) {
+        if (sending.has(ph)) continue;
+        try { await fs.access(path.join(ROOT, ph)); } catch { unseen.push(ph); }
+      }
+      if (unseen.length) {
+        const head = await headSha();
+        const gone = [];
+        for (const ph of unseen.slice(0, 30)) if ((await readAt(head, ph)) === null) gone.push(ph);
+        if (unseen.length > 30) gone.push(...unseen.slice(30));
+        if (gone.length) return send(res, 400, { error: `${gone.length} photo${gone.length === 1 ? ' is' : 's are'} not on the site: ${gone.slice(0, 5).join(', ')}${gone.length > 5 ? '…' : ''} — upload ${gone.length === 1 ? 'it' : 'them'} again.` });
+      }
       const who = s(body.by, 40);
       let summary = null;
       const lines = [];
@@ -199,13 +233,40 @@ export async function handleApi(req, res, url) {
           const cur = parse(await read(SETTINGS), {});
           files.push({ path: SETTINGS, content: JSON.stringify({ ...cur, ...settings }, null, 2) + '\n' });
         }
+        if (custom) {
+          const cur = parse(await read(CUSTOM), []);
+          files.push({ path: CUSTOM, content: JSON.stringify(applyCustomChange(cur, custom), null, 2) + '\n' });
+        }
+        for (const u of uploads) files.push({ path: u.path, base64: u.base64 });
         return files;
       }, (() => {
         if (patch) lines.push(`${Object.keys(patch).length} product(s)`);
+        if (custom) lines.push(`${custom.upsert.length + custom.remove.length} listing(s)`);
+        if (uploads.length) lines.push(`${uploads.length} photo(s)`);
         if (settings) lines.push(Object.keys(settings).join(' + '));
         return `Ops Console: ${lines.join(', ')}${who ? ` (${who})` : ''}\n\n${s(body.note, 500) || 'Published from the Ops Console.'}`;
       })());
       return send(res, 200, { ok: true, commit: result.sha, url: result.url, summary });
+    }
+    if (p === '/api/ops/history' && req.method === 'GET') {
+      if (!githubConfigured()) return send(res, 503, { error: 'History needs publishing (GH_TOKEN) set up' });
+      return send(res, 200, { commits: await history([OVERRIDES, SETTINGS, CUSTOM]) });
+    }
+    if (p === '/api/ops/mail/test' && req.method === 'POST') {
+      const m = mailStatus();
+      if (!m.to) return send(res, 503, { error: 'No alert address', setup: 'Set ALERT_EMAIL (and RESEND_API_KEY) on the Render service.' });
+      const r = await sendMail({ to: m.to, subject: 'Agarthan Ops Console — test alert', text: 'This is a test from the Ops Console. New requisitions and messages from the site will arrive like this.' });
+      return send(res, r.delivered ? 200 : 502, r.delivered ? { ok: true, to: m.to } : { error: r.logged ? 'No RESEND_API_KEY — the message went to the server log, not sent.' : `The mail provider refused it: ${r.error}` });
+    }
+    if (p === '/api/ops/check/woo' && req.method === 'GET') {
+      const site = process.env.WOO_URL || process.env.WOO_SITE;
+      if (!site) return send(res, 503, { error: 'Set WOO_URL to check the WooCommerce theme' });
+      try {
+        const r = await fetch(site.replace(/\/$/, '') + '/', { headers: { 'User-Agent': 'agarthan-ops-console' }, signal: AbortSignal.timeout(15000), redirect: 'follow' });
+        const html = (await r.text()).slice(0, 2_000_000);
+        const link = (html.match(/<link[^>]+id=['"]agarthan-skin-css['"][^>]*>/i) || [])[0] || '';
+        return send(res, 200, { status: r.status, theme: !!link, version: (link.match(/[?&]ver=([\w.-]+)/) || [])[1] || null, storefront: /themes\/storefront\//.test(html), gate: /id=['"]aa-gate['"]/.test(html) });
+      } catch (e) { return send(res, 200, { status: 0, error: e.name === 'TimeoutError' ? 'timed out' : 'could not reach the store' }); }
     }
     if (p === '/api/ops/deploy' && req.method === 'GET') {
       const head = githubConfigured() ? await headSha() : null;
@@ -244,7 +305,7 @@ export async function handleApi(req, res, url) {
       const disk = await diskStatus();
       const out = {
         at: new Date().toISOString(), deployed: deployed(),
-        overrides: parse(await localText(OVERRIDES), {}), settings: parse(await localText(SETTINGS), {}),
+        overrides: parse(await localText(OVERRIDES), {}), settings: parse(await localText(SETTINGS), {}), custom: parse(await localText(CUSTOM), []),
         inbox: disk.ok ? await readJson('inbox.json', []) : null, traffic: disk.ok ? await readJson('traffic.json', {}) : null,
       };
       return send(res, 200, out, { 'Content-Disposition': `attachment; filename="agarthan-ops-backup-${DAY()}.json"` });
@@ -264,8 +325,8 @@ export async function handleApi(req, res, url) {
 export async function configScript(root = ROOT) {
   const [cfg, settings] = await Promise.all([localText('assets/js/config.js'), localText(SETTINGS)]);
   const st = parse(settings, {});
-  if (!st.facts && !st.notices && !st.synonyms) return cfg;
-  const json = JSON.stringify({ facts: st.facts || {}, notices: st.notices || [], synonyms: st.synonyms || [] }).replace(/</g, '\\u003c');
+  if (!st.facts && !st.notices && !st.synonyms && !st.pins && !st.spotlight) return cfg;
+  const json = JSON.stringify({ facts: st.facts || {}, notices: st.notices || [], synonyms: st.synonyms || [], pins: st.pins || {}, spotlight: st.spotlight || null }).replace(/</g, '\\u003c');
   return `${cfg}
 /* published from the Ops Console (assets/data/site-settings.json) */
 (function (s) {
@@ -274,7 +335,7 @@ export async function configScript(root = ROOT) {
     var v = s.facts[k];
     c[k] = v && typeof v === 'object' && !Array.isArray(v) && c[k] && typeof c[k] === 'object' ? Object.assign({}, c[k], v) : v;
   });
-  c.notices = s.notices; c.synonyms = s.synonyms;
+  c.notices = s.notices; c.synonyms = s.synonyms; c.pins = s.pins; c.spotlight = s.spotlight;
 })(${json});
 `;
 }

@@ -132,13 +132,16 @@
     if (!h) return;
     const btn = $('.menu-btn', h);
     btn && btn.addEventListener('click', () => {
+      // the menu hangs from the header's bottom edge wherever the page is scrolled to
+      h.style.setProperty('--menu-top', `${Math.round(h.getBoundingClientRect().bottom)}px`);
       const open = h.classList.toggle('open');
       btn.setAttribute('aria-expanded', open);
-      document.documentElement.style.overflow = open ? 'hidden' : '';
+      // scroll is locked on the body: locking the root element would unstick the header mid-page
+      document.body.style.overflow = open ? 'hidden' : '';
     });
     $$('.nav-links a', h).forEach((a) => a.addEventListener('click', () => {
       h.classList.remove('open'); btn && btn.setAttribute('aria-expanded', 'false');
-      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
     }));
     // current page: same file and same ?dept (so "Ammo" and "The Armory" don't both light up)
     const here = location.pathname.split('/').pop() || 'index.html';
@@ -231,7 +234,7 @@
     const inReq = AA.req.has(item.id);
     const sold = item.status === 'out';
     return `<article class="card hud brackets" data-id="${esc(item.id)}">
-      <div class="card-top"><span>${esc(item.sub || (DEPTS[item.dept] || {}).name || '')}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
+      <div class="card-top"><span>${item.cond ? `<b class="cond-badge">${esc(item.cond)}</b> ` : ''}${esc(item.sub || (DEPTS[item.dept] || {}).name || '')}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
       <div class="viz scan${item.images && item.images[0] ? ' photo' : ''}">${AA.viz(item)}${AA.nfaTag(item)}</div>
       <div class="brandline">${esc(item.brand || '')}</div>
       <h3>${esc(item.name)}</h3>

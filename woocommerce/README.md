@@ -63,7 +63,7 @@ optics, apparel, air guns, muzzleloaders…). Names and slugs both count, so
 
 - **Product → Advanced → Firearm (FFL)** overrides it per product (always / never).
 - On the product page a firearm shows how it is released (4473 + background check at the counter, or ship to your FFL).
-- At checkout a cart with a firearm asks how it will be received — **pick up at the outpost** or **ship to my FFL dealer** (dealer name and phone required) — and requires an age / eligibility statement. The choice is saved on the order and shown in the admin, on the thank-you page, in My Account and in the order emails.
+- At checkout a cart with a firearm asks how it will be received — **pick up at the outpost** or **ship to my FFL dealer** (dealer name and phone required) — and requires an age / eligibility statement. The choice is saved on the order and shown in the admin, on the thank-you page, in My Account and in the order emails. It also rides on the order in the WooCommerce REST API (`agarthan_release`), so the site's Ops Console shows it in its Orders tab (theme 1.1.0+).
 - Store managers can add `?aa-ffl-debug=1` to the cart or checkout URL to see which line counts as a firearm and why.
 
 Products without a photo show the site's hologram for their kind (pistol,

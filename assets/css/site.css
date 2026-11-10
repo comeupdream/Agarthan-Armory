@@ -166,9 +166,14 @@ section { position: relative; }
 /* ---------- header ---------- */
 .site-header {
   position: sticky; top: 0; z-index: 70;
+  border-bottom: 1px solid var(--line);
+}
+/* the frosted glass sits on a layer behind the header, not on the header itself: a blur on the header
+   would make it the frame for the phone menu (position: fixed), squeezing the menu into the header's height */
+.site-header::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: rgba(var(--bg-rgb), .62);
   -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
-  border-bottom: 1px solid var(--line);
 }
 .nav { height: var(--nav-h); display: flex; align-items: center; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 12px; color: var(--frost); flex-shrink: 0; }
@@ -218,12 +223,14 @@ html[data-theme="mono"] .seal::after { display: none; }
   .req-btn { margin-left: auto; }
   .req-btn .req-label { display: none; }
   .nav-links {
-    position: fixed; top: calc(var(--nav-h) + 30px); left: 0; right: 0; bottom: 0;
+    position: fixed; top: var(--menu-top, calc(var(--nav-h) + 30px)); left: 0; right: 0; bottom: 0;
     flex-direction: column; gap: 0; padding: 12px var(--gutter) 40px; margin: 0;
-    background: rgba(var(--bg-rgb), .97); transform: translateX(100%); transition: transform .3s ease;
-    overflow-y: auto;
+    background: rgba(var(--bg-rgb), .97); overflow-y: auto;
+    /* closed: wiped away to the right and hidden (not merely moved off-screen), so it neither widens
+       the page nor can be tabbed into; open: wipes in */
+    clip-path: inset(0 0 0 100%); visibility: hidden; transition: clip-path .3s ease, visibility 0s linear .3s;
   }
-  .site-header.open .nav-links { transform: none; }
+  .site-header.open .nav-links { clip-path: inset(0); visibility: visible; transition: clip-path .3s ease, visibility 0s; }
   .nav-links a { padding: 20px 0; font-size: 15px; border-bottom: 1px solid var(--line); }
   .nav-links a::after { display: none; }
   .site-header.open .menu-btn span:first-child { transform: translateY(3px) rotate(45deg); }
@@ -962,6 +969,23 @@ html[data-font="runic"] { --f-display: 'Cinzel Decorative', 'Cinzel', Georgia, s
   .prefs-btn span { display: none; }
   .prefs-btn { width: 42px; height: 42px; padding: 0; justify-content: center; }
 }
+/* small laptops: the five links, Requisition and Realm don't all fit with their labels, so the two buttons go icon-only */
+@media (min-width: 981px) and (max-width: 1180px) {
+  .nav { gap: 16px; }
+  .req-btn .req-label, .prefs-btn span { display: none; }
+  .prefs-btn { width: 38px; padding: 0; justify-content: center; }
+}
+/* phones: the wordmark stacks on two lines, so Requisition, Realm and the menu button always fit on the row */
+@media (max-width: 560px) {
+  .nav { gap: 8px; }
+  .brand { gap: 10px; min-width: 0; flex-shrink: 1; }
+  .brand-name { min-width: 0; }
+  .brand-name small { display: none; }
+  html[data-font] .brand-name strong, .brand-name strong { width: min-content; font-size: 13px; letter-spacing: .14em; line-height: 1.2; }
+  .req-btn, .prefs, .menu-btn { flex-shrink: 0; }
+  .req-btn { height: 42px; padding: 0 10px; }
+}
+@media (max-width: 340px) { .brand-mark { display: none; } }
 .prefs-panel fieldset { border: 0; padding: 0; margin: 0 0 16px; }
 .prefs-panel fieldset:last-of-type { margin-bottom: 0; }
 .prefs-panel legend { font: 400 10px/1 var(--f-mono); letter-spacing: .26em; color: var(--muted); text-transform: uppercase; margin-bottom: 9px; padding: 0; }
@@ -1238,3 +1262,33 @@ html[data-theme="vril"] :is(.realm-only[data-realms~="vril"], .realm-only [data-
 .notice-x { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; }
 .notice-x:hover { color: var(--frost); }
 @media (max-width: 600px) { .notice { font-size: 10.5px; letter-spacing: .08em; padding-left: 12px; } }
+
+/* =====================================================================
+   SPOTLIGHT — the store's promotion slides (Ops Console), on the home page
+   ===================================================================== */
+.spotlight { margin-top: clamp(40px, 6vw, 72px); }
+.sp-slide { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(18px, 3vw, 40px); align-items: center; padding: clamp(16px, 2.6vw, 28px); }
+.sp-slide[hidden] { display: none; }
+.sp-media { position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid var(--line); background: var(--panel-solid); padding: 0; }
+.sp-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sp-plate { background: radial-gradient(120% 95% at 50% 30%, var(--plate-1) 0%, var(--plate-2) 62%, var(--plate-3) 100%); border-color: rgba(var(--soft-rgb), .55); }
+.sp-plate img { object-fit: contain; padding: 6%; mix-blend-mode: multiply; }
+.sp-holo { display: grid; place-items: center; color: var(--cyan); }
+.sp-holo svg { width: 70%; height: auto; }
+.sp-video { cursor: pointer; }
+.sp-video span, .yt-play span { position: absolute; left: 50%; top: 50%; width: 68px; height: 68px; margin: -34px 0 0 -34px; display: grid; place-items: center; border-radius: 50%;
+  background: rgba(var(--bg-rgb), .72); border: 1px solid var(--line-strong); color: var(--frost); font-size: 22px; box-shadow: var(--glow-cyan); }
+.sp-video:hover span, .yt-play:hover span { background: var(--cyan); color: var(--on-accent); }
+.yt-frame { width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--line); display: block; }
+.sp-text h2 { font-size: clamp(24px, 3.4vw, 42px); margin: 14px 0 12px; }
+.sp-text p { color: var(--sub2); font-size: 17px; margin: 0 0 22px; max-width: 520px; }
+.sp-nav { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 14px; }
+.sp-dot { width: 26px; height: 4px; padding: 0; border: 0; background: var(--line-strong); cursor: pointer; }
+.sp-dot[aria-pressed="true"] { background: var(--cyan); box-shadow: var(--glow-cyan); }
+.sp-arrow { width: 34px; height: 34px; background: transparent; border: 1px solid var(--line-strong); color: var(--frost); font-size: 18px; cursor: pointer; }
+.sp-arrow:hover { border-color: var(--cyan); }
+@media (max-width: 760px) { .sp-slide { grid-template-columns: 1fr; } }
+/* the product view: a YouTube video waits behind its poster until asked for */
+.yt-play { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; margin: 16px 0; padding: 0; border: 1px solid var(--line); background: #000; cursor: pointer; overflow: hidden; }
+.yt-play img { width: 100%; height: 100%; object-fit: cover; opacity: .85; }
+.cond-badge { display: inline-block; padding: 2px 6px; margin-right: 4px; border: 1px solid rgba(255, 191, 90, .55); color: var(--amber); font: 400 10px/1.2 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; vertical-align: middle; }

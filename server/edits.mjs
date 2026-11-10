@@ -51,12 +51,75 @@ const SPEC = (v, k) => {
   }
   return out;
 };
+export const UPLOAD_RE = /^assets\/img\/(products|uploads)\/u-[a-z0-9][a-z0-9-]{1,110}\.(webp|jpe?g|png)$/;
+export const IMAGE_RE = /^assets\/img\/(products|uploads)\/[a-z0-9][a-z0-9._-]{2,119}\.(webp|jpe?g|png)$/i;
+const IMAGES = (v, k) => {
+  if (!Array.isArray(v) || v.length > 6) fail(`${k} must be a list of up to 6 photos`);
+  return v.map((x) => { const p = str(160)(x, k); if (!IMAGE_RE.test(p)) fail(`${k}: "${p}" is not a photo on this site`); return p; });
+};
+const YT = (v, k) => { const s2 = str(20)(v, k); if (!/^[\w-]{11}$/.test(s2)) fail(`${k} must be a YouTube video id`); return s2; };
 export const PRODUCT_FIELDS = {
   name: str(200), brand: str(80), price: num(0, 1_000_000), priceNote: str(60), lore: str(200), desc: str(6000),
   dept: oneOf(DEPTS), sub: str(80), type: oneOf(TYPES), specs: SPEC,
   firearm: bool, nfa: bool, featured: bool, hide: bool, noPhoto: bool,
+  keywords: str(200), video: YT, cond: oneOf(['New', 'Used', 'Consignment', 'Demo']), images: IMAGES,
   _name: str(200), _photo: str(300), _note: str(300),
 };
+
+/* ------------------------------------------------- the store's own listings */
+const CUSTOM_ID = /^c-[a-z0-9][a-z0-9-]{1,90}$/;
+export function validateCustom(c, i = 0) {
+  const k = `listing ${i + 1}`;
+  if (!c || typeof c !== 'object' || Array.isArray(c)) fail(`${k} must be an object`);
+  if (!CUSTOM_ID.test(String(c.id || ''))) fail(`${k}: "${String(c.id).slice(0, 40)}" is not a listing id`);
+  const allowed = { ...PRODUCT_FIELDS, status: oneOf(['in', 'low', 'ship', 'out']), sku: str(60) };
+  const out = { id: c.id };
+  for (const [f, v] of Object.entries(c)) {
+    if (f === 'id' || v === null || v === '') continue;
+    if (f.startsWith('_') || ['hide', 'noPhoto'].includes(f)) continue;
+    if (!allowed[f]) fail(`${k}: ${f} is not a listing field`);
+    out[f] = allowed[f](v, `${k} ${f}`);
+  }
+  if (!out.name) fail(`${k} needs a name`);
+  if (!out.dept) fail(`${k} needs a department`);
+  if (!out.status) out.status = 'in';
+  return out;
+}
+export function validateCustomChange(ch) {
+  if (!ch || typeof ch !== 'object') fail('listing changes must be an object');
+  const upsert = Array.isArray(ch.upsert) ? ch.upsert : [];
+  const remove = Array.isArray(ch.remove) ? ch.remove : [];
+  if (upsert.length + remove.length > 500) fail('at most 500 listing changes per publish');
+  return { upsert: upsert.map(validateCustom), remove: remove.map((id) => { if (!CUSTOM_ID.test(String(id))) fail(`"${id}" is not a listing id`); return id; }) };
+}
+export function applyCustomChange(list, ch) {
+  const out = Array.isArray(list) ? list.slice() : [];
+  for (const id of ch.remove) { const i = out.findIndex((x) => x.id === id); if (i >= 0) out.splice(i, 1); }
+  for (const c of ch.upsert) { const i = out.findIndex((x) => x.id === c.id); if (i >= 0) out[i] = c; else out.unshift(c); }
+  return out;
+}
+
+/* ------------------------------------------------------------------ uploads */
+/** photos sent with a publish: [{ path, data (base64) }] → checked by their bytes, not their names */
+export function validateUploads(list) {
+  if (!Array.isArray(list)) fail('uploads must be a list');
+  if (list.length > 24) fail('at most 24 photos per publish');
+  return list.map((u, i) => {
+    const k = `photo ${i + 1}`;
+    const p = str(160)(u && u.path, `${k} path`);
+    if (!IMAGE_RE.test(p)) fail(`${k}: "${p}" is not an allowed photo path`);
+    if (!UPLOAD_RE.test(p)) fail(`${k}: uploads are named assets/img/products|uploads/u-…, so they never replace a store photo`);
+    if (typeof u.data !== 'string' || !/^[A-Za-z0-9+/=]+$/.test(u.data)) fail(`${k} is not image data`);
+    const buf = Buffer.from(u.data, 'base64');
+    if (buf.length > 1_600_000) fail(`${k} is too large (${Math.round(buf.length / 1024)} KB of 1,600)`);
+    const isWebp = buf.slice(0, 4).toString('latin1') === 'RIFF' && buf.slice(8, 12).toString('latin1') === 'WEBP';
+    const isJpeg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+    const isPng = buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const ext = p.split('.').pop().toLowerCase();
+    if (!((isWebp && ext === 'webp') || (isJpeg && /jpe?g/.test(ext)) || (isPng && ext === 'png'))) fail(`${k} is not a WebP, JPEG or PNG image`);
+    return { path: p, base64: u.data };
+  });
+}
 
 /** Check a product patch. Returns the cleaned patch. */
 export function validateProductPatch(patch) {
@@ -190,6 +253,41 @@ export function validateSynonyms(list) {
   });
 }
 
+/* ------------------------------------------------------------ search pins */
+export function validatePins(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) fail('pins must be search words → product ids');
+  const entries = Object.entries(v);
+  if (entries.length > 150) fail('at most 150 pinned searches');
+  const out = {};
+  for (const [q, ids] of entries) {
+    const term = str(40)(q, 'pinned search').toLowerCase();
+    if (!term) continue;
+    if (!Array.isArray(ids) || !ids.length || ids.length > 12) fail(`"${term}" needs 1 to 12 products`);
+    out[term] = ids.map((id) => { if (!ID_RE.test(String(id))) fail(`"${id}" is not a product id`); return String(id); });
+  }
+  return out;
+}
+
+/* ---------------------------------------------------------------- spotlight */
+export function validateSpotlight(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) fail('spotlight must be an object');
+  const interval = v.interval == null ? 7 : num(4, 30)(v.interval, 'slide interval');
+  if (!Array.isArray(v.slides) || v.slides.length > 8) fail('spotlight needs a list of up to 8 slides');
+  const slides = v.slides.map((sl, i) => {
+    const k = `slide ${i + 1}`;
+    if (!sl || typeof sl !== 'object') fail(`${k} must be an object`);
+    const out = { id: str(40)(String(sl.id || `s${i + 1}`), `${k} id`), on: sl.on !== false, title: str(90)(sl.title ?? '', `${k} title`) };
+    if (!out.title) fail(`${k} needs a headline`);
+    for (const [f, max] of [['eyebrow', 40], ['text', 220], ['cta', 30]]) if (sl[f]) out[f] = str(max)(sl[f], `${k} ${f}`);
+    if (sl.link) { const l = str(300)(sl.link, `${k} link`); out.link = /^\/(?!\/)[\w\-./?=&%#+]*$/.test(l) ? l : url(l, `${k} link`); }
+    if (sl.image) { const im = str(160)(sl.image, `${k} image`); if (!IMAGE_RE.test(im) && !/^assets\/img\/[\w/-]+\.(webp|jpe?g|png|avif)$/i.test(im)) fail(`${k}: the image must be a photo on this site`); out.image = im; }
+    if (sl.video) out.video = YT(sl.video, `${k} video`);
+    for (const d of ['start', 'end']) if (sl[d]) { if (!DATE_RE.test(sl[d])) fail(`${k} ${d} must be a date`); out[d] = sl[d]; }
+    return out;
+  });
+  return { interval, slides };
+}
+
 /** the whole settings file, checked */
 export function validateSettings(s) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) fail('settings must be an object');
@@ -198,7 +296,18 @@ export function validateSettings(s) {
     if (k === 'facts') out.facts = validateFacts(v);
     else if (k === 'notices') out.notices = validateNotices(v);
     else if (k === 'synonyms') out.synonyms = validateSynonyms(v);
+    else if (k === 'pins') out.pins = validatePins(v);
+    else if (k === 'spotlight') out.spotlight = validateSpotlight(v);
     else fail(`${k} is not a settings section`);
   }
   return out;
+}
+
+/** every photo path a publish refers to (product edits, listings, spotlight) */
+export function photosIn({ patch, custom, settings }) {
+  const set = new Set();
+  for (const st of Object.values(patch || {})) for (const p of (st && st.images) || []) set.add(p);
+  for (const c of (custom && custom.upsert) || []) for (const p of c.images || []) set.add(p);
+  for (const x of ((settings && settings.spotlight) || {}).slides || []) if (x.image) set.add(x.image);
+  return [...set];
 }
