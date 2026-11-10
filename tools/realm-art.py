@@ -5,6 +5,7 @@ realm-art.py — recolour the owner's art for each realm (colour theme).
     python3 tools/realm-art.py --sheet S  also writes a contact sheet to S
     python3 tools/realm-art.py --only     just the realm-only pieces (ONLY below)
     python3 tools/realm-art.py --files a.webp,b.webp   just those pictures of the owner's art
+    python3 tools/realm-art.py --geodes   the Inner Earth geode field (a seamless tile of rhodochrosite)
 
 Polar Night (the default) shows the art as delivered. For the other realms each
 picture keeps its own light and dark (OKLab lightness is untouched, so lettering
@@ -21,7 +22,7 @@ import os
 import sys
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'assets/img/feature')
@@ -195,7 +196,72 @@ def render_only():
                 print(f'{theme}/{name}-{w}.webp', im.size, flush=True)
 
 
+GEODE_TILE = 1400   # px square; the page shows it at half that, so it stays sharp on a 2x screen
+
+
+def geode_tile(seed=11):
+    """A seamless tile packed solid with the rhodochrosite cut-out: one massive geode.
+
+    Crystals are laid one over another until no background is left: each new one is centred on a
+    spot nothing covers yet, at a random size, turn and mirror, a little lighter or darker than the
+    last, with a soft shadow under it so the pile reads as layers of crystal rather than stickers.
+    Anything that crosses an edge is laid again one tile over, so the tile repeats with no seam."""
+    from PIL import ImageEnhance
+    rng = np.random.default_rng(seed)
+    src = Image.open(os.path.join(MASTERS, 'rhodochrosite.png')).convert('RGBA')
+    # trim the pale rim the studio background left round the cut-out, so neighbours run together
+    src.putalpha(src.getchannel('A').filter(ImageFilter.MinFilter(13)).filter(ImageFilter.GaussianBlur(3)))
+    # and calm the grey-white rock between the crystals, so the red carries the field
+    px = np.asarray(src).astype(np.float64)
+    lo, hi = px[..., :3].min(2), px[..., :3].max(2)
+    pale = np.clip((lo - 120) / 80, 0, 1) * np.clip(1 - (hi - lo) / 60, 0, 1)
+    px[..., :3] *= (1 - 0.38 * pale)[..., None]
+    src = Image.fromarray(px.clip(0, 255).astype(np.uint8), 'RGBA')
+    T = GEODE_TILE
+    tile = Image.new('RGBA', (T, T), (0, 0, 0, 0))
+
+    def lay(im, x, y):
+        w, h = im.size
+        for dx in (-T, 0, T):
+            for dy in (-T, 0, T):
+                tile.alpha_composite(im, (int(x - w / 2 + dx), int(y - h / 2 + dy)))
+
+    n = 0
+    while True:
+        a = np.asarray(tile.getchannel('A').resize((140, 140)))
+        open_spots = np.argwhere(a < 250)
+        if len(open_spots) == 0 or n > 400:
+            break
+        # the biggest crystals first, then smaller ones to close the gaps between them
+        big = n < 14
+        cy, cx = open_spots[rng.integers(len(open_spots))] * (T / 140)
+        side = rng.uniform(0.42, 0.62) * T if big else rng.uniform(0.24, 0.40) * T
+        im = src.copy()
+        if rng.uniform() < 0.5:
+            im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        im.thumbnail((int(side), int(side)), Image.LANCZOS)
+        im = im.rotate(rng.uniform(0, 360), resample=Image.BICUBIC, expand=True)
+        rgb, alpha = im.convert('RGB'), im.getchannel('A')
+        rgb = ImageEnhance.Brightness(rgb).enhance(rng.uniform(0.78, 1.08))
+        im = Image.merge('RGBA', (*rgb.split(), alpha))
+        # its shadow: the crystal's outline, blurred, dark, a little below and right
+        sh = Image.new('RGBA', im.size, (8, 2, 1, 0))
+        sh.putalpha(alpha.filter(ImageFilter.GaussianBlur(side * 0.035)).point(lambda v: int(v * 0.75)))
+        lay(sh, cx + side * 0.03, cy + side * 0.05)
+        lay(im, cx, cy)
+        n += 1
+    out_im = Image.new('RGB', (T, T), (40, 10, 8))   # under the last pinholes, the crystal's own dark red
+    out_im.paste(tile, (0, 0), tile)
+    out = os.path.join(OUT, 'inner-earth', 'geode-tile.webp')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    out_im.save(out, 'WEBP', quality=76, method=6)
+    print('geode tile', out_im.size, n, 'crystals', os.path.getsize(out), 'bytes')
+
+
 def main():
+    if '--geodes' in sys.argv:
+        geode_tile()
+        return
     if '--only' in sys.argv:
         render_only()
         return
