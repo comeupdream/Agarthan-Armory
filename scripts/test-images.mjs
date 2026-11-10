@@ -210,6 +210,50 @@ api.close();
   eq(subs, ['rf1', 'hg1', 'rf2', 'hg2', 'rf3', 'hg3', 'rf4', 'hg4'], 'order: categories take turns; add-ons (reloading) sit out the first rounds');
 }
 
+/* ---- a flaky network: retried, never taken as "no photo", the run carries on ---- */
+{
+  const tries = new Map();
+  const net = await new Promise((res) => { const s4 = http.createServer((q, w) => {
+    const u = new URL(q.url, 'http://x'); const self = `http://127.0.0.1:${s4.address().port}`;
+    if (u.pathname !== '/res/v1/images/search') { w.writeHead(200, { 'Content-Type': 'image/jpeg' }); return w.end(JPEG); }
+    const term = u.searchParams.get('q'); const n = (tries.get(term) || 0) + 1; tries.set(term, n);
+    const hit = () => { w.writeHead(200, { 'Content-Type': 'application/json' }); w.end(JSON.stringify({ results: [{ title: term, url: 'https://www.federalpremium.com/p', meta_url: { hostname: 'www.federalpremium.com' }, properties: { url: self + '/x.jpg', width: 1000, height: 1000 } }] })); };
+    if (/Drop Once/.test(term) && n === 1) return q.socket.destroy();               // the connection drops once
+    if (/Busy Once/.test(term) && n === 1) { w.writeHead(429); return w.end(); }     // rate limited once
+    if (/Always Down/.test(term)) return q.socket.destroy();                         // never answers
+    hit();
+  }).listen(0, '127.0.0.1', () => res(s4)); });
+  const nd = mkdtempSync(path.join(tmpdir(), 'aa-net-'));
+  mkdirSync(path.join(nd, 'scraped'), { recursive: true });
+  writeFileSync(path.join(nd, 'scraped', 'catalog.json'), JSON.stringify([
+    { id: 'drop', line: 'drop', name: 'Drop Once', brand: 'Federal' },
+    { id: 'busy', line: 'busy', name: 'Busy Once', brand: 'Federal' },
+    { id: 'down', line: 'down', name: 'Always Down', brand: 'Federal' },
+    { id: 'after', line: 'after', name: 'After The Outage', brand: 'Federal' },
+  ]));
+  const nr = await new Promise((res) => {
+    const c = spawn(process.execPath, [path.join(HERE, 'find-images.mjs'), '--catalog-dir', path.join(nd, 'scraped'), '--img-dir', path.join(nd, 'img'), '--rps', '50', '--lenient'],
+      { cwd: nd, env: { ...process.env, AA_NO_SHARP: '1', AA_RETRY_MS: '5', BRAVE_API_KEY: 'test-key', BRAVE_API_BASE: `http://127.0.0.1:${net.address().port}` } });
+    let out = ''; c.stdout.on('data', (x) => (out += x)); c.stderr.on('data', (x) => (out += x)); c.on('close', (code) => res({ code, out }));
+  });
+  const nc = JSON.parse(readFileSync(path.join(nd, 'scraped', 'catalog.json'), 'utf8'));
+  const nb = (id) => nc.find((p) => p.id === id);
+  eq(nr.code, 0, 'network: the run finishes\n' + nr.out);
+  eq([nb('drop').photoSearch.result, nb('busy').photoSearch.result], ['found', 'found'], 'network: a dropped connection and a rate limit are retried, and the photo found');
+  eq([nb('down').photoSearch, /skipped .*Always Down/.test(nr.out), /1 skipped/.test(nr.out)], [undefined, true, true], 'network: a product the API never answers for is skipped, not marked "no photo" (searched next run)');
+  eq(nb('after').photoSearch.result, 'found', 'network: the run carries on past it');
+  // the API down for good: stop after five in a row, progress saved, nothing marked "no photo"
+  writeFileSync(path.join(nd, 'scraped', 'catalog.json'), JSON.stringify([...Array(8)].map((_, n) => ({ id: `d${n}`, line: `d${n}`, name: `Always Down ${n}`, brand: 'Federal' }))));
+  const dr = await new Promise((res) => {
+    const c = spawn(process.execPath, [path.join(HERE, 'find-images.mjs'), '--catalog-dir', path.join(nd, 'scraped'), '--img-dir', path.join(nd, 'img'), '--rps', '50', '--lenient'],
+      { cwd: nd, env: { ...process.env, AA_NO_SHARP: '1', AA_RETRY_MS: '5', BRAVE_API_KEY: 'test-key', BRAVE_API_BASE: `http://127.0.0.1:${net.address().port}` } });
+    let out = ''; c.stdout.on('data', (x) => (out += x)); c.stderr.on('data', (x) => (out += x)); c.on('close', (code) => res({ code, out }));
+  });
+  const dc = JSON.parse(readFileSync(path.join(nd, 'scraped', 'catalog.json'), 'utf8'));
+  eq([dr.code, /stopped answering/.test(dr.out), /5 skipped/.test(dr.out), dc.every((p) => !p.photoSearch)], [0, true, true, true], 'network: the API down for good stops the run after five, progress saved, nothing marked "no photo"');
+  net.close();
+}
+
 /* ---- the stricter photo bar, --top and --recheck ---- */
 {
   const F = await import('./find-images.mjs');

@@ -301,21 +301,34 @@ async function main() {
     process.exit(1);
   }
 
-  let calls = 0, found = 0, none = 0, last = 0, looked = 0;
+  let calls = 0, found = 0, none = 0, last = 0, looked = 0, skipped = 0, downInARow = 0;
+  // A dropped connection, a timeout, a rate limit or a server error is retried (2s, 4s, 8s), never taken
+  // as "no photo": if it keeps failing, the product is skipped this run and searched again next run.
+  const NetError = (why) => Object.assign(new Error(why), { network: true });
+  const RETRY_MS = Number(process.env.AA_RETRY_MS) || 1000;          // the tests shorten the waits
   const search = async (q) => {
-    const wait = 1000 / RPS - (Date.now() - last); if (wait > 0) await sleep(wait);
-    last = Date.now(); calls++;
-    const r = await fetch(`${API}/res/v1/images/search?q=${encodeURIComponent(q)}&count=20&safesearch=off`, { headers: { 'X-Subscription-Token': KEY, Accept: 'application/json' } });
-    if (r.status === 401 || r.status === 403) throw Object.assign(new Error(`the API refused the key (HTTP ${r.status})`), { fatal: true });
-    if (r.status === 429) { await sleep(2000); return []; }
-    if (!r.ok) return [];
-    const j = await r.json();
-    return (j.results || []).map((x) => ({
+    let why = '';
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      if (attempt > 1) await sleep(RETRY_MS * 2 ** (attempt - 1));
+      const wait = 1000 / RPS - (Date.now() - last); if (wait > 0) await sleep(wait);
+      last = Date.now();
+      let r;
+      try {
+        r = await fetch(`${API}/res/v1/images/search?q=${encodeURIComponent(q)}&count=20&safesearch=off`, { headers: { 'X-Subscription-Token': KEY, Accept: 'application/json' }, signal: AbortSignal.timeout(20000) });
+      } catch (e) { why = e.name === 'TimeoutError' ? 'timed out' : `connection failed (${(e.cause && e.cause.code) || e.message})`; continue; }
+      if (r.status === 401 || r.status === 403) throw Object.assign(new Error(`the API refused the key (HTTP ${r.status})`), { fatal: true });
+      if (r.status === 429 || r.status >= 500) { why = `HTTP ${r.status}`; await r.body?.cancel().catch(() => {}); continue; }
+      calls++;                                                       // a search the API answered (and bills)
+      if (!r.ok) return [];
+      let j; try { j = await r.json(); } catch { why = 'a broken answer'; continue; }
+      return (j.results || []).map((x) => ({
       image: (x.properties && x.properties.url) || (x.thumbnail && (x.thumbnail.original || x.thumbnail.src)),
       page: x.url, title: x.title || '',
       host: (x.meta_url && (x.meta_url.hostname || x.meta_url.netloc)) || x.source || (() => { try { return new URL(x.url).hostname; } catch { return ''; } })(),
       width: (x.properties && x.properties.width) || 0, height: (x.properties && x.properties.height) || 0,
-    })).filter((x) => x.image);
+      })).filter((x) => x.image);
+    }
+    throw NetError(why || 'no answer');
   };
   const download = async (url) => {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
@@ -337,6 +350,7 @@ async function main() {
       const upc = upcOf(p);
       const queries = queriesFor(p, upc);
       let chosen = null;
+      try {
       for (const q of queries) {
         if (calls >= BUDGET) break;
         const ranked = (await search(q)).map((r) => ({ ...r, score: scoreResult(r, p, upc, { strict: STRICT }) })).filter((r) => r.score >= MIN_SCORE).sort((a, b) => b.score - a.score);
@@ -354,6 +368,15 @@ async function main() {
         }
         if (chosen) break;
       }
+      } catch (e) {
+        if (!e.network) throw e;
+        // the network let us down: this line is left for the next run (not marked "none"); stop if it stays down
+        skipped += group.length;
+        if (++downInARow >= 5) { console.log(`  ✗ the search API stopped answering (${e.message}): progress saved — run the same command again to continue`); break; }
+        console.log(`    ! skipped ${p.brand || ''} ${p.name}: ${e.message} (searched again next run)`);
+        continue;
+      }
+      downInARow = 0;
       const at = new Date().toISOString();
       if (chosen) {
         found += group.length;
@@ -379,7 +402,7 @@ async function main() {
 <h1>Photo review — ${withSrc.length} products found online. Pink outline = weaker match; check those first.</h1><div class="g">${withSrc.map((p) =>
     `<div class="c${p.photoSource.score < 6 ? ' lo' : ''}"><img src="${esc(rel + '/' + p.localImages[0])}" loading="lazy" alt=""><div class="n">${esc(p.brand)} — ${esc(p.name)}</div><div class="m">UPC ${esc(upcOf(p) || '—')} · <a href="${esc(p.photoSource.page)}" target="_blank">${esc((() => { try { return new URL(p.photoSource.page).hostname; } catch { return 'source'; } })())}</a> · score ${p.photoSource.score}</div></div>`).join('')}</div>`);
 
-  console.log(`\n✓ ${found} photos found, ${none} not found, ${calls} searches used`);
+  console.log(`\n✓ ${found} photos found, ${none} not found, ${calls} searches used${skipped ? ` · ${skipped} skipped (the network failed; run again to search them)` : ''}`);
   console.log(`  check: ${path.relative(process.cwd(), path.join(CAT_DIR, 'photo-review.html'))} (open in a browser)`);
   console.log('  then: npm run build:catalog');
 }

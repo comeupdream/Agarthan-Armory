@@ -186,7 +186,10 @@ node scripts/find-images.mjs --top 1500 --budget 2500
 ```
 
 Then `npm run build:catalog`, commit and push. Runs resume where they left
-off; `--retry` searches again for products nothing was found for.
+off; `--retry` searches again for products nothing was found for. A dropped
+connection, a timeout or a rate limit is retried; a product the API still
+doesn't answer for is skipped (never marked "nothing found") and searched on
+the next run. If the API stays down, the run stops with its progress saved.
 
 ## Product photos (by UPC)
 
