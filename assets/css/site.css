@@ -1185,3 +1185,9 @@ html[data-theme="vril"] :is(.realm-only[data-realms~="vril"], .realm-only [data-
 .realm-plate img { width: 100%; height: auto; border: 1px solid var(--line); }
 .realm-plate figcaption { margin-top: 10px; font-size: 14px; color: var(--sub); }
 .realm-plate figcaption b { color: var(--frost); font-weight: 600; }
+@media (max-width: 760px) {
+  /* on a phone the words sit under the picture, so the crystals are seen whole */
+  .vista-frame img { height: 280px; }
+  .vista-frame::after { background: linear-gradient(180deg, var(--void) 0%, transparent 16%, transparent 70%, var(--void) 280px, var(--void) 100%); }
+  .vista-cap { position: relative; bottom: auto; padding: 0 0 22px; margin-top: -26px; }
+}

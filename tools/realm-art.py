@@ -33,7 +33,10 @@ FILES = ['manifesto-1280.webp', 'manifesto-2400.webp', 'tiny-cans-640.webp', 'ti
 # art that belongs to some realms only: master in assets/img/realm-src/, realms, widths to serve
 ONLY = {
     'naica': {'src': 'naica.jpg', 'realms': ['inner-earth', 'mono'], 'widths': [1600, 2600]},
-    'symmes-hole': {'src': 'symmes-hole.jpg', 'realms': ['inner-earth', 'mono'], 'widths': [1000]},
+    # cropped inside the engraving's printed frame (which also drops its caption line), and inverted:
+    # light lines on the dark site read as an etched schematic rather than a sheet of paper
+    'symmes-hole': {'src': 'symmes-hole.jpg', 'realms': ['inner-earth', 'mono'], 'widths': [980],
+                    'crop': (14, 14, 997, 712), 'invert': True},
 }
 # A realm-only photo is mostly near-white or grey (crystal, an engraving), so moving its hues does
 # little; instead its lightness is mapped through the realm's own ramp, dark to light (a tone map).
@@ -153,6 +156,10 @@ def tone(rgb, stops, mix=0.88):
 def render_only():
     for name, spec in ONLY.items():
         master = Image.open(os.path.join(MASTERS, spec['src'])).convert('RGB')
+        if spec.get('crop'):
+            master = master.crop(spec['crop'])
+        if spec.get('invert'):
+            master = Image.eval(master, lambda v: 255 - v)
         big = master.copy()
         big.thumbnail((max(spec['widths']), max(spec['widths'])), Image.LANCZOS)
         arr = np.asarray(big).astype(np.float64) / 255
