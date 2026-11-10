@@ -566,13 +566,14 @@
   }
 
   /* ---------- the owner's art, in the realm's colours ----------
-   * The banner, the Tiny Cans poster and the Antarctica notes have a recoloured
+   * The banner, the Tiny Cans poster, the Antarctica notes and the holographic
+   * sight in blue light (holo-laser) have a recoloured
    * copy per realm in assets/img/feature/realm/<theme>/ (made by
    * tools/realm-art.py). Polar Night shows them as delivered. Any <img> or
    * <source> pointing at one of them follows html[data-theme], now and when it
    * changes; the browser keeps the old picture up until the new one arrives. */
   const REALMS = new Set(['inner-earth', 'mono', 'crystal', 'vril']);
-  const REALM_ART = /assets\/img\/feature\/(?:realm\/[a-z-]+\/)?((?:manifesto-\d+|tiny-cans-\d+|antarctica-dollars-750|antarctica-20-(?:front|both))\.webp)/g;
+  const REALM_ART = /assets\/img\/feature\/(?:realm\/[a-z-]+\/)?((?:manifesto-\d+|tiny-cans-\d+|antarctica-dollars-750|antarctica-20-(?:front|both)|holo-laser-\d+)\.webp)/g;
   AA.realmSrc = (s, theme = document.documentElement.dataset.theme) =>
     s.replace(REALM_ART, (m, file) => `assets/img/feature/${REALMS.has(theme) ? `realm/${theme}/` : ''}${file}`);
   function realmArt() {
