@@ -52,7 +52,7 @@
   for (const [k, v] of params) if (k.startsWith('f.') && LABEL[k.slice(2)]) state.f[k.slice(2)] = new Set(v.split('|').filter(Boolean));
   if (params.get('brand')) state.f.brand = new Set([params.get('brand')]);         // older links
 
-  const hay = (i) => [i.name, i.brand, i.sub, (AA.DEPTS[i.dept] || {}).name, i.desc, i.sku,
+  const hay = (i) => [i.name, i.brand, i.sub, (AA.DEPTS[i.dept] || {}).name, i.desc, i.sku, i.kw, i.cond,
     ...Object.values(i.specs || {}), ...Object.values(i.f || {}).flat()].filter(Boolean).join(' ').toLowerCase();
   items.forEach((i) => { i._hay = hay(i) + (i.sub === 'AR & Rifle-Caliber Pistols' ? ' arp ar pistol' : ''); });
   // the default order (assets/js/order.js, shared with the photo tool): the store's own shelf first,
@@ -188,7 +188,21 @@
       // ammo by price per round; anything without one after
       cpr: (a, b) => (a.cpr ?? Infinity) - (b.cpr ?? Infinity) || (a.price ?? Infinity) - (b.price ?? Infinity),
     };
-    return r.sort(sorters[state.sort] || sorters.featured);
+    r.sort(sorters[state.sort] || sorters.featured);
+    return pinFirst(r);
+  }
+  // pinned in the Ops Console: for this search, these come first (in the order set) — a pin promotes, it never
+  // adds a product the search would not find on its own
+  const PINS = AA.cfg.pins || {};
+  function pinFirst(r) {
+    const q = state.q.trim().toLowerCase();
+    if (!q || (state.sort && state.sort !== 'featured')) return r;
+    const order = [];
+    for (const k of [q, ...q.split(/\s+/)]) for (const id of PINS[k] || []) if (!order.includes(id)) order.push(id);
+    if (!order.length) return r;
+    const at = new Map(order.map((id, n) => [id, n]));
+    const pinned = r.filter((i) => at.has(i.id)).sort((a, b) => at.get(a.id) - at.get(b.id));
+    return pinned.length ? [...pinned, ...r.filter((i) => !at.has(i.id))] : r;
   }
   /* the grid shows one page at a time (Show: 24 / 48 / 96 / 192), with numbered pages below it:
      an endless scroll grew the page without end and left the footer out of reach */
@@ -239,7 +253,7 @@
     $('#emptyState').hidden = r.length > 0;
     // a search that found nothing tells the Ops Console (anonymously), so the store sees what people look for
     clearTimeout(missT);
-    if (state.q && !r.length) { const q0 = state.q; missT = setTimeout(() => { if (state.q === q0 && q0 !== lastMiss) { lastMiss = q0; AA.beacon({ p: location.pathname, q: q0 }); } }, 1500); }
+    if (state.q) { const q0 = state.q, n0 = r.length; missT = setTimeout(() => { if (state.q === q0 && q0 !== lastMiss) { lastMiss = q0; AA.beacon({ p: location.pathname, q: q0, found: n0 }); } }, 1500); }
     $('#resultCount').textContent = `${r.length.toLocaleString()} ${r.length === 1 ? 'relic' : 'relics'} in range` +
       (pages > 1 ? ` · ${(from + 1).toLocaleString()}–${Math.min(from + state.per, r.length).toLocaleString()}` : '');
     const d = AA.DEPTS[state.dept];
@@ -312,10 +326,11 @@
       <div class="viz-lg${it.images && it.images[0] ? ' photo' : ''}">${AA.viz(it, true)}${AA.nfaTag(it)}</div>
       <div class="detail-body">
         <div class="card-top"><span>${esc([(AA.DEPTS[it.dept] || {}).title, it.sub].filter(Boolean).join(' › '))}</span><span class="stock ${st[1]}">${esc(st[0])}</span></div>
-        <h2 id="detailTitle">${esc(it.name)}</h2>
+        <h2 id="detailTitle">${it.cond ? `<span class="cond-badge">${esc(it.cond)}</span> ` : ''}${esc(it.name)}</h2>
         <div class="brandline">${[it.brand ? esc(it.brand) : '', it.sku ? `<span style="color:var(--muted)">SKU ${esc(it.sku)}</span>` : ''].filter(Boolean).join(' · ')}</div>
         <div style="margin:18px 0 4px">${AA.priceHtml(it)}</div>
         ${specs.length ? `<table class="spec-table"><tbody>${specs.map(([k, v]) => `<tr><th scope="row">${esc(LABELS[k] || LABEL[k] || k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>` : ''}
+        ${it.video && /^[\w-]{11}$/.test(it.video) ? `<button type="button" class="yt-play" data-yt="${esc(it.video)}" aria-label="Play the video"><img src="https://i.ytimg.com/vi/${esc(it.video)}/hqdefault.jpg" alt="" loading="lazy"><span aria-hidden="true">▶</span></button>` : ''}
         ${it.desc ? `<p class="desc">${esc(it.desc)}</p>` : ''}
         ${it.lore ? `<p class="card lore" style="padding:0;display:block">“${esc(it.lore)}”</p>` : ''}
         ${it.firearm ? `<p class="ffl-note">Firearm: completed in person with photo ID, ATF Form 4473 and a background check. ${AA.cfg.ageMin || 21}+ for handguns, 18+ for long guns. Subject to federal, state and local law.</p>` : ''}
@@ -326,6 +341,13 @@
         </div>
       </div>`;
     if (!dlg.open) dlg.showModal();
+    const yt = $('#detailInner .yt-play');
+    yt && yt.addEventListener('click', () => {
+      const f = document.createElement('iframe');
+      f.className = 'yt-frame'; f.title = `${it.name} — video`; f.allow = 'autoplay; encrypted-media; picture-in-picture'; f.allowFullscreen = true;
+      f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt.dataset.yt)}?autoplay=1&rel=0`;
+      yt.replaceWith(f);
+    });
     // full copy, gallery, spec sheet and store link arrive separately (assets/data/items/<id>.json)
     const imgs = (it.images || []).filter(Boolean);
     if (imgs.length > 1) {

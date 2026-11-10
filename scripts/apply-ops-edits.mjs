@@ -5,12 +5,12 @@
  * same merge as the server, so the result is identical.
  *
  *   node scripts/apply-ops-edits.mjs ops-edits-2026-11-10.json
- *   then: git add assets/data && git commit -m "Ops edits" && git push
+ *   then: git add assets && git commit -m "Ops edits" && git push
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateProductPatch, applyProductPatch, validateSettings } from '../server/edits.mjs';
+import { validateProductPatch, applyProductPatch, validateSettings, validateCustomChange, applyCustomChange, validateUploads } from '../server/edits.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const file = process.argv[2];
@@ -32,7 +32,21 @@ try {
     await writeFile(path.join(ROOT, 'assets/data/site-settings.json'), JSON.stringify({ ...cur, ...st }, null, 2) + '\n');
     console.log(`✓ site-settings.json: ${Object.keys(st).join(', ')}`);
   }
-  console.log('next: git add assets/data && git commit -m "Ops edits" && git push   (the deploy rebuilds the catalogue)');
+  const cu = edits.custom;
+  if (cu && ((cu.upsert || []).length || (cu.remove || []).length)) {
+    const ch = validateCustomChange(cu);
+    const list = applyCustomChange(await read('assets/data/custom-products.json', []), ch);
+    await writeFile(path.join(ROOT, 'assets/data/custom-products.json'), JSON.stringify(list, null, 2) + '\n');
+    console.log(`✓ custom-products.json: ${ch.upsert.length} listing(s) saved, ${ch.remove.length} removed`);
+  }
+  if (Array.isArray(edits.uploads) && edits.uploads.length) {
+    for (const u of validateUploads(edits.uploads)) {
+      await mkdir(path.dirname(path.join(ROOT, u.path)), { recursive: true });
+      await writeFile(path.join(ROOT, u.path), Buffer.from(u.base64, 'base64'));
+    }
+    console.log(`✓ ${edits.uploads.length} photo(s) written under assets/img`);
+  }
+  console.log('next: git add assets && git commit -m "Ops edits" && git push   (the deploy rebuilds the catalogue)');
 } catch (e) {
   console.error(`✗ ${e.message}`);
   process.exit(1);

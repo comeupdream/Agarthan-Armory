@@ -28,7 +28,8 @@ services:
     # The Ops Console (/ops) — set these in the dashboard (README → Ops Console):
     #   OPS_PASSWORD  unlocks it            GH_TOKEN  publishes edits (Contents: read/write, this repo only)
     #   DATA_DIR=/var/data + a 1 GB disk at /var/data   inbox and traffic
-    #   WOO_URL, WOO_CK, WOO_CS (read-only key)          the Orders tab
+    #   WOO_URL, WOO_CK, WOO_CS (read-only key)          the Orders tab and the theme check
+    #   RESEND_API_KEY + ALERT_EMAIL (MAIL_FROM optional) email alerts for requisitions and messages
     envVars:
       - key: NODE_VERSION
         value: "22"

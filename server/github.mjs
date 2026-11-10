@@ -75,7 +75,15 @@ export async function commitFiles(build, message, { tries = 4 } = {}) {
     const files = await build((p) => readAt(head, p));
     if (!files.length) return { sha: head, url: null, unchanged: true };
     const base = await gh('GET', `/git/commits/${head}`);
-    const tree = await gh('POST', '/git/trees', { base_tree: base.tree.sha, tree: files.map((f) => ({ path: f.path, mode: '100644', type: 'blob', content: f.content })) });
+    // text goes in as content; photos as base64 blobs first
+    const entries = [];
+    for (const f of files) {
+      if (f.base64 !== undefined) {
+        const blob = await gh('POST', '/git/blobs', { content: f.base64, encoding: 'base64' });
+        entries.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
+      } else entries.push({ path: f.path, mode: '100644', type: 'blob', content: f.content });
+    }
+    const tree = await gh('POST', '/git/trees', { base_tree: base.tree.sha, tree: entries });
     const commit = await gh('POST', '/git/commits', { message, tree: tree.sha, parents: [head] });
     try {
       await gh('PATCH', `/git/refs/heads/${encodeURIComponent(c.branch)}`, { sha: commit.sha, force: false });
@@ -84,4 +92,18 @@ export async function commitFiles(build, message, { tries = 4 } = {}) {
       if (!(e instanceof GitHubError) || e.status !== 422 || attempt >= tries) throw e;   // 422: someone pushed first — redo on top
     }
   }
+}
+
+/** recent commits that touched any of these files, newest first */
+export async function history(paths, limit = 25) {
+  const c = cfg();
+  const seen = new Map();
+  for (const p of paths) {
+    const list = await gh('GET', `/commits?sha=${encodeURIComponent(c.branch)}&path=${encodeURIComponent(p)}&per_page=${limit}`);
+    for (const x of list || []) {
+      if (seen.has(x.sha)) { seen.get(x.sha).files.push(p); continue; }
+      seen.set(x.sha, { sha: x.sha, message: String((x.commit && x.commit.message) || '').split('\n')[0].slice(0, 200), author: (x.commit && x.commit.author && x.commit.author.name) || '', date: (x.commit && x.commit.author && x.commit.author.date) || '', url: x.html_url || '', files: [p] });
+    }
+  }
+  return [...seen.values()].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, limit);
 }

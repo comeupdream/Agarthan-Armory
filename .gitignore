@@ -15,3 +15,4 @@ assets/data/scraped/**/lines.json
 assets/data/scraped/**/empty-lines.json
 __pycache__/
 .screens/
+.skin-audit/

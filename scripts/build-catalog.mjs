@@ -270,6 +270,8 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
     let images = (p.localImages && p.localImages.length) ? p.localImages : remoteImages ? (p.images || []) : [];
     if ((own && p.photoSource) || o.noPhoto) images = [];
     images = images.filter((f) => !rejected.has(f));
+    // photos uploaded from the Ops Console replace the feed's (and bring a pulled one back)
+    if (Array.isArray(o.images) && o.images.length) images = o.images.slice();
     const status = p.availability || (p.price != null ? 'in' : 'ask');
     let sub = o.sub || subOf(dept, p);
     const f = { ...facetsOf(dept, sub, p), ...(o.f || {}) };
@@ -319,9 +321,41 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       also,   // other categories it shows under   // its product line (variants share one), for the default order
       featured: Boolean(o.featured),
       rank: p.rank ?? items.length,
+      kw: o.keywords || undefined,   // extra search terms set in the Ops Console
+      video: o.video || undefined,   // a YouTube id, shown in the detail view
+      cond: o.cond || undefined,     // Used / Consignment / Demo
     });
   }
   return items;
+}
+
+/** The store's own listings, added in the Ops Console (used and consignment
+ *  guns, one-offs the distributor feed never carries): assets/data/custom-products.json. */
+export function customItems(list, overrides = {}) {
+  const out = [];
+  for (const c of Array.isArray(list) ? list : []) {
+    if (!c || !c.id || !c.name || !c.dept) continue;
+    const o = overrides[c.id] || {};
+    if (o.hide || c.hide) continue;
+    const firearm = o.firearm ?? c.firearm ?? FIREARM_DEPTS.has(c.dept);
+    out.push({
+      id: c.id, dept: o.dept || c.dept, sub: o.sub || c.sub || null, f: {},
+      type: o.type || c.type || iconFor(c.dept, { name: c.name, categories: [] }),
+      name: o.name || c.name, brand: o.brand || c.brand || null,
+      price: o.price !== undefined ? o.price : c.price ?? null, was: null,
+      priceNote: o.priceNote || c.priceNote || null, status: c.status || 'in', firearm,
+      nfa: (o.nfa ?? c.nfa) || undefined,
+      specs: { ...(c.specs || {}), ...(o.specs || {}) },
+      desc: clip(o.desc || c.desc || '', 6000), lore: o.lore || c.lore || null,
+      images: o.noPhoto ? [] : (o.images || c.images || []).slice(0, 6),
+      url: null, sku: c.sku || null,
+      shelf: c.status === 'in' || c.status === 'low' || undefined,
+      ln: c.id, featured: Boolean(o.featured ?? c.featured), rank: 0,
+      kw: o.keywords || c.keywords || undefined, video: o.video || c.video || undefined,
+      cond: o.cond || c.cond || undefined, custom: true,
+    });
+  }
+  return out;
 }
 
 /** Every scraped store: assets/data/scraped/catalog.json (the main site) plus
@@ -373,7 +407,9 @@ async function main() {
     site: reports.map((r) => r.site).filter(Boolean).join(' + ') || null,
     finishedAt: reports.map((r) => r.finishedAt).filter(Boolean).sort().pop() || null,
   };
-  const items = buildItems(scraped, overrides, { remoteImages: argv.includes('--remote-images') });
+  let custom = [];
+  try { custom = JSON.parse(await readFile(path.resolve(arg('custom', 'assets/data/custom-products.json')), 'utf8')); } catch { /* none yet */ }
+  const items = [...customItems(custom, overrides), ...buildItems(scraped, overrides, { remoteImages: argv.includes('--remote-images') })];
   const byDept = items.reduce((a, i) => ((a[i.dept] = (a[i.dept] || 0) + 1), a), {});
   // fresh details folder each build, so removed products leave no stale files
   if (path.basename(DETAILS) === 'items' && DETAILS.startsWith(process.cwd() + path.sep)) await rm(DETAILS, { recursive: true, force: true });

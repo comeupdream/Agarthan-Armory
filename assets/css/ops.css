@@ -231,3 +231,14 @@ button.ops-tile:hover { border-color: var(--line-strong); }
   .ops-notice-row { grid-template-columns: 1fr; }
 }
 .ops-f > .ops-link { justify-self: start; }
+/* photo strip in the editors */
+.ops-photos { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.ops-ph { position: relative; width: 104px; height: 104px; background: radial-gradient(120% 95% at 50% 30%, #fff, #fff 62%, #cfe5f1); border: 1px solid rgba(var(--soft-rgb), .4); }
+.ops-ph img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+.ops-ph b { position: absolute; left: 4px; top: 4px; padding: 2px 5px; background: var(--cyan); color: var(--on-accent); font: 400 9px/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
+.ops-ph-act { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; background: rgba(3, 7, 14, .78); }
+.ops-ph-act button { flex: 1; height: 24px; background: none; border: 0; color: var(--frost); cursor: pointer; font-size: 14px; }
+.ops-ph-act button:hover:not(:disabled) { color: var(--cyan); }
+.ops-ph-act button:disabled { opacity: .3; cursor: default; }
+.ops-upload { cursor: pointer; justify-self: start; }
+.cond-badge { display: inline-block; padding: 2px 6px; border: 1px solid rgba(255, 191, 90, .55); color: var(--amber); font: 400 9.5px/1.2 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; vertical-align: middle; }

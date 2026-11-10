@@ -17,7 +17,7 @@
 
 defined('ABSPATH') || exit;
 
-define('AGARTHAN_THEME_VERSION', '1.0.0');
+define('AGARTHAN_THEME_VERSION', '1.1.0');
 
 /* =============================================================================
    STORE FACTS
@@ -778,6 +778,17 @@ add_action('woocommerce_admin_order_data_after_shipping_address', function ($ord
         echo '<p><strong>' . esc_html($k) . ':</strong> ' . esc_html($v) . '</p>';
     }
 });
+
+/* the release on the order's REST answer, so the site's Ops Console (read-only key) can show it */
+add_filter('woocommerce_rest_prepare_shop_order_object', function ($response, $order) {
+    $lines = agarthan_order_release_lines($order);
+    if ($lines && is_object($response) && method_exists($response, 'get_data')) {
+        $data = $response->get_data();
+        $data['agarthan_release'] = $lines;
+        $response->set_data($data);
+    }
+    return $response;
+}, 10, 2);
 
 add_action('woocommerce_order_details_after_order_table', function ($order) {
     $lines = agarthan_order_release_lines($order);

@@ -84,5 +84,13 @@ eq(strpos($f, 'product-category/handguns') === false && strpos($f, 'product-cate
 eq(substr_count($f, '<svg'), 4, 'four card marks by default');
 eq(strpos($f, '(561) 830-3366') !== false, true, 'footer shows the phone');
 
+/* ---- the release rides on the order's REST answer (for the Ops Console) ---- */
+class AA_Resp { public $d; public function __construct($d) { $this->d = $d; } public function get_data() { return $this->d; } public function set_data($d) { $this->d = $d; } }
+class AA_Ord { public $m; public function __construct($m) { $this->m = $m; } public function get_meta($k) { return isset($this->m[$k]) ? $this->m[$k] : ''; } }
+$r = apply_filters('woocommerce_rest_prepare_shop_order_object', new AA_Resp(array('id' => 41)), new AA_Ord(array('_aa_release' => 'ffl', '_aa_ffl_name' => 'Gulf Coast Arms', '_aa_ffl_phone' => '555')));
+eq(isset($r->d['agarthan_release']['Receiving FFL']) && strpos($r->d['agarthan_release']['Receiving FFL'], 'Gulf Coast Arms') !== false, true, 'REST: an order carries its firearm release for the console');
+$r = apply_filters('woocommerce_rest_prepare_shop_order_object', new AA_Resp(array('id' => 42)), new AA_Ord(array()));
+eq(isset($r->d['agarthan_release']), false, 'REST: orders without a firearm are untouched');
+
 echo ($fail ? '✗' : '✓') . " $pass passed, $fail failed\n";
 exit($fail ? 1 : 0);

@@ -16,7 +16,7 @@ export function inputFiles(root) {
     add(scraped);
     for (const d of readdirSync(scraped).sort()) if (statSync(path.join(scraped, d)).isDirectory()) add(path.join(scraped, d));
   }
-  for (const f of ['assets/data/overrides.json', 'scripts/build-catalog.mjs', 'scripts/lib-facets.mjs', 'scripts/lib-store.mjs']) {
+  for (const f of ['assets/data/overrides.json', 'assets/data/custom-products.json', 'scripts/build-catalog.mjs', 'scripts/lib-facets.mjs', 'scripts/lib-store.mjs']) {
     if (existsSync(path.join(root, f))) files.push(path.join(root, f));
   }
   return files;
