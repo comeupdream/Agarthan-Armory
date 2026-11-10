@@ -354,7 +354,6 @@ async function main() {
   // photo; the full copy and gallery live in assets/data/items/<id>.json and
   // load when a product is opened
   const DETAILS = path.resolve(arg('details-dir', path.join(path.dirname(OUTF), 'items')));
-  const SUMMARY = 280;
   // --in names one scraped catalog; by default every store under assets/data/scraped/ is merged
   let scraped, reports = [];
   if (IN) {
@@ -383,15 +382,21 @@ async function main() {
   const CARD_SPECS = ['caliber', 'capacity', 'barrel', 'count', 'magnification', 'reticle'];
   for (const it of items) {
     const extraSpecs = Object.keys(it.specs).some((k) => !CARD_SPECS.includes(k));
-    if (it.desc.length > SUMMARY || it.images.length > 1 || extraSpecs || it.url || it.sheet) {
+    // the description only ever shows in the detail view, so it lives in the detail file alone —
+    // a third of the grid's download with 20,000 products
+    if (it.desc || it.images.length > 1 || extraSpecs || it.url || it.sheet) {
       // the store's sheet replaces the derived rows in the detail view (sheet: true says so)
       await writeFile(path.join(DETAILS, `${it.id}.json`), JSON.stringify({ desc: it.desc, images: it.images, specs: it.sheet || it.specs, sheet: !!it.sheet || undefined, url: it.url || undefined }));
       detailFiles++;
-      it.desc = clip(it.desc, SUMMARY);
       it.images = it.images.slice(0, 1);
       it.specs = Object.fromEntries(Object.entries(it.specs).filter(([k]) => CARD_SPECS.includes(k)));
       delete it.url; delete it.sheet;
       it.more = true;
+    }
+    delete it.desc;
+    // empty defaults (null, false, '', {}, []) are left out; the site reads a missing field the same way
+    for (const [k, v] of Object.entries(it)) {
+      if (v === null || v === false || v === '' || (typeof v === 'object' && v && !Object.keys(v).length)) delete it[k];
     }
   }
   const head = { demo: false, source: report.site || 'store', updated: (report.finishedAt || new Date().toISOString()).slice(0, 10) };
