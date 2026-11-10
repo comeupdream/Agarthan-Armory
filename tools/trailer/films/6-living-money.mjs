@@ -373,7 +373,7 @@ function lens(t) {
 
 export default {
   key: 'living-money',
-  poster: 35.6,
+  poster: 33.2,
   title: 'The Living Money — every realm’s own art, then the Antarctica $20 and $2 come alive',
   dur: 49,
   url: '/index.html',
