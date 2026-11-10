@@ -113,6 +113,47 @@ const MUSIC = {
     lead: (B) => beats(29.6, B, [[69, 0.5], [70, 0.5], [69, 0.5], [65, 0.5], [74, 1], [75, 0.5], [74, 1.5]]),
     kick: { f0: 210, f1: 48, decay: 0.12 }, fade: [40.2, 41.95],
   },
+  // the realms and the living money: F Lydian (the raised fourth floats), a breakbeat under
+  // the realm tour, then four on the floor as the money comes alive; bars land on 30, 34, 38
+  'living-money': {
+    key: 'F Lydian', bpm: 120, grid: 0.0, sub: 29, wind: 0.26,
+    chords: [[41, [53, 57, 60, 64]], [43, [55, 59, 62, 65]], [45, [57, 60, 64, 67]], [43, [55, 59, 62, 67]]],
+    calmAt: 41.2, calm: [[41, [53, 57, 60, 64]], [38, [50, 57, 60, 65]]],
+    steps: [65, 67, 69, 71, 72, 74, 76, 77],
+    fontPitch: { runic: 77, oldworld: 72, future: 81 },
+    arp: [0, 1, 2, 3, 4, 3, 2, 1],
+    sections: [
+      { a: 2.4, z: 26.0, groove: 'break', lvl: 0.55, arp: 'pluck8' },
+      { a: 26.0, z: 30.0, groove: 'drift', lvl: 0.6, arp: 'slow' },
+      { a: 30.0, z: 34.0, groove: 'four', lvl: 0.9, arp: 'pluck16' },
+      { a: 34.0, z: 38.0, groove: 'four', lvl: 1.1, arp: 'pluck', clap: true, stabs: true },
+      { a: 38.0, z: 41.2, groove: 'drift', lvl: 0.55, arp: 'slow' },
+    ],
+    lead: (B) => beats(34.0, B, [[77, 0.5], [76, 0.5], [72, 1], [71, 0.5], [72, 0.5], [74, 1], [76, 1], [77, 1]]),
+    kick: { f0: 220, f1: 48, decay: 0.12 }, fade: [47.4, 48.95],
+  },
+  // the edge of the world: B minor, i-VI-III-VII, hand drums for the flight along the wall,
+  // four on the floor at the hole in the pole (bar 11 lands on 30.0), resolving to B major below
+  'edge-of-the-world': {
+    key: 'B minor', bpm: 88, grid: 0.0, sub: 35, wind: 0.32,
+    chords: [[35, [47, 50, 54, 59]], [31, [47, 50, 55, 59]], [38, [50, 54, 57, 62]], [33, [49, 52, 57, 61]]],
+    calmAt: 42.6, calm: [[35, [47, 51, 54, 59]], [40, [52, 56, 59, 64]]],
+    steps: [71, 73, 74, 76, 78, 79, 81, 83],
+    fontPitch: { runic: 83, oldworld: 78, future: 86 },
+    arp: [0, 2, 1, 3, 2, 4, 3, 1],
+    sections: [
+      { a: 1.6, z: 7.6, groove: 'drift', lvl: 0.45, arp: 'slow' },
+      { a: 7.6, z: 13.6, groove: 'drift', lvl: 0.55, arp: 'slow' },
+      { a: 13.6, z: 21.8, groove: 'ritual', lvl: 0.55, arp: 'slow8' },
+      { a: 21.8, z: 29.7, groove: 'ritual', lvl: 0.8, arp: 'pluck8' },
+      { a: 29.7, z: 32.7, groove: 'roll', lvl: 0.9 },
+      { a: 32.7, z: 36.7, groove: 'four', lvl: 1.1, arp: 'pluck16', clap: true, stabs: true },
+      { a: 36.7, z: 38.1, groove: 'roll', lvl: 0.9 },
+      { a: 38.1, z: 42.6, groove: 'drift', lvl: 0.5, arp: 'slow' },
+    ],
+    lead: (B) => beats(32.73, B, [[78, 1], [83, 1], [81, 0.5], [78, 0.5], [76, 1], [78, 2]]),
+    kick: { f0: 200, f1: 44, decay: 0.14 }, fade: [47.6, 48.95],
+  },
 };
 
 function score(film) {
