@@ -33,7 +33,8 @@ for (const page of fs.readdirSync(ROOT).filter((f) => f.endsWith('.html'))) {
     const f = path.join(ROOT, ref.replace(/^\//, ''));
     if (!fs.existsSync(f)) return m;
     v++;
-    return `${attr}${ref}?v=${crypto.createHash('sha1').update(fs.readFileSync(f)).digest('hex').slice(0, 10)}"`;
+    // line endings don't count: a Windows checkout (CRLF) and Render (LF) give the same stamp
+    return `${attr}${ref}?v=${crypto.createHash('sha1').update(fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n')).digest('hex').slice(0, 10)}"`;
   });
   fs.writeFileSync(file, html);
   console.log(`${page}: ${n} partial(s), ${v} versioned link(s)`);

@@ -1,0 +1,14 @@
+# keep text files with Unix line endings in every checkout (Windows included), so fingerprints and
+# version stamps computed on any machine match what Render computes
+* text=auto eol=lf
+*.webp binary
+*.png binary
+*.jpg binary
+*.gz binary
+*.zip binary
+*.mp4 binary
+*.wav binary
+*.woff2 binary
+*.jpeg binary
+*.avif binary
+*.m4a binary

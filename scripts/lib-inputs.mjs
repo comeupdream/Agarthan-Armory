@@ -24,7 +24,12 @@ export function inputFiles(root) {
 
 export function inputsHash(root) {
   const h = createHash('sha1');
-  for (const f of inputFiles(root)) h.update(path.relative(root, f).split(path.sep).join('/')).update('\0').update(readFileSync(f)).update('\0');
+  // text files are read with line endings evened out, so a build on a Windows checkout (CRLF) stamps the
+  // same fingerprint Render computes (LF) — otherwise every deploy rebuilt the catalog; .gz stays bytes
+  for (const f of inputFiles(root)) {
+    const body = f.endsWith('.gz') ? readFileSync(f) : readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
+    h.update(path.relative(root, f).split(path.sep).join('/')).update('\0').update(body).update('\0');
+  }
   return h.digest('hex').slice(0, 16);
 }
 
