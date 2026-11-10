@@ -59,21 +59,25 @@ for (const [, realmsAttr, body] of home.matchAll(/class="realm-only[^"]*" data-r
     ok(new RegExp(`data-realm="${realm}"`).test(body), `a realm-only piece shown in ${realm} has a ${realm} picture`);
 }
 
-// the green-laser pictures sit out Inner Earth and Agarthan Crystal, on the home page and in the Armory
-const NO_LASERS = ['inner-earth', 'crystal'];
-const lasersArt = home.match(/<a class="ch-art realm-only" data-realms="([^"]+)" href="armory\.html\?dept=optics&amp;sub=Lasers"[\s\S]*?<\/a>/);
-ok(!!lasersArt, 'the Lasers chapter pictures are realm-only');
-if (lasersArt) {
-  const shown = lasersArt[1].split(/\s+/);
-  ok(NO_LASERS.every((r) => !shown.includes(r)) && ['polar', 'mono', 'vril'].every((r) => shown.includes(r)),
-    `the Lasers chapter pictures show in Polar, Black & White and Vril only (data-realms="${lasersArt[1]}")`);
-  for (const f of ['green-laser-rifle', 'laser-cave']) ok(lasersArt[0].includes(f), `the Lasers chapter still carries ${f}`);
+// the green pictures (lasers, night vision) sit out Inner Earth and Agarthan Crystal, on the home page and in the Armory
+const NO_GREEN = ['inner-earth', 'crystal'];
+const css = readFileSync(path.join(ROOT, 'assets/css/site.css'), 'utf8');
+for (const r of NO_GREEN)
+  ok(css.includes(`html[data-theme="${r}"] [data-sits-out~="${r}"]`), `site.css hides data-sits-out art in ${r}`);
+for (const [sub, files] of [['Lasers', ['green-laser-rifle', 'laser-cave']], ['Night%20Vision', ['night-vision-416']]]) {
+  const m = home.match(new RegExp(`<a class="ch-art[^"]*" data-sits-out="([^"]+)" href="armory\\.html\\?dept=optics&amp;sub=${sub}"[\\s\\S]*?<\\/a>`));
+  ok(!!m, `the ${sub} chapter's art names the realms it sits out`);
+  if (!m) continue;
+  const out = m[1].split(/\s+/);
+  ok(JSON.stringify([...out].sort()) === JSON.stringify([...NO_GREEN].sort()), `the ${sub} chapter's art sits out ${NO_GREEN} only (found "${m[1]}")`);
+  for (const f of files) ok(m[0].includes(f), `the ${sub} chapter still carries ${f} for the other realms`);
 }
 const armory = readFileSync(path.join(ROOT, 'assets/js/armory.js'), 'utf8');
-const sitsOut = (armory.match(/const NO_LASERS = (\[[^\]]*\])/) || [])[1];
-ok(sitsOut && JSON.stringify(JSON.parse(sitsOut.replace(/'/g, '"')).sort()) === JSON.stringify([...NO_LASERS].sort()),
-  `the Armory's laser header sits out ${NO_LASERS} (found ${sitsOut})`);
-ok(/'optics\/Lasers': \['lasers-900\.webp', '[^']*', NO_LASERS\]/.test(armory), 'the Armory Lasers header is marked to sit out those realms');
+const sitsOut = (armory.match(/const NO_GREEN = (\[[^\]]*\])/) || [])[1];
+ok(sitsOut && JSON.stringify(JSON.parse(sitsOut.replace(/'/g, '"')).sort()) === JSON.stringify([...NO_GREEN].sort()),
+  `the Armory's green headers sit out ${NO_GREEN} (found ${sitsOut})`);
+for (const [key, file] of [['optics/Lasers', 'lasers-900'], ['optics/Night Vision', 'night-vision-416']])
+  ok(new RegExp(`'${key}': \\['${file}\\.webp', '[^']*', NO_GREEN\\]`).test(armory), `the Armory ${key} header is marked to sit out those realms`);
 ok(/art\[2\]\.includes\(document\.documentElement\.dataset\.theme\)/.test(armory), 'showArt honours a header\'s sit-out realms');
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);

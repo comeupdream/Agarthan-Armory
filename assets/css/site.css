@@ -1124,12 +1124,19 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
 .chapter.flip .ch-art .ch-inset { right: auto; left: -3%; }
 .ch-art.inset-left .ch-inset { right: auto; left: -3%; }
 .ch-art.solo { padding-bottom: 0; }
-/* a chapter whose pictures sit out this realm (.realm-only) reads as its text alone */
-html[data-theme="inner-earth"] .chapter:has(> .ch-art.realm-only:not([data-realms~="inner-earth"])),
-html[data-theme="crystal"] .chapter:has(> .ch-art.realm-only:not([data-realms~="crystal"])),
-html[data-theme="mono"] .chapter:has(> .ch-art.realm-only:not([data-realms~="mono"])),
-html[data-theme="vril"] .chapter:has(> .ch-art.realm-only:not([data-realms~="vril"])),
-html:not([data-theme]) .chapter:has(> .ch-art.realm-only:not([data-realms~="polar"])) { grid-template-columns: minmax(0, 1fr); }
+/* data-sits-out="realm …": art the named realms leave out (the green-laser and night-vision photos clash
+   with Inner Earth's ember and Crystal's violet). Hidden, so its lazy pictures never download there; a
+   chapter whose art sits out reads as its text alone. Elsewhere the art keeps its own layout. */
+html[data-theme="inner-earth"] [data-sits-out~="inner-earth"],
+html[data-theme="crystal"] [data-sits-out~="crystal"],
+html[data-theme="mono"] [data-sits-out~="mono"],
+html[data-theme="vril"] [data-sits-out~="vril"],
+html:not([data-theme]) [data-sits-out~="polar"] { display: none !important; }
+html[data-theme="inner-earth"] .chapter:has(> .ch-art[data-sits-out~="inner-earth"]),
+html[data-theme="crystal"] .chapter:has(> .ch-art[data-sits-out~="crystal"]),
+html[data-theme="mono"] .chapter:has(> .ch-art[data-sits-out~="mono"]),
+html[data-theme="vril"] .chapter:has(> .ch-art[data-sits-out~="vril"]),
+html:not([data-theme]) .chapter:has(> .ch-art[data-sits-out~="polar"]) { grid-template-columns: minmax(0, 1fr); }
 .ch-art.tall.solo { justify-content: center; }
 .ch-art.tall.solo .ch-main { max-width: 100%; }
 .ch-art.tall { display: flex; align-items: flex-end; gap: 18px; padding-bottom: 0; }
