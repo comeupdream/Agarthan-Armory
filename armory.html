@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=7e5cb08f2c">
+<link rel="stylesheet" href="assets/css/site.css?v=d99c65c831">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -51,12 +51,6 @@
     <span>◈ Federal firearms licensee · <b>transfers accepted</b> ◈ Outpost time <i data-clock>--:--:--</i> ◈ Surface temp −89.2°C (Vostok record) ◈ Signal <b>strong</b> ◈ Vril reserves <b>98%</b> ◈ Aurora activity <b>high</b> ◈ Craft sightings <b>logged</b> ◈ New inventory recovered weekly ◈ Special orders from every major distributor</span>
   </div>
 </div>
-<div class="prefs">
-  <button class="prefs-btn" type="button" aria-expanded="false" aria-controls="prefsPanel" aria-label="Display settings: realm, script and cursor">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg><span>Realm</span>
-  </button>
-  <div class="prefs-panel hud brackets" id="prefsPanel" role="dialog" aria-label="Display settings" hidden></div>
-</div>
 </div>
 <header class="site-header">
   <nav class="nav wrap" aria-label="Main">
@@ -75,6 +69,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
       <span class="req-label">Requisition</span><span class="req-count" data-n="0">0</span>
     </button>
+    <!-- display settings: in the sticky header, so the realm can be changed anywhere on the page -->
+    <div class="prefs">
+      <button class="prefs-btn" type="button" aria-expanded="false" aria-controls="prefsPanel" aria-label="Display settings: realm, script and cursor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg><span>Realm</span>
+      </button>
+      <div class="prefs-panel hud brackets" id="prefsPanel" role="dialog" aria-label="Display settings" hidden></div>
+    </div>
     <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
   </nav>
 </header>
@@ -206,11 +207,11 @@
 <!-- /partial:footer -->
 
 <script src="assets/js/config.js?v=c8d3667f08"></script>
-<script src="assets/data/catalog.js?v=3f569000dc"></script>
+<script src="assets/data/catalog.js?v=a3c6cf4346"></script>
 <script src="assets/js/icons.js?v=77fa25b999"></script>
-<script src="assets/js/site.js?v=09a473cc82"></script>
+<script src="assets/js/site.js?v=c530736bff"></script>
 <script src="assets/js/prefs.js?v=bc09182041"></script>
 <script src="assets/js/order.js?v=aec2dca164"></script>
-<script src="assets/js/armory.js?v=74884b88b7"></script>
+<script src="assets/js/armory.js?v=43fd5069dc"></script>
 </body>
 </html>

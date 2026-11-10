@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-font="future">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="same-origin">
+<title>Ops Console — Agarthan Armory</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css?v=d99c65c831">
+<link rel="stylesheet" href="assets/css/ops.css?v=1a67976af4">
+</head>
+<body class="ops">
+
+<!-- ================= THE GATE ================= -->
+<section class="ops-gate" id="gate" aria-labelledby="gateTitle">
+  <div class="ops-gate-card hud brackets">
+    <span class="seal ops-gate-seal" aria-hidden="true"><img src="assets/img/brand/seal-160.png" alt="" width="72" height="72"></span>
+    <span class="eyebrow">Outpost command</span>
+    <h1 id="gateTitle">Ops Console</h1>
+    <p class="ops-gate-sub">Inventory corrections, photos, store facts, notices, the inbox and traffic — for Agarthan Armory staff.</p>
+    <form id="gateForm" class="ops-gate-form" autocomplete="off">
+      <label class="field"><span class="sr-only">Passcode</span><input type="password" id="gateKey" name="key" placeholder="Passcode" autocomplete="current-password" required></label>
+      <button class="btn btn-ice" type="submit" id="gateGo">Unlock</button>
+    </form>
+    <p class="ops-gate-msg" id="gateMsg" role="status" aria-live="polite"></p>
+    <button class="btn btn-ghost btn-sm" type="button" id="gatePreview" hidden>Enter preview — nothing is saved</button>
+    <p class="ops-gate-fine" id="gateFine"></p>
+  </div>
+</section>
+
+<!-- ================= THE CONSOLE ================= -->
+<div class="ops-shell" id="shell" hidden>
+  <aside class="ops-rail" aria-label="Console sections">
+    <a class="ops-brand" href="index.html" title="Back to the site"><span class="seal" aria-hidden="true"><img src="assets/img/brand/seal-64.png" alt="" width="34" height="34"></span><span><strong>Agarthan</strong><small>Ops console</small></span></a>
+    <nav class="ops-tabs" id="tabs">
+      <a href="#deck" data-tab="deck"><span aria-hidden="true">◈</span>Deck</a>
+      <a href="#inventory" data-tab="inventory"><span aria-hidden="true">▤</span>Inventory</a>
+      <a href="#photos" data-tab="photos"><span aria-hidden="true">◫</span>Photos</a>
+      <a href="#corrections" data-tab="corrections"><span aria-hidden="true">✎</span>Corrections</a>
+      <a href="#store" data-tab="store"><span aria-hidden="true">⌂</span>Store &amp; notices</a>
+      <a href="#inbox" data-tab="inbox"><span aria-hidden="true">✉</span>Inbox <b class="ops-badge" id="inboxBadge" hidden></b></a>
+      <a href="#traffic" data-tab="traffic"><span aria-hidden="true">∿</span>Traffic</a>
+      <a href="#orders" data-tab="orders"><span aria-hidden="true">$</span>Orders</a>
+      <a href="#tools" data-tab="tools"><span aria-hidden="true">⚙</span>Tools</a>
+    </nav>
+    <div class="ops-rail-foot">
+      <div id="modeChip" class="ops-chip"></div>
+      <button class="btn btn-ghost btn-sm" type="button" id="lockBtn">Lock</button>
+    </div>
+  </aside>
+
+  <main class="ops-main" id="main">
+    <header class="ops-top">
+      <div><span class="eyebrow" id="tabEyebrow"></span><h2 id="tabTitle"></h2></div>
+      <div class="ops-status" id="statusChips"></div>
+    </header>
+    <div class="ops-view" id="view"></div>
+  </main>
+
+  <!-- the publish bar: every staged change, one commit -->
+  <div class="ops-publish" id="publishBar" hidden>
+    <span id="pendingText"></span>
+    <button class="btn btn-ghost btn-sm" type="button" id="reviewBtn">Review</button>
+    <button class="btn btn-ghost btn-sm" type="button" id="discardBtn">Discard</button>
+    <button class="btn btn-ice btn-sm" type="button" id="publishBtn">Publish to the site</button>
+  </div>
+</div>
+
+<!-- product editor -->
+<dialog class="ops-drawer hud" id="drawer" aria-labelledby="drawerTitle"></dialog>
+<!-- review / confirm -->
+<dialog class="ops-modal hud brackets" id="modal" aria-labelledby="modalTitle"></dialog>
+<div class="ops-toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="assets/js/config.js?v=c8d3667f08"></script>
+<script src="assets/js/icons.js?v=77fa25b999"></script>
+<script src="assets/js/order.js?v=aec2dca164"></script>
+<script src="assets/js/ops.js?v=51feccabba"></script>
+</body>
+</html>

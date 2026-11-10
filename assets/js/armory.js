@@ -108,11 +108,24 @@
   /* ---------- filter: everything but one facet (for that facet's counts), or everything ---------- */
   // a short word matches the start of a word ("arp" finds ARP, not .21 Sharp); a longer one matches anywhere
   let qCache = [null, []];
+  // search words, each with the synonyms the store set in the Ops Console (ar15 = ar-15 = ar 15, g19 = glock 19…)
+  const SYN = (AA.cfg.synonyms || []).map((g) => g.map((w) => String(w).toLowerCase()));
+  const groupsOf = (q) => {
+    let rest = ` ${q} `;
+    const out = [];
+    for (const g of SYN) for (const w of g) if (w.includes(' ') && rest.includes(` ${w} `)) { out.push(g); rest = rest.replace(` ${w} `, ' '); }
+    for (const t of rest.split(/\s+/).filter(Boolean)) out.push(SYN.find((g) => g.includes(t)) || [t]);
+    return out;
+  };
+  const wordMatcher = (w) => (w.length <= 3 && /^[a-z]+$/.test(w)
+    ? ((re) => (h) => re.test(h))(new RegExp(`(?:^|[^a-z0-9])${w}`))
+    : (h) => h.includes(w));
   const matchers = () => {
     if (qCache[0] === state.q) return qCache[1];
-    const ms = state.q.toLowerCase().split(/\s+/).filter(Boolean).map((w) => (w.length <= 3 && /^[a-z]+$/.test(w)
-      ? ((re) => (h) => re.test(h))(new RegExp(`(?:^|[^a-z0-9])${w}`))
-      : (h) => h.includes(w)));
+    const ms = groupsOf(state.q.toLowerCase()).map((alts) => {
+      const each = alts.map(wordMatcher);
+      return each.length === 1 ? each[0] : (h) => each.some((m) => m(h));
+    });
     qCache = [state.q, ms];
     return ms;
   };
@@ -208,6 +221,7 @@
   }
 
   // keepPage: a page button (the filters stay); anything else starts again at page 1
+  let missT, lastMiss = '';
   function update(keepPage) {
     if (!keepPage) state.page = 1;
     $$('[data-dept]', deptChips).forEach((b) => b.setAttribute('aria-pressed', b.dataset.dept === state.dept));
@@ -223,6 +237,9 @@
     const bar = document.querySelector('.results-bar');
     if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start', behavior: AA.reduced ? 'auto' : 'smooth' });
     $('#emptyState').hidden = r.length > 0;
+    // a search that found nothing tells the Ops Console (anonymously), so the store sees what people look for
+    clearTimeout(missT);
+    if (state.q && !r.length) { const q0 = state.q; missT = setTimeout(() => { if (state.q === q0 && q0 !== lastMiss) { lastMiss = q0; AA.beacon({ p: location.pathname, q: q0 }); } }, 1500); }
     $('#resultCount').textContent = `${r.length.toLocaleString()} ${r.length === 1 ? 'relic' : 'relics'} in range` +
       (pages > 1 ? ` · ${(from + 1).toLocaleString()}–${Math.min(from + state.per, r.length).toLocaleString()}` : '');
     const d = AA.DEPTS[state.dept];

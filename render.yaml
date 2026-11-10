@@ -25,6 +25,10 @@ services:
     startCommand: npm start
     healthCheckPath: /
     autoDeploy: true
+    # The Ops Console (/ops) — set these in the dashboard (README → Ops Console):
+    #   OPS_PASSWORD  unlocks it            GH_TOKEN  publishes edits (Contents: read/write, this repo only)
+    #   DATA_DIR=/var/data + a 1 GB disk at /var/data   inbox and traffic
+    #   WOO_URL, WOO_CK, WOO_CS (read-only key)          the Orders tab
     envVars:
       - key: NODE_VERSION
         value: "22"

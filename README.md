@@ -192,9 +192,76 @@ The repo root is the site, with no build step.
 - **Netlify or Cloudflare Pages:** publish directory `/`, build command empty.
 - **Render:** `render.yaml` is a ready blueprint (New + → Blueprint → this
   repo). It runs `npm start` as a Starter web service, which serves only the
-  public files. A Static Site with publish directory `.` also works.
+  public files. On start it rebuilds the catalogue if the scrape, the
+  corrections or the build code changed (`scripts/boot.mjs`), so pushing a new
+  scrape is enough. A Static Site with publish directory `.` also works, but
+  without the Ops Console.
 
 Point the domain's DNS where the host says. HTTPS is automatic on all of them.
+
+## Ops Console (/ops)
+
+The staff back office, at **/ops** on the live site. It's ported from the
+PAMAX and XAT Racing consoles and cut down to what an FFL store needs:
+
+| Tab | What it does |
+|---|---|
+| Deck | Counts, setup checklist, deploy status, latest messages, dead-end searches |
+| Inventory | Every product: search and filters, inline price, ★ featured, ◫ pull photo, ⊘ hide, bulk actions, a full editor (name, brand, price note, lore, department, category, hologram, firearm/NFA, spec rows, description) |
+| Photos | First-page cards still without a photo; pulled photos with their reason, and Restore |
+| Corrections | Everything in `overrides.json`, including hidden products (the only place to bring them back) |
+| Store & notices | Store facts (hours, phone, fees, FFL, age gate, social links), the notice bar above the ticker, search synonyms |
+| Inbox | Requisitions (hold requests) and contact messages from the site's forms, with statuses and notes |
+| Traffic | Anonymous page views (no cookies, no IP addresses) and searches that found nothing |
+| Orders | WooCommerce orders and 30-day sales, read only |
+| Tools | CSV diff, apply to a list of ids/SKUs, export/import, catalogue CSV, backup |
+
+**How saving works.**
+1. Edits are staged in the browser.
+2. **Publish** sends them all in one request.
+3. The server commits `assets/data/overrides.json` and/or
+   `assets/data/site-settings.json` to this repo as one commit, through the
+   GitHub API. If someone pushed in the meantime, it re-applies the edit on top
+   of their commit; it never overwrites one it didn't see.
+4. Render redeploys, and `npm start` (`scripts/boot.mjs`) rebuilds the catalogue
+   whenever its inputs changed. Edits go live in a few minutes and survive
+   every later scrape, with git history as the audit trail.
+5. Store facts, notices and synonyms ride on `config.js`. The server merges
+   them in when it serves that file.
+
+**Switch it on** (Render → the service → Environment):
+
+| Variable | For | |
+|---|---|---|
+| `OPS_PASSWORD` | Unlocking the console | Required. 8+ characters; changing it signs everyone out |
+| `GH_TOKEN` | Publishing | A fine-grained GitHub token for **this repository only**, permission **Contents: Read and write** |
+| `DATA_DIR` | Inbox and traffic | `/var/data`, with a 1 GB disk mounted there (service → Disks). A service with a disk has a few seconds of downtime per deploy |
+| `WOO_URL`, `WOO_CK`, `WOO_CS` | Orders tab | A **Read** REST key from WooCommerce → Settings → Advanced → REST API |
+| `GH_REPO`, `GH_BRANCH`, `OPS_SECRET`, `TRUST_PROXY` | Optional | The repo and branch default to what Render reports; `TRUST_PROXY=1` (the default) trusts the address Render appends |
+
+Without the disk, the site's forms fall back to email (set the store email in
+Store & notices). Without `GH_TOKEN`, use **Tools → Export staged edits**,
+then run:
+
+```bash
+node scripts/apply-ops-edits.mjs ops-edits.json
+```
+
+Then commit and push.
+
+**Security.**
+- The passcode is checked once, in constant time. After 10 different wrong
+  passcodes, that address is locked out for 15 minutes.
+- After unlocking, the console carries a signed 12-hour token, never the
+  passcode.
+- Every edit is validated on the server, against an allowlist of fields with
+  type and length checks.
+- The WooCommerce proxy is GET-only, and its paths are normalised before the
+  allowlist. That closes a `../` bypass found in the PAMAX console.
+- `/ops` runs under a strict Content-Security-Policy, and the site never sends
+  it to search engines.
+- Tests: `node scripts/test-ops.mjs` (server, in `npm test`) and
+  `npm run test:ops-ui` (the console in a browser; needs Playwright).
 
 ## Display settings (Realm button, top right)
 
