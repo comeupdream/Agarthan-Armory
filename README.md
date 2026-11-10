@@ -369,6 +369,25 @@ To add a realm: copy a theme block in `site.css`, then add it to `THEMES` in
       (`storeUrl`). Firearms are a high-risk merchant category, and payment
       stays with the platform's processor.
 
+## On phones and tablets
+
+The Armory below 960px follows the PAMAX Armory's mobile rebuild:
+- **Products first:** a shorter hero, so products start on the first screen.
+  The header art steps aside on narrow screens.
+- **Departments:** one row of chips you swipe.
+- **Filters:** a Filters button that always names what is filtering
+  ("Sidearms · Revolvers · 2 more"), with a Clear button beside it. It opens
+  every other filter as a bottom sheet: categories two to a row, manufacturer,
+  caliber, price, in stock. A "Show N relics" button closes it.
+- **Two products per row** below 600px. Names are clamped so prices line up.
+- **Back to top:** a button on every page, after a screen and a half of
+  scrolling.
+- **Changing a filter or page** lands on the top of the results, below the
+  sticky header.
+
+Desktop keeps the sticky filter sidebar. Test it with `npm run test:mobile`
+(390 and 360px phones, a tablet and a desktop pass; needs Playwright).
+
 ## Theme notes
 
 The theme draws on:

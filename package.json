@@ -24,7 +24,8 @@
     "save-pages": "node scripts/save-pages.mjs",
     "theme:test": "php woocommerce/tools/test-theme.php && node woocommerce/tools/skin-audit.mjs --out .skin-audit",
     "theme:holo": "node woocommerce/tools/build-holo.mjs",
-    "theme:pack": "node woocommerce/tools/skin-audit.mjs --theme-shot --out .skin-audit && node woocommerce/tools/pack.mjs"
+    "theme:pack": "node woocommerce/tools/skin-audit.mjs --theme-shot --out .skin-audit && node woocommerce/tools/pack.mjs",
+    "test:mobile": "node scripts/test-mobile.mjs"
   },
   "engines": {
     "node": ">=18"

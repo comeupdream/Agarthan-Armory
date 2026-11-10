@@ -66,12 +66,20 @@
   deptChips.innerHTML = [['', 'All', items.length]].concat(Object.entries(AA.DEPTS).map(([k, d]) => [k, d.name, items.filter((i) => i.dept === k).length]))
     .filter(([k, , n]) => !k || n || k === state.dept)
     .map(([k, name, n]) => `<button type="button" class="chip" data-dept="${k}" aria-pressed="false">${esc(name)}<small>${n}</small></button>`).join('');
+  // phones: the same departments as one swipeable row above the results (the panel is a sheet there)
+  const deptRow = $('#deptRow');
+  if (deptRow) deptRow.innerHTML = deptChips.innerHTML;
+  // …and the rest of the filters in a bottom sheet, behind a button that names them (wired below)
+  const panel = $('#filtersPanel'), scrim = $('#fScrim'), fOpen = $('#fOpen'), fNow = $('#fNow'), fClear = $('#fClear'), fApply = $('#fApply');
+  let sheetDirty = false;
   q.value = state.q; sortSel.value = state.sort; inStock.checked = state.stock; pmin.value = state.pmin; pmax.value = state.pmax;
 
-  deptChips.addEventListener('click', (e) => {
+  const pickDept = (e) => {
     const b = e.target.closest('[data-dept]'); if (!b) return;
     state.dept = b.dataset.dept; state.sub = ''; state.f = {}; update();
-  });
+  };
+  deptChips.addEventListener('click', pickDept);
+  if (deptRow) deptRow.addEventListener('click', pickDept);
   subChips.addEventListener('click', (e) => {
     const b = e.target.closest('[data-sub]'); if (!b) return;
     state.sub = state.sub === b.dataset.sub ? '' : b.dataset.sub; update();
@@ -239,6 +247,14 @@
   function update(keepPage) {
     if (!keepPage) state.page = 1;
     $$('[data-dept]', deptChips).forEach((b) => b.setAttribute('aria-pressed', b.dataset.dept === state.dept));
+    if (deptRow) {
+      $$('[data-dept]', deptRow).forEach((b) => b.setAttribute('aria-pressed', b.dataset.dept === state.dept));
+      const on = deptRow.querySelector('[aria-pressed="true"]');
+      if (on && deptRow.scrollWidth > deptRow.clientWidth) {                 // the chosen department slides into view
+        const want = on.offsetLeft - (deptRow.clientWidth - on.offsetWidth) / 2;
+        deptRow.scrollTo({ left: Math.max(0, want), behavior: AA.reduced ? 'auto' : 'smooth' });
+      }
+    }
     renderSubs();
     renderFacets();
     const r = results();
@@ -248,8 +264,8 @@
     $('#armoryGrid').innerHTML = r.slice(from, from + state.per).map(AA.card).join('');
     renderPager(state.page, pages);
     // a filter change or a new page while scrolled down the list jumps back to the top of the results
-    const bar = document.querySelector('.results-bar');
-    if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start', behavior: AA.reduced ? 'auto' : 'smooth' });
+    // (below the sticky header, which used to cover them); with the sheet open it waits for it to close
+    if (sheetIsOpen()) sheetDirty = true; else toResults();
     $('#emptyState').hidden = r.length > 0;
     // a search that found nothing tells the Ops Console (anonymously), so the store sees what people look for
     clearTimeout(missT);
@@ -262,6 +278,7 @@
     document.title = `${state.sub || (d ? d.title : 'The Armory')} — Agarthan Armory`;
     const n = Object.values(state.f).reduce((a, s2) => a + s2.size, 0) + (state.sub ? 1 : 0) + (state.stock ? 1 : 0) + (state.pmin || state.pmax ? 1 : 0);
     const ft2 = $('.filters-toggle'); if (ft2 && !$('.filters').classList.contains('open')) ft2.textContent = n ? `More filters · ${n} on` : 'More filters';
+    paintFilterBar(r.length);
     const p = new URLSearchParams();
     if (state.dept) p.set('dept', state.dept);
     if (state.sub) p.set('sub', state.sub);
@@ -391,6 +408,62 @@
     const id = new URLSearchParams(location.search).get('item');
     if (id) openItem(id, false); else closeItem();
   });
+
+  /* ---------- phones: the filters as a bottom sheet (ported from the PAMAX Armory) ----------
+     The button names what is filtering, so nobody has to open anything to know what they are
+     looking at; Clear sits beside it. The sheet's own button says how many will show. */
+  function sheetIsOpen() { return !!(panel && panel.classList.contains('sheet-open')); }
+  function paintFilterBar(count) {
+    if (!fNow) return;
+    const parts = [];
+    if (state.dept) parts.push((AA.DEPTS[state.dept] || {}).name || state.dept);
+    if (state.sub) parts.push(state.sub);
+    const more = Object.values(state.f).reduce((a, s2) => a + s2.size, 0) + (state.stock ? 1 : 0) + (state.pmin || state.pmax ? 1 : 0);
+    if (more) parts.push(`${more} more`);
+    fNow.textContent = parts.length ? parts.join(' · ') : 'Everything';
+    const any = !!(state.dept || state.sub || more);
+    fClear.hidden = !any;
+    fOpen.classList.toggle('on', any);
+    if (fApply) fApply.textContent = count ? `Show ${count.toLocaleString()} ${count === 1 ? 'relic' : 'relics'}` : 'Nothing matches — loosen a filter';
+  }
+  // the top of the results, below the sticky header (scrollIntoView left them under it)
+  function toResults() {
+    const narrow = matchMedia('(max-width: 960px)').matches;
+    const target = narrow ? $('.fbar') : $('.results-bar');
+    if (!target) return;
+    const head = document.querySelector('.site-header');
+    const pad = (head ? Math.max(0, head.getBoundingClientRect().bottom) : 0) + 8;
+    const top = target.getBoundingClientRect().top;
+    if (top < pad) scrollTo({ top: Math.max(0, top + scrollY - pad), behavior: AA.reduced ? 'auto' : 'smooth' });
+  }
+  function sheet(open) {
+    if (!panel || open === sheetIsOpen()) return;
+    panel.classList.toggle('sheet-open', open);
+    scrim.hidden = !open;
+    document.body.classList.toggle('sheet-open', open);
+    fOpen.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      sheetDirty = false;
+      panel.scrollTop = 0;
+      panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true');
+      setTimeout(() => { const c = $('#fClose'); if (c) c.focus(); }, 60);
+    } else {
+      panel.removeAttribute('role'); panel.removeAttribute('aria-modal');
+      fOpen.focus({ preventScroll: true });
+      // the sheet is fixed: wait for it to go before measuring where the results are
+      if (sheetDirty) { sheetDirty = false; requestAnimationFrame(() => requestAnimationFrame(toResults)); }
+    }
+  }
+  if (panel && fOpen) {
+    fOpen.addEventListener('click', () => sheet(true));
+    $('#fClose').addEventListener('click', () => sheet(false));
+    fApply.addEventListener('click', () => sheet(false));
+    scrim.addEventListener('click', () => sheet(false));
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheetIsOpen()) sheet(false); });
+    fClear.addEventListener('click', () => { $('#resetFilters').click(); });
+    // turned to a wide screen with the sheet open: the panel is a sidebar again
+    matchMedia('(max-width: 960px)').addEventListener('change', (e) => { if (!e.matches) sheet(false); });
+  }
 
   const ft = $('.filters-toggle');
   ft && ft.addEventListener('click', () => {

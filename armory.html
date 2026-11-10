@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=f45deadd33">
+<link rel="stylesheet" href="assets/css/site.css?v=63e6689164">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -82,7 +82,7 @@
 <!-- /partial:header -->
 
 <main id="main">
-  <section class="page-hero">
+  <section class="page-hero armory-hero">
     <canvas id="sky" data-sky="lite" aria-hidden="true"></canvas>
     <div class="wrap">
       <span class="eyebrow">Inventory · recovered from beyond the wall</span>
@@ -96,11 +96,13 @@
     </div>
   </section>
 
-  <section class="section" style="padding-top:40px">
+  <section class="section armory-section" style="padding-top:40px">
     <div class="wrap armory-layout">
-      <aside class="filters hud brackets" aria-label="Filters">
+      <aside class="filters hud brackets" id="filtersPanel" aria-label="Filters">
+        <!-- phones: the panel is a bottom sheet; this is its title bar -->
+        <div class="fsheet-head"><span>Filter the vault</span><button class="close-x" type="button" id="fClose" aria-label="Close filters">×</button></div>
         <button class="btn btn-ghost btn-sm filters-toggle" type="button" aria-expanded="false" aria-controls="moreFilters">More filters</button>
-        <fieldset>
+        <fieldset class="dept-set">
           <legend>Department</legend>
           <div class="chips" id="deptChips"></div>
         </fieldset>
@@ -121,9 +123,17 @@
         </fieldset>
         <button class="btn btn-ghost btn-sm" type="button" id="resetFilters" style="width:100%">Reset filters</button>
         </div>
+        <div class="fsheet-foot"><button class="btn btn-ice" type="button" id="fApply">Show results</button></div>
       </aside>
+      <div class="fscrim" id="fScrim" hidden></div>
 
       <div>
+        <!-- phones: departments in one swipeable row, and a button that opens the filters and names what is filtering -->
+        <div class="chips dept-row" id="deptRow" role="group" aria-label="Departments"></div>
+        <div class="fbar">
+          <button class="fbtn" id="fOpen" type="button" aria-expanded="false" aria-controls="filtersPanel"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters</span><b id="fNow">Everything</b></button>
+          <button class="fclear" id="fClear" type="button" hidden>Clear</button>
+        </div>
         <div class="demo-note" id="demoNote" hidden><b>Sample inventory</b><span>These are example listings for design review, not the store’s live stock or prices. The real catalog replaces them automatically once it is synced.</span></div>
         <div class="results-bar">
           <span id="resultCount" aria-live="polite">—</span>
@@ -209,9 +219,9 @@
 <script src="assets/js/config.js?v=c8d3667f08"></script>
 <script src="assets/data/catalog.js?v=642da6b7c3"></script>
 <script src="assets/js/icons.js?v=77fa25b999"></script>
-<script src="assets/js/site.js?v=b9be1dba75"></script>
+<script src="assets/js/site.js?v=e32e59db7c"></script>
 <script src="assets/js/prefs.js?v=bc09182041"></script>
 <script src="assets/js/order.js?v=a14aeecc1c"></script>
-<script src="assets/js/armory.js?v=8de82d1ba7"></script>
+<script src="assets/js/armory.js?v=e0b03a6b26"></script>
 </body>
 </html>
