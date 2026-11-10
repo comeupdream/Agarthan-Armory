@@ -16,3 +16,4 @@ assets/data/scraped/**/empty-lines.json
 __pycache__/
 .screens/
 .skin-audit/
+assets/data/scraped/photo-recheck.html

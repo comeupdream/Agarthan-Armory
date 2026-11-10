@@ -122,35 +122,71 @@ prober, X-Cart and Shopify scrapers, merged into one adaptive tool.
 
 ## Product photos found online (find-images)
 
-`scripts/find-images.mjs` searches the web for every product without a photo
+`scripts/find-images.mjs` searches the web for products without a photo
 (brand + name + UPC, through the Brave Search API), prefers the manufacturer's
 own site, downloads the best match and records where it came from. It also
 writes `assets/data/scraped/photo-review.html`, a contact sheet to eyeball
 before publishing (weaker matches outlined in pink). The API bills per search,
 about $5 per 1,000; expect 1–2 searches per product.
 
-Get a key at brave.com/search/api, then in PowerShell, in the project folder:
+**What gets searched first** (`--top N`): the cards on a first page that still
+show a hologram, then everything else in the Armory's merit order (premium for
+its category, deep distributor stock, a maker people ask for, on the store's
+shelf). Out-of-stock products are skipped.
+
+**The photo bar** (default; `--lenient` for the old one):
+- **Strong match:** the maker's own site, or the product's name or UPC in
+  the result's title.
+- **Clean packshot:** a plain white or light-grey background. No lifestyle
+  shots, dark backdrops, banners or listing screenshots.
+- **Not cut off:** a product sliced through its stock or receiver is
+  refused; one cropped tight with only its muzzle touching the edge is fine.
+- **No watermark sites:** stock-photo, video and social sites are out.
+- **Size is no bar:** bigger results rank first, and a small clean photo is
+  enlarged to 800px.
+
+**Recheck** (`--recheck`, free, no searches): photos already found online that
+are plainly wrong (blank, or not a product shot) are taken down, and those
+products go back on the list. So do the photos pulled by hand in
+`overrides.json`. A photo taken down is never picked again. The store's own
+products are never touched. Add `--dry-run` to see the list
+(`photo-recheck.html`) first.
+
+In PowerShell, in the project folder:
 
 ```bash
-npm i --no-save sharp
+git pull
 ```
 
 ```bash
-$env:BRAVE_API_KEY="your-key-here"
+npm install sharp --no-save
 ```
 
 ```bash
-npm run find-images -- --limit 20
+node scripts/find-images.mjs --recheck --dry-run
 ```
-
-Check `assets\data\scraped\photo-review.html` in a browser, then run the rest:
 
 ```bash
-npm run find-images -- --budget 6000
+node scripts/find-images.mjs --recheck
 ```
 
-Then `npm run build:catalog` and push. Runs resume where they left off;
-`--retry` searches again for products nothing was found for.
+```bash
+$env:BRAVE_API_KEY="paste-your-key-here"
+```
+
+```bash
+node scripts/find-images.mjs --top 25
+```
+
+Open `assets\data\scraped\photo-review.html` in a browser; if they look
+right, run the rest (about $12 at most):
+
+```bash
+node scripts/find-images.mjs --top 1500 --budget 2500
+```
+
+Then `npm run build:catalog`, commit and push. Runs resume where they left
+off; `--retry` searches again for products nothing was found for.
 
 ## Product photos (by UPC)
 

@@ -321,11 +321,69 @@ export function buildItems(scraped, overrides = {}, { remoteImages = false } = {
       also,   // other categories it shows under   // its product line (variants share one), for the default order
       featured: Boolean(o.featured),
       rank: p.rank ?? items.length,
+      _qty: Number.isFinite(+p.stock) ? +p.stock : null,   // distributor / shelf quantity: only for the merit rank, not shipped
       kw: o.keywords || undefined,   // extra search terms set in the Ops Console
       video: o.video || undefined,   // a YouTube id, shown in the detail view
       cond: o.cond || undefined,     // Used / Consignment / Demo
     });
   }
+  return meritRank(items);
+}
+
+/* ------------------------------------------------------------- merit rank
+ * What a shopper should see first in a category, among products with the
+ * same availability and photo (assets/js/order.js handles those): a score
+ * from what the feed knows, highest first, written as `rank`.
+ *   price      where it sits among its category (premium first); ammo by
+ *              price per round, so match and defensive loads beat bulk cases
+ *   depth      how many the distributors hold, against its category: they
+ *              stock deep on what sells, the nearest thing to sales data
+ *   brand      a maker shoppers ask for by name
+ *   shelf      on the store's own shelf: in the building today
+ * Percentiles are within the category (department + subcategory), so a $40
+ * holster can lead the holsters and a $4,000 rifle the rifles. */
+export const MARQUEE_BRANDS = new Set([
+  // firearms
+  'glock', 'sig sauer', 'smith & wesson', 'ruger', 'springfield', 'springfield armory', 'heckler & koch', 'cz-usa', 'beretta', 'walther',
+  'canik', 'shadow systems', 'fn america', 'wilson combat', 'kimber', 'colt', 'staccato', 'dan wesson', 'nighthawk custom', 'daniel defense',
+  'barrett', 'tikka', 'sako', 'bergara', 'christensen arms', 'browning', 'winchester repeating arms', 'henry repeating arms', 'mossberg',
+  'benelli', 'savage', 'weatherby', 'proof research', 'seekins precision', 'lwrc', 'patriot ordnance factory', 'radian weapons', 'kriss usa',
+  'magnum research', 'bond arms', 'taurus', 'remington', 'franchi', 'stoeger', 'zastava', 'cmmg', 'aero precision', 'bravo company', 'geissele automatics',
+  // suppressors
+  'silencerco', 'dead air armament', 'surefire', 'rugged suppressors', 'q llc', 'banish', 'huxwrx', 'thunder beast arms', 'otter creek labs',
+  'maxim defense industries', 'gemtech',
+  // optics
+  'trijicon', 'eotech', 'aimpoint', 'holosun', 'leupold', 'vortex', 'nightforce', 'steiner', 'burris', 'primary arms', 'pulsar', 'l3harris',
+  'zeiss', 'swarovski', 'schmidt & bender', 'bushnell', 'atn', 'agm global vision', 'unity tactical', 'reptilia', 'badger ordnance', 'arisaka defense',
+  // ammunition
+  'federal', 'hornady', 'winchester', 'speer', 'cci', 'barnes', 'nosler', 'berger bullets', 'lapua', 'norma', 'sellier & bellot', 'fiocchi',
+  'pmc', 'black hills', 'underwood', 'hevi-shot',
+  // gear
+  'magpul', 'streamlight', 'safariland', 'spyderco', 'benchmade', 'real avid', 'timney triggers', 'b5 systems', 'mission first tactical', 'hogue',
+  'otis', 'kershaw', 'pelican', 'crimson trace', 'walker\'s', 'caldwell', 'bulldog cases', 'liberty safe', 'peltor', 'radians',
+]);
+export function meritScore(i, pricePct, depthPct) {
+  const brand = MARQUEE_BRANDS.has(String(i.brand || '').toLowerCase()) ? 1 : 0;
+  return 0.40 * pricePct + 0.35 * depthPct + 0.25 * brand + (i.shelf ? 0.30 : 0);
+}
+export function meritRank(items) {
+  const groups = new Map();
+  for (const i of items) { const k = `${i.dept}|${i.sub || ''}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); }
+  // where v sits among vs (0 lowest … 1 highest; ties share the middle); null → 0
+  const pct = (vs) => { const s = vs.filter((v) => v != null).sort((a, b) => a - b); return (v) => {
+    if (v == null || !s.length) return 0;
+    let lo = 0, hi = s.length; while (lo < hi) { const m = (lo + hi) >> 1; if (s[m] < v) lo = m + 1; else hi = m; }
+    let eqEnd = lo; while (eqEnd < s.length && s[eqEnd] === v) eqEnd++;
+    return s.length === 1 ? 0.5 : (lo + (eqEnd - lo - 1) / 2) / (s.length - 1);
+  }; };
+  const score = new Map();
+  for (const g of groups.values()) {
+    const priceOf = (i) => (i.dept === 'ammo' && i.cpr != null ? i.cpr : i.price);
+    const P = pct(g.map(priceOf)), Q = pct(g.map((i) => (i._qty > 0 ? Math.log1p(i._qty) : null)));
+    for (const i of g) score.set(i, meritScore(i, P(priceOf(i)), i._qty > 0 ? Q(Math.log1p(i._qty)) : 0));
+  }
+  items.map((i, n) => [i, n]).sort((a, b) => score.get(b[0]) - score.get(a[0]) || a[1] - b[1]).forEach(([i], n) => { i.rank = n + 1; });
+  for (const i of items) delete i._qty;
   return items;
 }
 
