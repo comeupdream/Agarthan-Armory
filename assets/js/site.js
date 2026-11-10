@@ -21,6 +21,15 @@
   const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   AA.reduced = reduced;
 
+  /* anonymous page view / failed search for the Ops Console's traffic panel (no cookies, no IP kept) */
+  AA.beacon = (data) => {
+    try {
+      if (!/^https?:$/.test(location.protocol) || navigator.doNotTrack === '1') return;
+      const body = JSON.stringify(data);
+      if (!(navigator.sendBeacon && navigator.sendBeacon('/api/hit', body))) fetch('/api/hit', { method: 'POST', body, keepalive: true }).catch(() => {});
+    } catch { /* never in the way */ }
+  };
+
   /* ---------- tiny helpers ---------- */
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -337,8 +346,16 @@
   function openDrawer() { const d = $('#reqDrawer'); if (d && !d.open) { renderDrawer(); d.showModal(); } }
   AA.openDrawer = openDrawer;
 
-  /* Deliver a form: POST JSON to cfg.formEndpoint, else open the mail app. */
+  /* Deliver a form: POST JSON to cfg.formEndpoint; else the store's own inbox
+     (the Ops Console, when the server keeps one); else open the mail app. */
   AA.send = async function (payload, subject, body) {
+    if (!cfg.formEndpoint && /^https?:$/.test(location.protocol)) {
+      try {
+        const r = await fetch('/api/inbox', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (r.ok) { AA.toast('<b>TRANSMISSION RECEIVED</b> · We’ll be in touch shortly.', 5000); return true; }
+        if (r.status === 429) { AA.toast('Too many messages from this connection — please call us instead.', 6000); return false; }
+      } catch { /* no inbox here: fall through to email */ }
+    }
     if (cfg.formEndpoint) {
       try {
         const r = await fetch(cfg.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) });
@@ -609,9 +626,36 @@
     document.head.appendChild(el);
   }
 
+  /* ---------- notices from the Ops Console (closed, delivery delays, new stock…) ---------- */
+  function notices() {
+    const today = new Date().toISOString().slice(0, 10);
+    const gone = store.get('aa-notices-closed', []);
+    const live = (cfg.notices || []).filter((n) => n && n.on !== false && n.text && (!n.start || n.start <= today) && (!n.end || n.end >= today) && !gone.includes(n.id));
+    if (!live.length) return;
+    const bar = document.createElement('div');
+    bar.className = 'notices';
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Store notices');
+    bar.innerHTML = live.map((n) => {
+      const href = n.link && (/^\/(?!\/)/.test(n.link) || /^https:\/\//.test(n.link)) ? n.link : '';
+      return `<div class="notice tone-${esc(n.tone || 'info')}" data-id="${esc(n.id)}"><span class="notice-mark" aria-hidden="true">◈</span>`
+        + (href ? `<a href="${esc(href)}">${esc(n.text)}</a>` : `<span>${esc(n.text)}</span>`)
+        + `<button type="button" class="notice-x" aria-label="Dismiss this notice">×</button></div>`;
+    }).join('');
+    bar.addEventListener('click', (e) => {
+      const x = e.target.closest('.notice-x'); if (!x) return;
+      const row = x.closest('.notice');
+      store.set('aa-notices-closed', [...store.get('aa-notices-closed', []), row.dataset.id].slice(-40));
+      row.remove();
+      if (!bar.children.length) bar.remove();
+    });
+    document.body.insertBefore(bar, document.body.firstChild);
+  }
+
   /* ---------- boot ---------- */
   function boot() {
     fillConfig();
+    notices();
     jsonLd();
     gate();
     header();
@@ -625,6 +669,7 @@
     transmissions();
     reveal();
     document.dispatchEvent(new CustomEvent('aa:ready'));
+    AA.beacon({ p: location.pathname });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

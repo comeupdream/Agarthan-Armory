@@ -13,8 +13,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
+import { handleApi, configScript, setRoot } from './server/ops.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+setRoot(ROOT);
 const PORT = +process.env.PORT || 3000;
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -47,7 +49,17 @@ const versionInfo = () => {
   return { commit: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'local', branch: process.env.RENDER_GIT_BRANCH || null, started: STARTED, catalog: { items, updated, source } };
 };
 
-http.createServer((req, res) => {
+// the Ops Console page: never indexed, never framed, only this site's own scripts
+const OPS_CSP = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+
+http.createServer(async (req, res) => {
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (req.url.startsWith('/api/')) {
+    let u;
+    try { u = new URL(req.url, 'http://x'); } catch { res.writeHead(400); return res.end(); }
+    return handleApi(req, res, u);
+  }
   if (req.url === '/version' || req.url === '/version.json') {
     res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify(versionInfo(), null, 2));
@@ -57,6 +69,20 @@ http.createServer((req, res) => {
   if (p.includes('\0')) { res.writeHead(400); return res.end(); }
   p = path.posix.normalize(p);
   if (p === '/') p = '/index.html';
+  if (p === '/ops' || p === '/ops.html') {
+    res.setHeader('Content-Security-Policy', OPS_CSP);
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  // store facts, notices and synonyms published from the console ride on config.js
+  if (p === '/assets/js/config.js') {
+    try {
+      const js = await configScript();
+      const gz = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+      res.writeHead(200, { 'Content-Type': TYPES['.js'], 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', ...(gz ? { 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' } : {}) });
+      return res.end(gz ? zlib.gzipSync(js) : js);
+    } catch { /* fall through to the plain file */ }
+  }
   if (!path.extname(p) && fs.existsSync(path.join(ROOT, p + '.html'))) p += '.html';   // clean URLs
   const file = path.join(ROOT, p);
   const send404 = () => {

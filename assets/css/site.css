@@ -1201,3 +1201,24 @@ html[data-theme="vril"] :is(.realm-only[data-realms~="vril"], .realm-only [data-
 .realm-float figcaption b { color: var(--frost); font-weight: 600; }
 .realm-float small { display: block; margin-top: 6px; font: 400 11px/1.4 var(--f-mono); letter-spacing: .06em; color: var(--muted); }
 .realm-float small a { color: inherit; }
+
+/* =====================================================================
+   NOTICES — published from the Ops Console; above the ticker
+   ===================================================================== */
+.notices { position: relative; z-index: 61; }
+.notice {
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 9px 46px 9px 16px;
+  font: 400 12px/1.4 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; text-align: center;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), .08), rgba(var(--accent-rgb), .18), rgba(var(--accent-rgb), .08));
+  border-bottom: 1px solid var(--line-strong); color: var(--frost); position: relative;
+}
+.notice a { color: var(--frost); text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .6); text-underline-offset: 3px; }
+.notice a:hover { color: var(--cyan); }
+.notice-mark { color: var(--cyan); }
+.notice.tone-alert { background: linear-gradient(90deg, rgba(255, 191, 90, .1), rgba(255, 191, 90, .22), rgba(255, 191, 90, .1)); border-bottom-color: rgba(255, 191, 90, .45); }
+.notice.tone-alert .notice-mark { color: var(--amber); }
+.notice.tone-aurora { background: linear-gradient(90deg, rgba(93, 255, 177, .08), rgba(93, 255, 177, .18), rgba(93, 255, 177, .08)); border-bottom-color: rgba(93, 255, 177, .4); }
+.notice.tone-aurora .notice-mark { color: var(--aurora); }
+.notice-x { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; }
+.notice-x:hover { color: var(--frost); }
+@media (max-width: 600px) { .notice { font-size: 10.5px; letter-spacing: .08em; padding-left: 12px; } }
