@@ -80,16 +80,23 @@ for (const [key, file] of [['optics/Lasers', 'lasers-900'], ['optics/Night Visio
   ok(new RegExp(`'${key}': \\['${file}\\.webp', '[^']*', NO_GREEN\\]`).test(armory), `the Armory ${key} header is marked to sit out those realms`);
 ok(/art\[2\]\.includes\(document\.documentElement\.dataset\.theme\)/.test(armory), 'showArt honours a header\'s sit-out realms');
 
-// Inner Earth: the Silent Vault and the gate share one bed of rhodochrosite, and no other realm asks for it
-const tile = path.join(FEATURE, 'realm', 'inner-earth', 'geode-tile.webp');
-ok(existsSync(tile), 'the geode tile exists (tools/realm-art.py --geodes)');
-if (existsSync(tile)) { const [w, h] = size(tile); ok(w === h && w >= 800, `the geode tile is a square of at least 800 px (${w}×${h})`); }
+// the geode field: the Silent Vault and the gate share one bed of crystal in Inner Earth (rhodochrosite),
+// Agarthan Crystal (amethyst) and Polar Night (fluorite); each realm asks only for its own tile, the others for none
+const GEODES = { 'inner-earth': 'html[data-theme="inner-earth"]', crystal: 'html[data-theme="crystal"]', polar: 'html:not([data-theme])' };
 const field = home.match(/<div class="geode-field">([\s\S]*?)\n  <\/div>\n/);
 ok(!!field, 'the home page has a geode field');
 if (field) for (const id of ['silent-vault', 'gate-in-the-wall']) ok(field[1].includes(`id="${id}"`), `the geode field holds #${id}`);
-const tileRules = [...css.matchAll(/([^{}]+)\{[^{}]*geode-tile\.webp[^{}]*\}/g)].map((m) => m[1].trim().split('\n').pop().trim());
-ok(tileRules.length > 0 && tileRules.every((sel) => sel.startsWith('html[data-theme="inner-earth"]')),
-  `only Inner Earth asks for the geode tile (rules: ${tileRules.join(' | ')})`);
+const tileRules = [...css.matchAll(/([^{}]+)\{[^{}]*realm\/([a-z-]+)\/geode-tile\.webp[^{}]*\}/g)].map((m) => [m[1].trim().split('\n').pop().trim(), m[2]]);
+for (const [realm, sel] of Object.entries(GEODES)) {
+  const tile = path.join(FEATURE, 'realm', realm, 'geode-tile.webp');
+  ok(existsSync(tile), `${realm} has a geode tile (tools/realm-art.py --geodes)`);
+  if (existsSync(tile)) { const [w, h] = size(tile); ok(w === h && w >= 800, `the ${realm} geode tile is a square of at least 800 px (${w}×${h})`); }
+  const rules = tileRules.filter(([, r]) => r === realm);
+  ok(rules.length === 1 && rules[0][0] === `${sel} .geode-field`, `only ${realm} asks for its own geode tile (rules: ${rules.map(([x]) => x).join(' | ')})`);
+}
+ok(tileRules.every(([, r]) => r in GEODES), `no other realm has a geode tile (${tileRules.map(([, r]) => r)})`);
+for (const sel of ['html[data-theme="mono"]', 'html[data-theme="vril"]'])
+  ok(!tileRules.some(([x]) => x.includes(sel)), `${sel} asks for no geode tile`);
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
