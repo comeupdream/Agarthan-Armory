@@ -154,6 +154,30 @@ const MUSIC = {
     lead: (B) => beats(32.73, B, [[78, 1], [83, 1], [81, 0.5], [78, 0.5], [76, 1], [78, 2]]),
     kick: { f0: 200, f1: 44, decay: 0.14 }, fade: [47.6, 48.95],
   },
+  // every realm: G Mixolydian, I-bVII-IV-I at 120 BPM (a bar every two seconds, a realm every seven
+  // and a bit). Each realm's pass comes in a little harder than the last, as the trip grows under
+  // the page; four on the floor for the trip on the banner (the peak lands on bar 39, 77.4 s)
+  'every-realm': {
+    key: 'G Mixolydian', bpm: 120, grid: 0.0, sub: 31, wind: 0.24,
+    chords: [[43, [55, 59, 62, 67]], [41, [53, 57, 60, 65]], [48, [55, 60, 64, 67]], [43, [55, 59, 62, 65]]],
+    calmAt: 85.0, calm: [[43, [55, 59, 62, 67]], [48, [55, 60, 64, 67]]],
+    steps: [67, 69, 71, 72, 74, 76, 77, 79],
+    fontPitch: { runic: 79, oldworld: 74, future: 83 },
+    arp: [0, 2, 1, 3, 2, 4, 3, 1],
+    sections: [
+      { a: 0.4, z: 2.4, groove: 'drift', lvl: 0.35, arp: 'slow' },
+      { a: 2.4, z: 17.0, groove: 'drift', lvl: 0.45, arp: 'slow8' },
+      { a: 17.0, z: 31.6, groove: 'break', lvl: 0.55, arp: 'pluck8' },
+      { a: 31.6, z: 46.2, groove: 'break', lvl: 0.65, arp: 'pluck8' },
+      { a: 46.2, z: 60.8, groove: 'four', lvl: 0.7, arp: 'pluck16' },
+      { a: 60.8, z: 75.4, groove: 'four', lvl: 0.8, arp: 'pluck16' },
+      { a: 75.4, z: 77.4, groove: 'four', lvl: 0.9, arp: 'pluck16' },
+      { a: 77.4, z: 83.0, groove: 'four', lvl: 1.1, arp: 'pluck', clap: true, stabs: true },
+      { a: 83.0, z: 85.0, groove: 'drift', lvl: 0.55, arp: 'slow' },
+    ],
+    lead: (B) => beats(77.4, B, [[79, 1], [77, 0.5], [74, 0.5], [76, 1], [79, 1], [81, 1], [79, 0.5], [77, 0.5], [74, 2], [79, 1], [83, 2]]),
+    kick: { f0: 210, f1: 46, decay: 0.13 }, fade: [88.4, 89.95],
+  },
 };
 
 function score(film) {
