@@ -160,7 +160,7 @@ const MUSIC = {
   'every-realm': {
     key: 'G Mixolydian', bpm: 120, grid: 0.0, sub: 31, wind: 0.24,
     chords: [[43, [55, 59, 62, 67]], [41, [53, 57, 60, 65]], [48, [55, 60, 64, 67]], [43, [55, 59, 62, 65]]],
-    calmAt: 85.0, calm: [[43, [55, 59, 62, 67]], [48, [55, 60, 64, 67]]],
+    calmAt: 85.4, calm: [[43, [55, 59, 62, 67]], [48, [55, 60, 64, 67]]],
     steps: [67, 69, 71, 72, 74, 76, 77, 79],
     fontPitch: { runic: 79, oldworld: 74, future: 83 },
     arp: [0, 2, 1, 3, 2, 4, 3, 1],
@@ -173,7 +173,7 @@ const MUSIC = {
       { a: 60.8, z: 75.4, groove: 'four', lvl: 0.8, arp: 'pluck16' },
       { a: 75.4, z: 77.4, groove: 'four', lvl: 0.9, arp: 'pluck16' },
       { a: 77.4, z: 83.0, groove: 'four', lvl: 1.1, arp: 'pluck', clap: true, stabs: true },
-      { a: 83.0, z: 85.0, groove: 'drift', lvl: 0.55, arp: 'slow' },
+      { a: 83.0, z: 85.4, groove: 'drift', lvl: 0.55, arp: 'slow' },
     ],
     lead: (B) => beats(77.4, B, [[79, 1], [77, 0.5], [74, 0.5], [76, 1], [79, 1], [81, 1], [79, 0.5], [77, 0.5], [74, 2], [79, 1], [83, 2]]),
     kick: { f0: 210, f1: 46, decay: 0.13 }, fade: [88.4, 89.95],

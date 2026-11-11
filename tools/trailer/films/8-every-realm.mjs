@@ -13,8 +13,8 @@
  * The trip grows the whole way: trails from the first pass, then tracers (the page's own edges
  * echoing outward in colour), breathing and bubble print, a little more each realm. The last
  * pass ends on the banner, the lead time over the amethyst, and it goes all the way: mirrors,
- * a tunnel, the hue turning, and the page's script changing under it (Runic, Old World,
- * Future). CALM: the name walks the scripts, and the dark.
+ * a tunnel, the hue turning; and on the way down the page's script changes under it (Runic,
+ * Old World, Future). CALM: the name walks the scripts, and the dark.
  *
  * Future font throughout until the end. No space: the sky behind the page is aurora only.
  */
@@ -23,10 +23,10 @@
 export const START = 2.4, LEN = 14.6;
 export const SWITCHES = [[17.6, 'vril', 1], [32.2, 'inner-earth', 2], [46.8, 'mono', 1], [61.4, 'crystal', 2]];
 export const TRIP = START + 5 * LEN;   // 75.4
-// the page's script during the trip: [t, font]
-export const FONTS = [[78.2, 'runic'], [79.8, 'oldworld'], [81.4, 'future']];
+// the page's script on the way down from the trip, the banner back in view: [t, font]
+export const FONTS = [[83.3, 'runic'], [84.0, 'oldworld'], [84.7, 'future']];
 // the calm's changes of script on the name: [t, font] (the plates' order below)
-export const OUTRO = [[85.6, 'future'], [87.0, 'runic'], [88.0, 'oldworld'], [88.5, 'future']];
+export const OUTRO = [[85.9, 'future'], [87.2, 'runic'], [88.1, 'oldworld'], [88.6, 'future']];
 const FPS = 30;
 
 function act(t, S) {
@@ -35,7 +35,7 @@ function act(t, S) {
   // (the act runs inside the page, so it carries its own copies of the timings)
   const START = 2.4, LEN = 14.6, TRIP = START + 5 * LEN;
   const SW = [[17.6, 'vril'], [32.2, 'inner-earth'], [46.8, 'mono'], [61.4, 'crystal']];
-  const FONTS = [[78.2, 'runic'], [79.8, 'oldworld'], [81.4, 'future']];
+  const FONTS = [[83.3, 'runic'], [84.0, 'oldworld'], [84.7, 'future']];
   const LABEL = {
     polar: ['01', 'Polar Night', 'blue fluorite · the ice cave'],
     vril: ['02', 'Vril', 'green quartz · glowing geodes'],
@@ -169,7 +169,7 @@ function act(t, S) {
     veil.style.cssText = 'position:fixed;inset:0;z-index:2147482300;pointer-events:none;background:radial-gradient(ellipse 80% 70% at 50% 50%, rgba(10,4,22,.72), rgba(4,2,10,.92));opacity:0';
     document.body.appendChild(veil);
   }
-  veil.style.opacity = sm(seg(t, 84.6, 85.8)).toFixed(3);
+  veil.style.opacity = sm(seg(t, 85.0, 86.2)).toFixed(3);
   document.querySelector('.site-header').style.opacity = String(1 - sm(seg(t, TRIP + 0.4, TRIP + 1.6)));
 }
 
@@ -185,6 +185,8 @@ function lens(t) {
   const ACC = { polar: [[0.365, 0.894, 1], [0.365, 1, 0.694]], 'inner-earth': [[1, 0.70, 0.28], [1, 0.48, 0.27]], mono: [[0.95, 0.95, 0.95], [0.7, 0.7, 0.7]], vril: [[0.365, 1, 0.61], [0.84, 1, 0.365]], crystal: [[0.78, 0.61, 1], [1, 0.82, 0.48]] };
   const realm = SWITCHES.filter(([tc]) => t >= tc).map(([, r]) => r).pop() || 'polar';
   [u.accent, u.accent2] = ACC[realm];
+  // Black & White stays black and white: the trip's colours are drained with the page's
+  if (realm === 'mono') u.sat = 0.1;
 
   // THE BUILD: the trip grows a little every realm (I goes 0 → 1 over the five passes)
   const I = sm(seg(3, TRIP));
@@ -226,10 +228,10 @@ function lens(t) {
   }
 
   // THE TRIP, on the lead time over the amethyst: build, PEAK (mirrors, the tunnel, the hue turning,
-  // the page's script changing), come down
-  if (t >= TRIP && t < 85.0) {
+  // the page's script changing on the way down), come down
+  if (t >= TRIP && t < 85.4) {
     const build = sm(seg(TRIP, TRIP + 2.0)), peak = sm(seg(77.4, 78.2)) * (1 - sm(seg(83.0, 84.6)));
-    const down = sm(seg(83.0, 85.0)), on = build * (1 - down);
+    const down = sm(seg(83.0, 85.4)), on = build * (1 - down);
     // the hue: still through the tour, turning faster into the peak, home to a whole turn on the way down
     const speed = (x) => (x < 76 ? 0 : x < 79 ? 60 * (x - 76) / 3 : x < 83 ? 60 + 50 * sm((x - 79) / 4) : 0);
     let turned = 0;
@@ -249,23 +251,24 @@ function lens(t) {
     u.bloom = 0.2 + 0.06 * peak; u.glow = 0.34 + 0.08 * peak;
     // each change of script glitches the page from the frame before it
     for (const [tc] of FONTS) if (t >= tc && t < tc + 0.45) { u.wipe = seg(tc, tc + 0.4); u.held = Math.round(tc * FPS) - 1; u.wipeKind = 2; }
-  } else if (t >= 85.0) {
+  } else if (t >= 85.4) {
     // CALM: the name over the veiled page, walking the scripts; a slow ripple at each change; the dark
     let rip = 0;
     for (const [tc] of OUTRO) if (t >= tc) rip = Math.max(rip, Math.exp(-(t - tc) * 2.6));
     u.trails = 0.12 + 0.25 * rip; u.warp = 0.0015 + 0.02 * rip; u.chroma = 0.0015 + 0.004 * rip;
     u.edge = [0, 0, 0, 0]; u.breathe = [0, 0]; u.bubble = [0, 40, 1];
     u.bloom = 0.26; u.glow = 0.45; u.cam = [1, 0, 0];
-    const e = sm(seg(85.4, 86.4));
+    const e = sm(seg(85.6, 86.6));
     let cur = 0;
     OUTRO.forEach(([tc], k) => { if (t >= tc) cur = k; });
     const ix = { future: 0, runic: 1, oldworld: 2 };
     const idx = ix[OUTRO[cur][1]], prev = cur > 0 ? ix[OUTRO[cur - 1][1]] : null;
     const k = sm(Math.min(1, (t - OUTRO[cur][0]) / 0.3));
-    u.plates = [{ i: idx, x: 0, y: 0.01, h: 0.6 + 0.012 * sm(seg(85.4, 89.4)), a: e * (cur === 0 ? 1 : k), glow: 0.35 + 0.3 * rip }];
+    u.plates = [{ i: idx, x: 0, y: 0.01, h: 0.6 + 0.012 * sm(seg(85.6, 89.4)), a: e * (cur === 0 ? 1 : k), glow: 0.35 + 0.3 * rip }];
     if (prev != null && k < 1) u.plates.unshift({ i: prev, x: 0, y: 0.01, h: 0.6, a: e * (1 - k), glow: 0.35 });
     u.zoom = 1 + 0.03 * sm(seg(86, 89.8));
-    u.black = sm(seg(88.9, 89.95));
+    u.page = 1 - 0.94 * sm(seg(85.0, 86.2));   // the page fades away under the name
+    u.black = sm(seg(89.0, 89.95));
   }
   return u;
 }
@@ -290,7 +293,7 @@ export default {
     ...SWITCHES.flatMap(([tc]) => [{ t: tc - 0.55, kind: 'click' }, { t: tc, kind: 'realm' }, { t: tc + 0.6, kind: 'click' }]),
     { t: TRIP, kind: 'trip' }, { t: 77.4, kind: 'peak' }, { t: 77.4, kind: 'mandala' }, { t: 80.8, kind: 'tunnel' },
     ...FONTS.map(([t, font]) => ({ t, kind: 'font', font })),
-    { t: 83.0, kind: 'down' }, { t: 85.0, kind: 'calm' }, { t: 85.4, kind: 'seal' },
+    { t: 83.0, kind: 'down' }, { t: 85.4, kind: 'calm' }, { t: 85.8, kind: 'seal' },
     ...OUTRO.map(([t, font]) => ({ t, kind: 'font', font })),
   ],
 };
