@@ -273,6 +273,12 @@ BEDS = {
     'polar': {'seed': 3, 'base': (6, 30, 48), 'sources': [
         {'src': 'fluorite.jpg', 'hue': (200, 255), 'chroma': 0.055, 'light': 0.30,
          'patch': (820, 1120), 'scale': (0.66, 0.86), 'keep': 0.80}]},
+    # Black & White: the Naica cave's quartz beams (only the pale crystal: not the brown rock ceiling, the
+    # dark floor or the caver standing among them), laid in grey
+    'mono': {'seed': 4, 'base': (22, 22, 22), 'grey': True, 'inside': True, 'sources': [
+        {'src': 'naica.jpg', 'hue': None, 'chroma': None, 'light': 0.50, 'chroma_max': 0.06,
+         'avoid': (1880, 1160, 2240, 1640),   # the caver, with a margin
+         'patch': (520, 820), 'scale': (0.85, 1.15), 'keep': 0.80}]},
     # Vril: a bed of green quartz points, with the whole cut geode halves laid over it (their cut-outs come
     # from tools/cut-geodes.py): rind, white rim and druzy, at different sizes and turns, each with a shadow
     'vril': {'seed': 9, 'base': (6, 34, 22), 'inside': True, 'sources': [
@@ -309,6 +315,8 @@ def crystal_bed(realm):
             x0, y0, x1, y1 = (v // div for v in cfg['avoid'])
             bad[y0:y1, x0:x1] = True
             good = ~bad & (L >= cfg['light'])
+            if cfg.get('chroma_max') is not None:   # pale crystal only, not coloured rock
+                good &= C <= cfg['chroma_max']
 
         def table(m):
             return np.pad(m.astype(np.float64).cumsum(0).cumsum(1), ((1, 0), (1, 0)))
@@ -391,6 +399,9 @@ def crystal_bed(realm):
             lay(im, x, y)
     out_im = Image.new('RGB', (T, T), bed['base'])
     out_im.paste(tile, (0, 0), tile)
+    if bed.get('grey'):   # Black & White: the same colour-dropping as the realm's recoloured art
+        px = recolour(np.asarray(out_im).astype(np.float64) / 255, REALMS[realm])
+        out_im = Image.fromarray(np.round(np.clip(px, 0, 1) * 255).astype(np.uint8), 'RGB')
     out = os.path.join(OUT, realm, 'geode-tile.webp')
     os.makedirs(os.path.dirname(out), exist_ok=True)
     out_im.save(out, 'WEBP', quality=76, method=6)
