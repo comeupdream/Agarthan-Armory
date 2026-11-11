@@ -62,7 +62,7 @@
   uniform float uHue, uSat, uWarp, uChroma, uTrails, uKal, uKalN, uBloom, uPageA;
   uniform vec4 uBH, uDisk, uTun; uniform float uSwirl;
   uniform vec3 uSky, uAcc, uAcc2;
-  uniform vec4 uEdge; uniform vec2 uBreathe; uniform vec3 uBubble;
+  uniform vec4 uEdge; uniform vec2 uBreathe; uniform vec3 uBubble; uniform float uEdgeTint;
   float A;
 
   vec3 space(vec2 p){
@@ -134,7 +134,9 @@
       float e = smoothstep(0.035, 0.2, edgeAt(q));
       float pulse = 0.65 + 0.35 * sin(uEdge.w * 2.0 - fk * 0.9);
       float wk = e * (1.0 - fk / max(uEdge.y, 1.0)) * pulse;
-      acc += wk * pal(fk * 0.11 + uT * 0.09); wsum += wk;
+      // the echo's colour: the cycling palette, or (uEdgeTint) the picture's own colour there, brightened
+      vec3 pc = textureLod(uPage, q, 1.0).rgb; pc /= max(max(pc.r, max(pc.g, pc.b)), 0.2);
+      acc += wk * mix(pal(fk * 0.11 + uT * 0.09), pc, uEdgeTint); wsum += wk;
     }
     return vec4(acc / max(wsum, 1e-3), wsum);
   }
@@ -398,7 +400,7 @@
       gl.uniform1f(U.uSwirl, d('swirl', 0));
       const tn = d('tunnel', [0, 0, 0, 0]); gl.uniform4f(U.uTun, tn[0], tn[1], tn[2], tn[3]);
       const sky = d('sky', [0.6, 1, 1]); gl.uniform3f(U.uSky, sky[0], sky[1], sky[2]);
-      const ed = d('edge', [0, 0, 0, 0]); gl.uniform4f(U.uEdge, ed[0], ed[1], ed[2], ed[3]);
+      const ed = d('edge', [0, 0, 0, 0]); gl.uniform4f(U.uEdge, ed[0], ed[1], ed[2], ed[3]); gl.uniform1f(U.uEdgeTint, d('edgeTint', 0));
       const br = d('breathe', [0, 0]); gl.uniform2f(U.uBreathe, br[0], br[1]);
       const bu = d('bubble', [0, 40, 1]); gl.uniform3f(U.uBubble, bu[0], bu[1], bu[2]);
       const ac = d('accent', [0.365, 0.894, 1]); gl.uniform3f(U.uAcc, ac[0], ac[1], ac[2]);
