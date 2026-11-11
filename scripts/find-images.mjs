@@ -125,6 +125,31 @@ const JUNK = /logo|banner|icon|sprite|placeholder|avatar|favicon|thumb_?nail_?sm
 // stock-photo, video and social image hosts: watermarks, screenshots and thumbnails, never a packshot
 const WATERMARKED = /(^|\.)(alamy|shutterstock|istockphoto|gettyimages|dreamstime|123rf|depositphotos|adobestock|stock\.adobe|youtube|ytimg|vimeo|tiktok|twitter|x|flickr|imgur|tumblr)\./i;
 
+/* The product's own words: what sets it apart from the rest of its brand ("Anaconda", "TLR-7", "590A1"),
+ * not the brand and not words every listing shares ("pistol", "black", "barrel"). A result must show one
+ * of them — or the UPC, or the part number — in its title or its address: being on the brand's site is not
+ * enough (a Colt revolver once got a Colt lower receiver from a Colt parts shop's home-page banner). */
+const GENERIC_WORDS = new Set(('rifle pistol revolver shotgun handgun carbine gun guns firearm black blued stainless matte tactical sporting hunting hunter ' +
+  'compact full size series gen round rounds inch barrel model new the and with for edition standard deluxe semi auto automatic action bolt lever pump ' +
+  'single shot double sight sights optic optics scope red dot mount mounts kit case bag magazine magazines mag mags ammo ammunition grain grains box ' +
+  'pack holster light laser left right hand ambidextrous threaded suppressor ready').split(' '));
+export function nameTokens(p) {
+  const brand = new Set(String(p.brand || '').toLowerCase().split(/[^a-z0-9]+/));
+  return [...new Set(String(p.name || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !GENERIC_WORDS.has(w) && !brand.has(w)))];
+}
+export function namesProduct(r, p, upc) {
+  const hay = `${r.title || ''} ${r.page || ''} ${r.image || ''}`.toLowerCase();
+  const words = hay.replace(/[^a-z0-9]+/g, ' '), joined = words.replace(/ /g, '');
+  const toks = nameTokens(p);
+  if (!toks.length) return true;                                           // a name with nothing distinctive to look for
+  if (toks.some((t) => words.includes(t) || joined.includes(t))) return true;
+  if (upc && joined.includes(String(upc).replace(/^0+/, ''))) return true;
+  const mpn = String(p.sku || (p.attributes && p.attributes['Manufacturer Part Number']) || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return mpn.length >= 4 && joined.includes(mpn);
+}
+/** a site's home page: its pictures are banners and promotions, never one product's photo */
+export const isHomePage = (url) => { try { const u = new URL(url); return u.pathname === '/' || u.pathname === ''; } catch { return false; } };
+
 export function scoreResult(r, p, upc, { strict = false } = {}) {
   const host = String(r.host || '').toLowerCase();
   const brand = String(p.brand || '').toLowerCase();
@@ -140,6 +165,8 @@ export function scoreResult(r, p, upc, { strict = false } = {}) {
   if (first && title.includes(first)) s += 1;
   const w = r.width || 0, h = r.height || 0;
   if (strict) {
+    if (!namesProduct(r, p, upc)) s -= 50;                                  // the brand alone is not this product
+    if (r.page && isHomePage(r.page)) s -= 50;                              // a home-page banner
     if (WATERMARKED.test(host) || WATERMARKED.test((() => { try { return new URL(r.image).hostname; } catch { return ''; } })())) s -= 20;
     if (w && h) { if (Math.max(w, h) >= 1000) s += 2; else if (Math.max(w, h) >= 800) s += 1; }   // bigger wins; a small one is enlarged, not refused
   } else if (w && h) { if (Math.min(w, h) < 250) s -= 6; else if (Math.max(w, h) >= 800) s += 1; }
@@ -522,7 +549,7 @@ async function main() {
         const more = chosen.slice(keep.length ? 0 : 1).map((c) => ({ image: c.r.image, page: c.r.page }));
         const base = keep.length
           ? { ...p.photoSource, more: [...((p.photoSource && p.photoSource.more) || []), ...more] }
-          : { image: chosen[0].r.image, page: chosen[0].r.page, score: chosen[0].r.score, ...(more.length ? { more } : {}) };
+          : { image: chosen[0].r.image, page: chosen[0].r.page, title: String(chosen[0].r.title || '').slice(0, 160), score: chosen[0].r.score, ...(more.length ? { more } : {}) };
         group.forEach((q, n) => {
           if (!DRY) {
             q.localImages = [...keep, ...chosen.map((c) => c.file)].slice(0, 6);
@@ -572,6 +599,8 @@ async function recheck({ cats, own, sharp, DRY, CAT_DIR }) {
     if (!ps.some((p) => p.photoSource) || ps.some(own)) continue;          // found online, never the store's own
     const pulled = ps.find((p) => ov[p.id] && ov[p.id].noPhoto);
     if (pulled) { takeDown.push({ file: f, products: ps, why: `pulled by hand: ${String(ov[pulled.id]._photo || '').replace(/^pulled [\d-]+: /, '')}`, pulled: true }); continue; }
+    const src = ps.find((p) => p.photoSource && !p.photoSource.sharedFrom) || ps.find((p) => p.photoSource);
+    if (src && isHomePage(src.photoSource.page)) { takeDown.push({ file: f, products: ps, why: 'came from a site\'s home page (a banner, not this product\'s page)' }); continue; }
     let why = null;
     try {
       const { data, info } = await sharp(path.resolve(root, f)).flatten({ background: '#ffffff' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });

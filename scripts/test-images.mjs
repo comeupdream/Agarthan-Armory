@@ -297,6 +297,15 @@ api.close();
   eq(F.scoreResult({ host: 'shop.example', title: 'Federal HST 9mm', image: 'x.jpg', width: 1600, height: 1200 }, P0, null, { strict: true }) >
      F.scoreResult({ host: 'shop.example', title: 'Federal HST 9mm', image: 'x.jpg', width: 300, height: 200 }, P0, null, { strict: true }), true, 'score: …but a bigger one ranks first');
 
+  // the result must name the product, not only its brand (a Colt parts shop's home-page banner once stood for the Anaconda)
+  const ANA = { brand: 'Colt', name: 'Anaconda', sku: 'ANACONDA-BP4WTS' };
+  const banner = { host: 'coltparts.com', title: 'Colt Parts', page: 'https://coltparts.com/', image: 'https://cdn.example/products/1337/signal-2024.jpg', width: 500, height: 659 };
+  eq(F.scoreResult(banner, ANA, '098289005502', { strict: true }) < 5, true, 'score: the brand\'s site alone, with nothing naming the product, is refused');
+  eq(F.scoreResult({ ...banner, page: 'https://coltparts.com/anaconda-grips', title: 'Anaconda grips' }, ANA, null, { strict: true }) >= 5, true, 'score: a page that names the product passes');
+  eq(F.scoreResult({ ...banner, title: 'Colt Anaconda 44 Magnum' }, ANA, null, { strict: true }) < 5, true, 'score: a site\'s home page is refused even when its title names the product');
+  eq(F.scoreResult({ host: 'shop.example', title: 'Colt revolver', page: 'https://shop.example/item/098289005502', image: 'x.jpg' }, ANA, '098289005502', { strict: true }) >= 0, true, 'score: the UPC in the address counts as naming it');
+  eq([F.nameTokens({ brand: 'Streamlight', name: 'TLR-7 Sub' }), F.nameTokens({ brand: 'Mossberg', name: '590A1 Tactical' })], [['tlr', 'sub'], ['590a1']], 'score: the product\'s own words (not its brand, not shared words)');
+
   // end to end, with the resizer when this machine has it
   let hasSharp = true; try { await import('sharp'); } catch { hasSharp = false; }
   if (!hasSharp) console.log('  (sharp not installed: the strict download and --recheck runs are skipped — npm install sharp --no-save to run them)');
@@ -357,16 +366,19 @@ api.close();
       { id: 'busy-v2', name: 'Busy', brand: 'Federal', localImages: ['img/busy-1.png'], photoSource: { image: 'https://x.example/busy.png', sharedFrom: 'busy' } },
       { id: 'pulled', line: 'pulled', name: 'Pulled Load', brand: 'Federal', localImages: ['img/pulled-1.png'], photoSource: { image: `${base}/good.png` } },
       { id: 'own', name: 'Shirt', brand: 'Agarthan Armory', localImages: ['img/own-1.png'], photoSource: { image: 'https://x.example/own.png' } },
-      { id: 'fine', name: 'Fine', brand: 'Federal', localImages: ['img/fine-1.png'], photoSource: { image: 'https://x.example/fine.png' } },
+      { id: 'fine', name: 'Fine', brand: 'Federal', localImages: ['img/fine-1.png'], photoSource: { image: 'https://x.example/fine.png', page: 'https://x.example/fine-load' } },
+      { id: 'home', name: 'Home Banner', brand: 'Federal', localImages: ['img/home-1.png'], photoSource: { image: 'https://cdn.example/banner.png', page: 'https://federalpremium.example/' } },
     ]);
+    writeFileSync(path.join(sd, 'img', 'home-1.png'), GOOD);
     writeFileSync(path.join(sd, 'overrides.json'), JSON.stringify({ _readme: 'r', pulled: { noPhoto: true, _photo: 'pulled 2026-11-09: cut through the product', price: 30 } }));
     rr = await run(['--recheck', '--dry-run']);
-    eq([rr.code, /would take down 2 photos/.test(rr.out), existsSync(path.join(sd, 'img', 'busy-1.png'))], [0, true, true], '--recheck --dry-run: lists, changes nothing');
+    eq([rr.code, /would take down 3 photos/.test(rr.out), existsSync(path.join(sd, 'img', 'busy-1.png'))], [0, true, true], '--recheck --dry-run: lists, changes nothing');
     const h0 = hits;
     rr = await run(['--recheck']);
     eq([rr.code, hits - h0], [0, 0], '--recheck: no API key needed, no searches');
     eq([existsSync(path.join(sd, 'img', 'busy-1.png')), byId2('busy').localImages, byId2('busy-v2').photoSearch.result, byId2('busy').photoSearch.refused], [false, undefined, 'retake', ['https://x.example/busy.png']], '--recheck: a busy photo is taken down from every variant, and remembered as refused');
     eq([byId2('own').localImages, byId2('fine').localImages], [['img/own-1.png'], ['img/fine-1.png']], '--recheck: the store\'s own and good photos stay');
+    eq([byId2('home').localImages, byId2('home').photoSearch.refused, existsSync(path.join(sd, 'img', 'home-1.png'))], [undefined, ['https://cdn.example/banner.png'], false], '--recheck: a photo from a site\'s home page (a banner) is taken down, even a clean one');
     const ov2 = JSON.parse(readFileSync(path.join(sd, 'overrides.json'), 'utf8'));
     eq([byId2('pulled').localImages, ov2.pulled], [undefined, { price: 30 }], '--recheck: a hand-pulled photo goes back on the list, its pull flag cleared, other corrections kept');
     writeFileSync(path.join(sd, 'catalog.js'), 'window.AA_CATALOG = ' + JSON.stringify({ items: [{ id: 'pulled', dept: 'ammo', sub: 'Handgun', status: 'ship', rank: 1 }, { id: 'busy', dept: 'ammo', sub: 'Handgun', status: 'ship', rank: 2 }] }) + ';');
