@@ -508,6 +508,17 @@ api.close();
     ]));
     r3 = await run4(['--recheck']);
     eq([g3('lp').localImages, g3('lp').photoSearch.refused, g3('ln').localImages], [undefined, [], ['img/ln-1.webp']], '--recheck: a listing page that doesn\'t name the product is searched again (its picture may come back); one that names it stays');
+    // --recheck: a black can's gallery whose first photo is the FDE one: the FDE angle comes off, the black ones stay
+    writeFileSync(path.join(gd, 'img', 'gb-1.webp'), await S3(shapes.tanSide).webp().toBuffer());
+    writeFileSync(path.join(gd, 'img', 'gb-2.webp'), await S3(shapes.side).webp().toBuffer());
+    writeFileSync(path.join(gd, 'img', 'gb-3.webp'), await S3(shapes.end).webp().toBuffer());
+    writeFileSync(path.join(gd, 'scraped', 'catalog.json'), JSON.stringify([
+      { id: 'gb', name: 'Golf Can', brand: 'Silencerco', variant: { Color: 'Black' }, localImages: ['img/gb-1.webp', 'img/gb-2.webp', 'img/gb-3.webp'],
+        photoSource: { image: 'https://s.example/fde.jpg', page: 'https://s.example/golf-can-fde', more: [{ image: 'https://s.example/black-side.jpg', page: 'https://s.example/golf-can' }, { image: 'https://s.example/black-end.jpg', page: 'https://s.example/golf-can' }] } },
+    ]));
+    r3 = await run4(['--recheck']);
+    eq([g3('gb').localImages, g3('gb').photoSource.image, (g3('gb').photoSource.more || []).length, existsSync(path.join(gd, 'img', 'gb-1.webp'))],
+      [['img/gb-2.webp', 'img/gb-3.webp'], 'https://s.example/black-side.jpg', 1, false], '--recheck: a gallery is judged by the listing\'s colour: an FDE photo leaves a black can\'s gallery, even the first');
     api4.close();
   }
 }
