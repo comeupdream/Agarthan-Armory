@@ -145,6 +145,25 @@ shelf). Out-of-stock products are skipped.
 - **Size is no bar:** bigger results rank first, and a small clean photo is
   enlarged to 800px.
 
+**Targeted runs:**
+- **One department or category:** `--dept nfa` (or `sidearms`, `longarms`,
+  `shotguns`, `ammo`, `optics`, `gear`). `--sub suppressors` narrows to a
+  category.
+- **Several photos per product:** `--gallery 4` saves up to four distinct
+  photos per product, so different angles show as thumbnails on the product
+  page. The same picture re-hosted on several shops counts once. Products that
+  already have a photo keep it first and gain more.
+- **A photo per colour:** with `--colors`, a gun sold in several colours (a
+  Vector in black, FDE, white…) gets a photo for each.
+  - **Search:** the colour goes into the search, and that colour's own UPC is
+    used.
+  - **Colour check:** a photo for an FDE/tan or green listing must actually
+    show that colour, so the black gun is refused. Black, camo and two-tone
+    listings are not checked.
+  - **Scope:** it covers variants showing another colour's photo or none. A
+    variant whose same-colour sibling already has the right photo shares it
+    without a search.
+
 **Recheck** (`--recheck`, free, no searches): photos already found online that
 are plainly wrong (blank, or not a product shot) are taken down, and those
 products go back on the list. So do the photos pulled by hand in

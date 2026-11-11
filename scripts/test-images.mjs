@@ -373,6 +373,83 @@ api.close();
     rr = await run(['--top', '1']);
     eq(byId2('pulled').photoSource && byId2('pulled').photoSource.image, `${base}/good2.png`, 'a photo taken down is never chosen again (the next clean one is)');
     api2.close();
+
+    /* ---- --dept/--gallery (suppressors, several angles) and --colors (a photo per colourway) ---- */
+    eq([F.colorFamily('Flat Dark Earth'), F.colorFamily('Quicksand FDE'), F.colorFamily('OD Green'), F.colorFamily('Black'), F.colorFamily('Black/FDE'), F.colorFamily('Woodland Camo')],
+      ['tan', 'tan', 'green', null, null, null], 'colours: FDE and green are checked; black, two-tone and camo are not');
+    const shapes = {
+      blackGun: packshot(900, 600, [150, 250, 750, 350]),
+      tanGun: png(900, 600, (x, y) => (inBox(x, y, [150, 250, 750, 350]) ? [158, 132, 96] : [255, 255, 255])),
+      greenGun: png(900, 600, (x, y) => (inBox(x, y, [150, 250, 750, 350]) ? [96, 104, 62] : [255, 255, 255])),
+      side: packshot(900, 600, [100, 260, 800, 340]),
+      end: png(900, 600, (x, y) => (((x - 450) ** 2 + (y - 300) ** 2 < 150 ** 2) ? [35, 35, 38] : [255, 255, 255])),
+      parts: png(900, 600, (x, y) => (inBox(x, y, [120, 120, 380, 480]) || inBox(x, y, [520, 220, 780, 380]) ? [45, 45, 48] : [255, 255, 255])),
+    };
+    eq(F.colorProblem('tan', F.colorShares(...(() => { const w = 60, h = 40, b = Buffer.alloc(w * h * 3, 255); for (let i = 0; i < w * h; i++) if (i % w > 10 && i % w < 50) b.set([40, 40, 45], i * 3); return [b, w, h]; })())) !== null, true, 'colours: a black photo fails an FDE listing');
+    const S3 = (await import('sharp')).default;
+    eq(F.hamming(await F.dhash(S3, shapes.side), await F.dhash(S3, Buffer.from(shapes.side))), 0, 'gallery: the same picture has the same fingerprint');
+    eq(F.hamming(await F.dhash(S3, shapes.side), await F.dhash(S3, shapes.end)) > 10, true, 'gallery: a different angle does not');
+    const seen3 = [];
+    const api3 = await new Promise((res) => { const s5 = http.createServer((q, w) => {
+      const u = new URL(q.url, 'http://x'); const self = `http://127.0.0.1:${s5.address().port}`;
+      if (u.pathname === '/res/v1/images/search') {
+        const term = u.searchParams.get('q'); seen3.push(term);
+        const r = (file, host, title) => ({ title: title || term, url: `https://${host}/p${file}`, meta_url: { hostname: host }, properties: { url: self + file, width: 1200, height: 800 } });
+        const results = /Flat Dark Earth/.test(term) ? [r('/blackGun.png', 'www.kriss-usa.com'), r('/tanGun.png', 'www.kriss-usa.com')]
+          : /Olive/.test(term) ? [r('/blackGun.png', 'www.kriss-usa.com'), r('/greenGun.png', 'www.kriss-usa.com')]
+          : /Alpha Can/.test(term) ? [r('/side.png', 'www.silencerco.com'), r('/side-copy.png', 'www.silencerco.com'), r('/end.png', 'www.silencerco.com'), r('/parts.png', 'www.silencerco.com')]
+          : /Bravo Can/.test(term) ? [r('/side.png', 'www.silencerco.com'), r('/end.png', 'www.silencerco.com'), r('/parts.png', 'www.silencerco.com')]
+          : [r('/blackGun.png', 'www.example-arms.com')];
+        w.writeHead(200, { 'Content-Type': 'application/json' }); return w.end(JSON.stringify({ results }));
+      }
+      const k = u.pathname.slice(1).replace(/\.png$/, '').replace('-copy', '');
+      if (shapes[k]) { w.writeHead(200, { 'Content-Type': 'image/png' }); return w.end(shapes[k]); }
+      w.writeHead(404); w.end();
+    }).listen(0, '127.0.0.1', () => res(s5)); });
+    const b3 = `http://127.0.0.1:${api3.address().port}`;
+    const gd = mkdtempSync(path.join(tmpdir(), 'aa-gallery-'));
+    mkdirSync(path.join(gd, 'scraped'), { recursive: true }); mkdirSync(path.join(gd, 'img'), { recursive: true });
+    writeFileSync(path.join(gd, 'img', 'bravo-1.webp'), await S3(shapes.side).webp().toBuffer());
+    writeFileSync(path.join(gd, 'img', 'vb-1.webp'), await S3(shapes.blackGun).webp().toBuffer());
+    const V = (id, color, extra = {}) => ({ id, line: 'vec', name: 'Vector Test', brand: 'Kriss', variant: { Color: color }, ...extra });
+    writeFileSync(path.join(gd, 'scraped', 'catalog.json'), JSON.stringify([
+      { id: 'alpha', line: 'alpha', name: 'Alpha Can', brand: 'Silencerco' },
+      { id: 'bravo', line: 'bravo', name: 'Bravo Can', brand: 'Silencerco', localImages: ['img/bravo-1.webp'], photoSource: { image: `${b3}/side.png` } },
+      { id: 'pistol', line: 'pistol', name: 'Some Pistol', brand: 'Example' },
+      V('vb', 'Black', { localImages: ['img/vb-1.webp'], photoSource: { image: 'https://www.kriss-usa.com/black.jpg' } }),
+      V('vf1', 'Flat Dark Earth', { localImages: ['img/vb-1.webp'], photoSource: { image: 'https://www.kriss-usa.com/black.jpg', sharedFrom: 'vb' } }),
+      V('vf2', 'Flat Dark Earth', { localImages: ['img/vb-1.webp'], photoSource: { image: 'https://www.kriss-usa.com/black.jpg', sharedFrom: 'vb' } }),
+      V('vg', 'Olive Drab Green'),
+      V('vb2', 'Black'),
+    ]));
+    const item = (id, dept, sub, rank) => ({ id, dept, sub, status: 'ship', rank });
+    writeFileSync(path.join(gd, 'catalog.js'), 'window.AA_CATALOG = ' + JSON.stringify({ items: [item('alpha', 'nfa', 'Suppressors', 1), item('bravo', 'nfa', 'Suppressors', 2), item('pistol', 'sidearms', 'Semi-Auto Pistols', 3),
+      item('vb', 'sidearms', 'Large Format Pistols', 4), item('vf1', 'sidearms', 'Large Format Pistols', 5), item('vf2', 'sidearms', 'Large Format Pistols', 6), item('vg', 'sidearms', 'Large Format Pistols', 7), item('vb2', 'sidearms', 'Large Format Pistols', 8)] }) + ';');
+    const run3 = (args) => new Promise((res) => {
+      const c = spawn(process.execPath, [path.join(HERE, 'find-images.mjs'), '--catalog-dir', path.join(gd, 'scraped'), '--img-dir', path.join(gd, 'img'), '--catalog-js', path.join(gd, 'catalog.js'), '--rps', '50', ...args],
+        { cwd: gd, env: { ...process.env, BRAVE_API_KEY: 'test-key', BRAVE_API_BASE: b3 } });
+      let out = ''; c.stdout.on('data', (x) => (out += x)); c.stderr.on('data', (x) => (out += x)); c.on('close', (code) => res({ code, out }));
+    });
+    const cat3 = () => JSON.parse(readFileSync(path.join(gd, 'scraped', 'catalog.json'), 'utf8'));
+    const g3 = (id) => cat3().find((p) => p.id === id);
+    let r3 = await run3(['--dept', 'nfa', '--gallery', '4']);
+    eq(r3.code, 0, '--dept nfa --gallery 4 exits 0\n' + r3.out);
+    eq([g3('alpha').localImages.length, g3('pistol').photoSearch], [3, undefined], '--dept: only NFA searched; --gallery: three distinct angles (the re-hosted copy counted once)');
+    eq([g3('bravo').localImages[0], g3('bravo').localImages.length, g3('bravo').photoSource.image, g3('bravo').photoSource.more.length], ['img/bravo-1.webp', 3, `${b3}/side.png`, 2], '--gallery: a product with a photo keeps it first and gains the other angles (not its own picture again)');
+    const ok3 = existsSync(path.join(gd, 'img', 'alpha-3.webp')) && existsSync(path.join(gd, 'img', 'bravo-3.webp'));
+    eq(ok3, true, '--gallery: the extra angles are saved as -2, -3…');
+    const before3 = seen3.length;
+    r3 = await run3(['--dept', 'nfa', '--gallery', '4']);
+    eq(seen3.length - before3, 0, '--gallery: a product already given its gallery is not searched again');
+    seen3.length = 0;
+    r3 = await run3(['--colors']);
+    eq(r3.code, 0, '--colors exits 0\n' + r3.out);
+    eq(seen3.some((q) => /Kriss Vector Test Flat Dark Earth/.test(q)), true, '--colors: the colour goes in the query');
+    eq([g3('vf1').photoSource.image, g3('vf2').localImages, g3('vf2').photoSource.sharedFrom], [`${b3}/tanGun.png`, g3('vf1').localImages, 'vf1'], '--colors: the FDE variants get an FDE photo (the black one ranked first is refused), shared between them');
+    eq(g3('vg').photoSource && g3('vg').photoSource.image, `${b3}/greenGun.png`, '--colors: an olive variant gets a green photo');
+    eq([g3('vb').localImages, g3('vb2').localImages, g3('vb2').photoSource.sharedFrom, seen3.filter((q) => /Black/.test(q)).length], [['img/vb-1.webp'], ['img/vb-1.webp'], 'vb', 0], '--colors: the black variant without a photo borrows its sibling\'s, no search; the black original untouched');
+    eq([g3('alpha').localImages.length, seen3.some((q) => /Can/.test(q))], [3, false], '--colors: the guns only (the suppressors left alone)');
+    api3.close();
   }
 }
 
