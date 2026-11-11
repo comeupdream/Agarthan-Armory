@@ -143,7 +143,9 @@ async function stageA(_, base, film, frames) {
 
 /* ---------- Stage B: the trip ---------- */
 async function stageB(browser, base, film, frames) {
-  const [w, h] = film.out || [1920, 1080];
+  // OUT_SIZE=1280x720 runs the trip pass smaller (it is the slow one, and scales with the pixels); the
+  // encoder brings it back up to the film's size
+  const [w, h] = process.env.OUT_SIZE ? process.env.OUT_SIZE.split('x').map(Number) : film.out || [1920, 1080];
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.error(`  [${film.key}] lens error: ${e.message}`));
@@ -158,8 +160,8 @@ async function stageB(browser, base, film, frames) {
   if (preview) { dirP = path.join(CACHE, film.key, 'preview'); fs.mkdirSync(dirP, { recursive: true }); }
   else {
     fs.mkdirSync(OUT, { recursive: true });
-    const name = FROM != null || TO != null ? `${film.key}-slice.mp4` : `${film.key}.mp4`;
-    ff = encoder(path.join(OUT, name));
+    const name = FROM != null || TO != null ? `${film.key}-slice${process.env.SLICE ? '-' + process.env.SLICE : ''}.mp4` : `${film.key}.mp4`;
+    ff = encoder(path.join(OUT, name), process.env.OUT_SIZE ? (film.out || [1920, 1080]) : null);
   }
   const t0 = Date.now();
   // feedback trails depend on the previous frame, so B always runs from the slice start
@@ -192,9 +194,9 @@ async function plate(browser, base, name) {
   return `/.trailer-cache/plates/${name}.png`;
 }
 
-function encoder(mp4) {
+function encoder(mp4, up = null) {
   const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', 'pipe:0',
-    '-vf', 'scale=in_color_matrix=bt601:in_range=full:out_color_matrix=bt709:out_range=tv,format=yuv420p',
+    '-vf', `scale=${up ? up[0] + ':' + up[1] + ':flags=lanczos:' : ''}in_color_matrix=bt601:in_range=full:out_color_matrix=bt709:out_range=tv,format=yuv420p`,
     '-c:v', 'libx264', '-preset', 'slow', '-crf', CRF, '-profile:v', 'high', '-level:v', '4.1',
     '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
     '-movflags', '+faststart', '-an', mp4], { stdio: ['pipe', 'inherit', 'inherit'] });

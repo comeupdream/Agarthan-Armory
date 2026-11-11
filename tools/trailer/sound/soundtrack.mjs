@@ -201,6 +201,57 @@ const MUSIC = {
     lead: (B) => beats(24.0, B, [[72, 1], [75, 0.5], [74, 0.5], [72, 1], [79, 1.5], [77, 0.5], [75, 1], [74, 1], [71, 1], [72, 2]]),
     kick: { f0: 190, f1: 42, decay: 0.15 }, fade: [41.0, 41.95],
   },
+  // the harvest: F sharp minor at 120 BPM, a bar every two seconds and every scene on one. A breakbeat
+  // for the site, four on the floor from the moment the fleet arrives, a roll into the white, harder
+  // for each scene aboard, the lead over the lattice (86 s); F sharp major for the name
+  harvest: {
+    key: 'F sharp minor', bpm: 120, grid: 0.0, sub: 30, wind: 0.22,
+    chords: [[42, [54, 57, 61, 66]], [38, [54, 57, 62, 66]], [45, [52, 57, 61, 64]], [37, [53, 56, 61, 65]]],
+    calmAt: 110, calm: [[42, [54, 58, 61, 66]], [42, [54, 61, 66, 70]]],
+    steps: [66, 68, 69, 71, 73, 74, 76, 78],
+    fontPitch: { runic: 78, oldworld: 73, future: 85 },
+    arp: [0, 2, 1, 3, 2, 4, 3, 1],
+    sections: [
+      { a: 0.4, z: 4.0, groove: 'drift', lvl: 0.35, arp: 'slow' },
+      { a: 4.0, z: 22.0, groove: 'break', lvl: 0.5, arp: 'pluck8' },
+      { a: 22.0, z: 46.0, groove: 'four', lvl: 0.7, arp: 'pluck16' },
+      { a: 46.0, z: 54.0, groove: 'four', lvl: 0.85, arp: 'pluck16' },
+      { a: 54.0, z: 56.0, groove: 'roll', lvl: 1 },
+      { a: 56.0, z: 64.0, groove: 'four', lvl: 0.9, arp: 'pluck' },
+      { a: 64.0, z: 72.0, groove: 'four', lvl: 1.0, arp: 'pluck', clap: true },
+      { a: 72.0, z: 80.0, groove: 'break', lvl: 1.0, arp: 'pluck8' },
+      { a: 80.0, z: 86.0, groove: 'four', lvl: 1.0, arp: 'pluck16', clap: true },
+      { a: 86.0, z: 102.0, groove: 'four', lvl: 1.1, arp: 'pluck', clap: true, stabs: true },
+      { a: 102.0, z: 110.0, groove: 'drift', lvl: 0.6, arp: 'slow' },
+    ],
+    lead: (B) => beats(86.0, B, [[73, 1], [76, 1], [78, 0.5], [76, 0.5], [73, 1], [81, 1.5], [80, 0.5], [78, 1], [76, 1], [73, 1], [76, 1], [78, 0.5], [81, 0.5], [85, 1], [83, 1.5], [81, 0.5], [80, 1], [78, 2]]),
+    kick: { f0: 210, f1: 46, decay: 0.13 }, fade: [118.6, 119.95],
+  },
+  // the way down: D minor at 120 BPM. Each world on the way down has its own six bars and comes in a
+  // little harder than the last; a roll into the core, the lead over it (86 s), and D major for the name
+  'way-down': {
+    key: 'D minor', bpm: 120, grid: 0.0, sub: 26, wind: 0.26,
+    chords: [[38, [50, 53, 57, 62]], [34, [50, 53, 58, 62]], [41, [48, 53, 57, 60]], [36, [48, 52, 55, 60]]],
+    calmAt: 110, calm: [[38, [50, 54, 57, 62]], [38, [50, 57, 62, 66]]],
+    steps: [62, 64, 65, 67, 69, 70, 72, 74],
+    fontPitch: { runic: 74, oldworld: 69, future: 81 },
+    arp: [0, 1, 2, 3, 4, 3, 2, 1],
+    sections: [
+      { a: 0.4, z: 5.0, groove: 'drift', lvl: 0.35, arp: 'slow' },
+      { a: 5.0, z: 22.0, groove: 'ritual', lvl: 0.5, arp: 'slow8' },
+      { a: 22.0, z: 26.0, groove: 'roll', lvl: 0.9 },
+      { a: 26.0, z: 38.0, groove: 'four', lvl: 0.7, arp: 'pluck8', half: true },
+      { a: 38.0, z: 50.0, groove: 'break', lvl: 0.8, arp: 'pluck8' },
+      { a: 50.0, z: 62.0, groove: 'four', lvl: 0.85, arp: 'pluck16' },
+      { a: 62.0, z: 74.0, groove: 'ritual', lvl: 0.9, arp: 'pluck16' },
+      { a: 74.0, z: 84.0, groove: 'four', lvl: 1.0, arp: 'pluck', clap: true },
+      { a: 84.0, z: 86.0, groove: 'roll', lvl: 1 },
+      { a: 86.0, z: 104.0, groove: 'four', lvl: 1.1, arp: 'pluck', clap: true, stabs: true },
+      { a: 104.0, z: 110.0, groove: 'drift', lvl: 0.6, arp: 'slow' },
+    ],
+    lead: (B) => beats(86.0, B, [[74, 1], [77, 1], [81, 1], [79, 0.5], [77, 0.5], [76, 1], [74, 1], [72, 1], [74, 1], [77, 1], [81, 1], [86, 1.5], [84, 0.5], [82, 1], [81, 1], [79, 1], [81, 2]]),
+    kick: { f0: 200, f1: 44, decay: 0.14 }, fade: [118.6, 119.95],
+  },
 };
 
 function score(film) {
@@ -417,6 +468,25 @@ function score(film) {
           const v = (Math.sin(w) + 0.45 * Math.sin(1.5 * w) + 0.25 * Math.sin(2 * w) + (0.15 + 0.55 * charge) * buzz) * 0.07 * env * br;
           st.L[i] += v * (1 + 0.08 * Math.sin(x * 0.9)); st.R[i] += v * (1 - 0.08 * Math.sin(x * 0.9));
         }
+        break;
+      }
+      /* the harvest: something goes up a beam; something is given back */
+      case 'take': {
+        const pan = Math.sin(t * 5.1) * 0.6;
+        put(mix, 'fx', D.riser({ dur: 1.3, f0: 320, f1: 7000, seed: s }), t, { gain: 0.2, pan });
+        put(mix, 'ui', D.blip({ f: D.mtof(step('take') + 12), len: 0.09 }), t + 1.35, { gain: 0.14, pan: -pan });
+        break;
+      }
+      case 'give': {
+        put(mix, 'fx', D.downlifter({ dur: 1.2, f0: 6000, f1: 300, seed: s }), t, { gain: 0.2 });
+        put(mix, 'harp', harp(step('give') + 12, { len: 1.6, vel: 0.6, seed: s + 'h' }), t + 1.2, { gain: 0.3 });
+        break;
+      }
+      /* the way down: a new world opens below */
+      case 'world': {
+        put(mix, 'hit', D.subDrop({ f0: 84, f1: 34, dur: 2.4 }), t, { gain: 0.4 });
+        put(mix, 'fx', D.whoosh({ dur: 1.4, f0: 2600, fPeak: 700, f1: 200, panFrom: 0, panTo: 0, seed: s }), t - 0.4, { gain: 0.3 });
+        put(mix, 'ping', bell(step('world') + 12, { len: 3.0, vel: 0.7 }), t, { gain: 0.16 });
         break;
       }
       case 'arc': {
