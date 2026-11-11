@@ -178,6 +178,29 @@ const MUSIC = {
     lead: (B) => beats(76.4, B, [[79, 1], [77, 0.5], [74, 0.5], [76, 1], [79, 1], [81, 1], [79, 0.5], [77, 0.5], [74, 2], [79, 1], [83, 2]]),
     kick: { f0: 210, f1: 46, decay: 0.13 }, fade: [88.4, 89.95],
   },
+  // the atom machine: C minor at 100 BPM, so a bar (2.4 s) is one breath of the machine. A heartbeat
+  // while it charges, a snare roll into the overload, four on the floor inside the crystal, the lead
+  // over the peak (24.0 s); the calm resolves to C major for the name
+  'atom-machine': {
+    key: 'C minor', bpm: 100, grid: 0.0, sub: 24, wind: 0.18,
+    chords: [[36, [48, 51, 55, 60]], [32, [48, 51, 56, 60]], [34, [46, 50, 53, 58]], [31, [47, 50, 55, 59]]],
+    calmAt: 36.0, calm: [[36, [48, 52, 55, 60]], [36, [48, 55, 60, 64]]],
+    steps: [60, 62, 63, 65, 67, 68, 71, 72],
+    fontPitch: { runic: 72, oldworld: 67, future: 79 },
+    arp: [0, 2, 1, 3, 2, 4, 3, 1],
+    sections: [
+      { a: 0.4, z: 4.8, groove: 'drift', lvl: 0.35, arp: 'slow' },
+      { a: 4.8, z: 12.0, groove: 'heart', lvl: 0.7 },
+      { a: 12.0, z: 14.4, groove: 'heart', lvl: 0.9, fast: true },
+      { a: 14.4, z: 16.8, groove: 'roll', lvl: 1 },
+      { a: 16.8, z: 24.0, groove: 'four', lvl: 0.9, arp: 'pluck16' },
+      { a: 24.0, z: 28.8, groove: 'four', lvl: 1.1, arp: 'pluck', clap: true, stabs: true },
+      { a: 28.8, z: 31.2, groove: 'four', lvl: 0.9, arp: 'pluck16' },
+      { a: 31.2, z: 36.0, groove: 'drift', lvl: 0.55, arp: 'slow' },
+    ],
+    lead: (B) => beats(24.0, B, [[72, 1], [75, 0.5], [74, 0.5], [72, 1], [79, 1.5], [77, 0.5], [75, 1], [74, 1], [71, 1], [72, 2]]),
+    kick: { f0: 190, f1: 42, decay: 0.15 }, fade: [41.0, 41.95],
+  },
 };
 
 function score(film) {
@@ -376,6 +399,33 @@ function score(film) {
       case 'mandala': put(mix, 'fx', D.reverseSwell({ dur: 1.9, notes: tonic, seed: s }), t, { gain: 0.48 }); break;
       case 'tunnel': put(mix, 'fx', D.whoosh({ dur: 1.6, seed: s }), t, { gain: 0.4 }); put(mix, 'fx', D.riser({ dur: 3.6, f0: 300, f1: 10000, seed: s + 'r' }), t, { gain: 0.3 }); break;
       case 'line': put(mix, 'hit', D.impact({ size: 1.0, seed: s }), t, { gain: 0.62 }); put(mix, 'hit', D.makeCrash(s + 'c'), t, { gain: 0.3 }); break;
+
+      /* the atom machine: its hum, and the arcs between its spheres */
+      case 'machine': {
+        // a mains-deep hum on the root an octave down, its fifth beside it, and an electric buzz of odd
+        // harmonics above: it breathes once a bar, and the buzz rises as the machine charges (to 16.8 s)
+        const st = stem(mix, 'hum');
+        const f = D.mtof(tonic[0] - 12), t1 = Math.min(film.dur, c.until || film.dur);
+        const i0 = D.idx(t), i1 = Math.min(mix.N, D.idx(t1));
+        for (let i = i0; i < i1; i++) {
+          const tt = i / D.SR, x = tt - t;
+          const env = Math.min(1, x / 1.6, (t1 - tt) / 2.2);
+          const charge = Math.min(1, Math.max(0, (tt - t) / (16.8 - t)));
+          const br = 0.62 + 0.38 * Math.sin((2 * Math.PI * tt) / BAR);
+          const w = 2 * Math.PI * f * x;
+          let buzz = 0; for (const h of [3, 5, 7, 9, 11]) buzz += Math.sin(h * w * 1.0015) / h;
+          const v = (Math.sin(w) + 0.45 * Math.sin(1.5 * w) + 0.25 * Math.sin(2 * w) + (0.15 + 0.55 * charge) * buzz) * 0.07 * env * br;
+          st.L[i] += v * (1 + 0.08 * Math.sin(x * 0.9)); st.R[i] += v * (1 - 0.08 * Math.sin(x * 0.9));
+        }
+        break;
+      }
+      case 'arc': {
+        // electricity: a crackle of bit-crushed noise and a bright snap, panned to where it jumps
+        const pan = Math.sin(t * 7.3) * 0.6, g = c.soft ? 0.6 : 1;
+        put(mix, 'fx', D.glitch({ dur: 0.2, f: 3600 + 1400 * Math.sin(t * 3.1), seed: s }), t, { gain: 0.2 * g, pan });
+        put(mix, 'fx', D.noiseBurst({ dur: 0.32, f0: 12000, f1: 2600, close: 0.08, fast: 0.04, slow: 0.16, seed: s + 'n' }), t, { gain: 0.16 * g, pan: -pan });
+        break;
+      }
 
       /* the eye: the saucer's passes, the eye waking, the click, a redaction lifting */
       case 'swoop': put(mix, 'fx', D.whoosh({ dur: 1.4, f0: 260, fPeak: 3400, f1: 420, panFrom: -0.85, panTo: 0.85, seed: s }), t - 0.3, { gain: 0.34 });
