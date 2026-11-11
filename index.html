@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=83a7c5af29">
+<link rel="stylesheet" href="assets/css/site.css?v=4c4d110355">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -328,6 +328,8 @@
 
   <!-- ================= THE MAP ================= -->
   <section class="section map-section" id="map">
+    <!-- the realm plate's own picture, blown up behind the map; off until its Backdrop switch is pressed -->
+    <div class="map-backdrop" aria-hidden="true"></div>
     <div class="wrap">
       <div class="head-plate">
         <div class="section-head reveal">
@@ -337,17 +339,20 @@
         </div>
         <!-- Inner Earth and Black & White realms only -->
         <figure class="realm-only realm-plate hud brackets reveal" data-realms="inner-earth mono">
+          <button type="button" class="plate-switch" data-map-backdrop aria-pressed="false" hidden><span class="ps-track" aria-hidden="true"></span>Backdrop</button>
           <img data-realm="inner-earth" src="assets/img/feature/realm/inner-earth/symmes-hole-980.webp" width="980" height="696" loading="lazy" decoding="async" alt="An engraving of the globe, drawn as light lines on dark, with a great glowing opening at the north pole">
           <img data-realm="mono" src="assets/img/feature/realm/mono/symmes-hole-980.webp" width="980" height="696" loading="lazy" decoding="async" alt="An engraving of the globe, drawn as light lines on dark, with a great glowing opening at the north pole">
           <figcaption><b>Symmes Hole.</b> In 1818 John Cleves Symmes Jr. declared the earth hollow and open at the poles. Drawn here in 1882.
             <small>Public domain · <a href="https://commons.wikimedia.org/wiki/File:Symmes_Hole.jpg" rel="noopener" target="_blank">source</a> · inverted and recoloured</small></figcaption>
         </figure>
         <figure class="realm-only realm-plate hud brackets reveal" data-realms="polar">
+          <button type="button" class="plate-switch" data-map-backdrop aria-pressed="false" hidden><span class="ps-track" aria-hidden="true"></span>Backdrop</button>
           <img data-realm="polar" src="assets/img/feature/realm/polar/ice-cave-exit-980.webp" width="980" height="735" loading="lazy" decoding="async" alt="Daylight at the mouth of a glacier cave, seen through walls of blue ice">
           <figcaption><b>The way out.</b> Daylight at the mouth of a glacier cave, through ice that has been blue for longer than anyone has been counting.
             <small>Photo: Gillfoto · <a href="https://commons.wikimedia.org/wiki/File:Ice_Cave_Exit_268.jpg" rel="noopener" target="_blank">source</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener" target="_blank">CC BY-SA 4.0</a></small></figcaption>
         </figure>
         <figure class="realm-only realm-plate hud brackets reveal" data-realms="crystal">
+          <button type="button" class="plate-switch" data-map-backdrop aria-pressed="false" hidden><span class="ps-track" aria-hidden="true"></span>Backdrop</button>
           <img data-realm="crystal" src="assets/img/feature/realm/crystal/endurance-dawn-980.webp" width="980" height="694" loading="lazy" decoding="async" alt="The ship Endurance held in pack ice beside a pressure ridge, the snow lit pink by the rising sun">
           <figcaption><b>The Endurance, 1915.</b> Shackleton’s ship held in the Weddell Sea ice, lit pink by the rising sun. Her captain, Frank Worsley, is the face on the Antarctica $20.
             <small>Photo: Frank Hurley · <a href="https://commons.wikimedia.org/wiki/File:The_%27Endurance%27,_The_pink_glow_of_the_rising_sun_shining_on_a_pressure_ridge,_1915_-_photographed_by_Frank_Hurley_(3534602329).jpg" rel="noopener" target="_blank">source</a> · public domain</small></figcaption>
@@ -610,6 +615,6 @@
 <script src="assets/js/map-data.js?v=55d7e4b3b6"></script>
 <script src="assets/js/map.js?v=654ab17ce1"></script>
 <script src="assets/js/eye.js?v=4edacf2e36"></script>
-<script src="assets/js/home.js?v=347efb85f2"></script>
+<script src="assets/js/home.js?v=de991f4a4c"></script>
 </body>
 </html>

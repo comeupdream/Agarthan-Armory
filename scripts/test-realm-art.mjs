@@ -118,5 +118,34 @@ if (banner) {
 ok(/html\[data-theme="mono"\] \.lead-slide \{[^}]*realm\/mono\/naica-1600\.webp/.test(css), 'Black & White sets the lead slide over its Naica cave');
 ok(existsSync(path.join(FEATURE, 'realm', 'mono', 'naica-1600.webp')), 'the Black & White Naica picture exists');
 
+// the map backdrop: each realm plate beside the map carries a Backdrop switch in its picture's corner, off until
+// pressed; pressed, the realm's own picture is blown up behind the map. Vril has no plate and no backdrop
+const mapSec = home.match(/<section class="section map-section" id="map">([\s\S]*?)<\/section>/);
+ok(!!mapSec, 'the home page has the map section');
+if (mapSec) {
+  const plates = [...mapSec[1].matchAll(/<figure class="realm-only realm-plate[^"]*" data-realms="([^"]+)">([\s\S]*?)<\/figure>/g)];
+  ok(plates.length === 3, `the map heading has three realm plates (found ${plates.length})`);
+  for (const [, rs, body] of plates) {
+    const sw = body.match(/<button[^>]*data-map-backdrop[^>]*>/);
+    ok(!!sw, `the ${rs} plate has a Backdrop switch`);
+    if (sw) ok(/aria-pressed="false"/.test(sw[0]) && /\bhidden\b/.test(sw[0]) && /type="button"/.test(sw[0]),
+      `the ${rs} switch starts off, and stays hidden until home.js wires it`);
+    ok(sw && body.indexOf(sw[0]) < body.indexOf('<img'), `the ${rs} switch sits in the picture (before the image, in its corner)`);
+  }
+  ok(/<div class="map-backdrop" aria-hidden="true"><\/div>/.test(mapSec[1]), 'the map section has a backdrop layer, hidden from screen readers');
+}
+const BACKDROPS = { polar: ['html:not([data-theme])', 'polar/ice-cave-exit-1920.webp'], crystal: ['html[data-theme="crystal"]', 'crystal/endurance-dawn-1920.webp'],
+  'inner-earth': ['html[data-theme="inner-earth"]', 'inner-earth/symmes-hole-980.webp'], mono: ['html[data-theme="mono"]', 'mono/symmes-hole-980.webp'] };
+for (const [realm, [sel, pic]] of Object.entries(BACKDROPS)) {
+  const rule = css.match(new RegExp(sel.replace(/[[\]()"]/g, '\\$&') + ' \\.map-backdrop \\{[^}]*realm/([a-z-]+/[a-z0-9-]+\\.webp)'));
+  ok(rule && rule[1] === pic, `${realm} lays ${pic} behind the map (found ${rule && rule[1]})`);
+  ok(existsSync(path.join(FEATURE, 'realm', pic)), `the ${realm} backdrop picture exists`);
+}
+ok(/\.map-backdrop \{ display: none;/.test(css) && /\.map-section\.has-backdrop \.map-backdrop \{ display: block; \}/.test(css),
+  'the backdrop shows only once switched on (so its picture is not even downloaded before then)');
+ok(/html\[data-theme="vril"\] \.map-section \.map-backdrop \{ display: none; \}/.test(css), 'Vril shows no map backdrop');
+const homeJs = readFileSync(path.join(ROOT, 'assets/js/home.js'), 'utf8');
+ok(/AA\.store\.get\(KEY, false\) === true/.test(homeJs) && /'aa-map-backdrop'/.test(homeJs), 'the switch is off unless this browser turned it on');
+
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
