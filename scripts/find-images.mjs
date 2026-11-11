@@ -48,6 +48,17 @@
  *                  With it, each photo is also trimmed to the product plus a small
  *                  white margin, and one cut off by its frame (a stock or barrel
  *                  running into one edge) is skipped for the next result.
+ *   --dept nfa     only these departments (comma list: sidearms, longarms, shotguns, ammo, optics,
+ *                  gear, nfa); --sub suppressors narrows to categories the same way
+ *   --gallery 4    up to N distinct photos per product (different angles; a picture re-hosted
+ *                  on several sites counts once). Products that already have a photo get more
+ *                  added after it.
+ *   --colors       a gun sold in several colours gets a photo per colour: the colour goes in the
+ *                  query (and the UPC searched is that colour's own), and a photo for an FDE/tan
+ *                  or green listing must show that colour. Covers variants showing another
+ *                  colour's photo, or none; the gun departments unless --dept says otherwise.
+ *                  A variant whose same-colour sibling already has the right photo shares it
+ *                  without a search.
  *   --retry        search again for products marked "none" earlier
  *   --lenient      the looser checks of earlier runs. By default a photo must be a clean
  *                  packshot: a strong match (score 5+: the maker's site, or the product's
@@ -67,6 +78,7 @@
  *   --dry-run      search and score, download nothing
  * ===========================================================================*/
 import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { readCatalog, writeCatalog, catalogExists } from './lib-store.mjs';
 import { pathToFileURL } from 'node:url';
@@ -74,8 +86,9 @@ import { createRequire } from 'node:module';
 import { upcOf, isImage, extOf } from './match-images.mjs';
 
 /** what to search for: maker + line + what sets the variant apart, then maker + UPC, then maker + part number */
-export function queriesFor(p, upc) {
-  const variant = Object.values(p.variant || {}).filter((v) => !/^\d+$/.test(String(v))).slice(0, 2).join(' ');
+export function queriesFor(p, upc, { color = '' } = {}) {
+  // searching for one colourway: the colour goes in the first query (the UPC and part number are that colour's own)
+  const variant = color || Object.values(p.variant || {}).filter((v) => !/^\d+$/.test(String(v))).slice(0, 2).join(' ');
   const mpn = p.sku && p.sku !== upc ? p.sku : (p.attributes && p.attributes['Manufacturer Part Number']) || null;
   return [...new Set([
     [p.brand, p.name, variant].filter(Boolean).join(' ').trim(),
@@ -183,6 +196,50 @@ export function qualityProblem(info, f, border) {
   if (border < 0.8) return `not a clean packshot (${Math.round(border * 100)}% of the edge is plain background)`;
   return null;
 }
+/* ------------------------------------------------------------ colourways
+ * A gun sold in several colours (a Vector in black, FDE, white…) needs a photo per colour. The variant's
+ * colour is in the feed; a downloaded photo is checked against it where a check is reliable: an FDE/tan
+ * listing must show tan, a green/OD listing must show some colour (olive reads as tan or green); black,
+ * camo, two-tone and the rest are not checked (wood stocks read as tan, camo as anything). Calibrated on
+ * the store's own photos: every FDE/green listing it flags shows the black gun. */
+export const colorOf = (p) => String((p && ((p.variant || {}).Color || (p.attributes || {}).Color)) || '').trim();
+export function colorFamily(c) {
+  const s = String(c || '').toLowerCase();
+  if (!s || /camo|multicam|black|\band\b|\/|,|two[- ]?tone|&/.test(s)) return null;
+  if (/fde|flat dark earth|\btan\b|coyote|sand|desert|earth/.test(s)) return 'tan';
+  if (/\b(od|odg|olive|green|foliage)\b/.test(s)) return 'green';
+  return null;
+}
+/** the share of the product's pixels (not the white background) that read dark, tan or green */
+export function colorShares(data, w, h, ch = 3) {
+  let ink = 0, dark = 0, tan = 0, green = 0;
+  for (let i = 0; i < w * h * ch; i += ch) {
+    const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
+    if (r > 0.88 && g > 0.88 && b > 0.88) continue;
+    ink++;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    let hue = 0; if (d) { hue = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hue *= 60; if (hue < 0) hue += 360; }
+    if (hue >= 15 && hue <= 55 && s >= 0.10 && l >= 0.15 && l <= 0.85) tan++;
+    else if (hue > 55 && hue <= 165 && s >= 0.06 && l >= 0.08 && l <= 0.75) green++;
+    else if (l < 0.22) dark++;
+  }
+  return ink ? { dark: dark / ink, tan: tan / ink, green: green / ink } : { dark: 0, tan: 0, green: 0 };
+}
+export function colorProblem(family, sh) {
+  if (family === 'tan' && sh.tan < 0.10) return 'the photo shows no FDE/tan (the listing is that colour)';
+  if (family === 'green' && sh.tan + sh.green < 0.10) return 'the photo shows no green (the listing is that colour)';
+  return null;
+}
+/** a 64-bit picture fingerprint (difference hash): near-identical photos are a few bits apart */
+export async function dhash(sharp, buf) {
+  const d = await sharp(buf).flatten({ background: '#ffffff' }).greyscale().resize(9, 8, { fit: 'fill' }).raw().toBuffer();
+  let h = 0n;
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) h = (h << 1n) | (d[y * 9 + x] > d[y * 9 + x + 1] ? 1n : 0n);
+  return h;
+}
+export const hamming = (a, b) => { let x = a ^ b, n = 0; while (x) { n += Number(x & 1n); x >>= 1n; } return n; };
+
 // A photo already on the site is only taken down when it is plainly wrong: blank, or not a product
 // shot at all (a busy or dark background: a lifestyle photo, a banner, a listing screenshot).
 // A clean packshot stays, whatever its size (the site enlarges it to fit).
@@ -194,13 +251,14 @@ export function recheckProblem(info, f, border) {
 
 // Crop to the product plus a 4% white margin, so it fills its card; refuse a cut-off photo
 // (and, strict, one that is not a clean packshot); strict enlarges a small one to the standard size
-export async function fitPhoto(sharp, buf, size, { strict = false } = {}) {
+export async function fitPhoto(sharp, buf, size, { strict = false, expect = null } = {}) {
   const flat = await sharp(buf).rotate().flatten({ background: '#ffffff' }).removeAlpha().toBuffer();
   const { data, info } = await sharp(flat).raw().toBuffer({ resolveWithObject: true });
   const f = framing(data, info.width, info.height, info.channels);
   if (f.blank) throw new Error('blank photo');
   if (f.cut.length) throw new Error(`cut off at the ${f.cut.join('/')} edge`);
   if (strict) { const why = qualityProblem(info, f, whiteBorder(data, info.width, info.height, info.channels)); if (why) throw new Error(why); }
+  if (expect) { const why = colorProblem(expect, colorShares(data, info.width, info.height, info.channels)); if (why) throw new Error(why); }   // a colourway's own photo
   let img = sharp(flat);
   if (f.fill < 0.92) {
     const { x0, x1, y0, y1 } = f.box;
@@ -244,6 +302,10 @@ async function main() {
   const STRICT = !flag('lenient'), MIN_SCORE = num('min-score', STRICT ? 5 : 2, -99);
   const BUDGET = num('budget', COVER || TOP ? 2500 : 300, 1), LIMIT = num('limit', 0, 0), RPS = num('rps', 1, 0.1), SIZE = num('size', 800, 200);
   const RETRY = flag('retry'), DRY = flag('dry-run'), PER_VARIANT = flag('per-variant');
+  const list = (n) => String(arg(n, '') || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const DEPTS = list('dept'), SUBS = list('sub');                                   // --dept nfa · --sub suppressors
+  const GALLERY = Math.min(6, num('gallery', 1, 1));                                 // --gallery 4: up to 4 photos each
+  const COLORS = flag('colors');                                                     // --colors: one photo per colourway
   const CAT_DIR = path.resolve(arg('catalog-dir', 'assets/data/scraped'));
   const IMG_DIR = path.resolve(arg('img-dir', 'assets/img/products'));
   const IMG_REL = path.relative(process.cwd(), IMG_DIR).split(path.sep).join('/');
@@ -256,17 +318,68 @@ async function main() {
   // the store's own products (merch, gift cards, its own listings) are never searched for: the web has only others' to offer
   const own = (p) => /agarthan/i.test(String(p.brand || '')) || /agarthan merch/i.test((p.categories || []).join(' '));
   if (RECHECK) return recheck({ cats, own, sharp, DRY, CAT_DIR });
-  const todo = cats.flatMap((c) => c.list).filter((p) => !own(p) && !(p.localImages || []).length && (RETRY || !(p.photoSearch && p.photoSearch.result === 'none')));
-  // one search per product LINE: the variants of a line (calibers, colors) share its photo unless --per-variant
+  // the site's catalog (department, category, stock, merit rank), for --dept/--sub/--colors/--top/--cover
+  let siteItems = null, site = new Map();
+  if (DEPTS.length || SUBS.length || COLORS || TOP || COVER) {
+    const catJs = path.resolve(arg('catalog-js', 'assets/data/catalog.js'));
+    try { const w = {}; new Function('window', await readFile(catJs, 'utf8'))(w); siteItems = w.AA_CATALOG.items; site = new Map(siteItems.map((i) => [i.id, i])); }
+    catch (e) { console.error(`✗ this run needs the site catalog (${path.relative(process.cwd(), catJs)}): run npm run build:catalog first`); process.exit(1); }
+  }
+  const all = cats.flatMap((c) => c.list);
+  const byId = new Map(all.map((p) => [p.id, p]));
+  const lineOf = (p) => p.line || `${p.brand || ''}|${p.name}`;
+  // --colors: lines sold in several colours get one search per colour
+  const lineColors = new Map();
+  for (const p of all) { const c = colorOf(p).toLowerCase(); if (!c) continue; const k = lineOf(p); if (!lineColors.has(k)) lineColors.set(k, new Set()); lineColors.get(k).add(c); }
+  const GUNS = new Set(['sidearms', 'longarms', 'shotguns', 'nfa']);
+  const byColor = (p) => COLORS && !!colorOf(p) && (lineColors.get(lineOf(p)) || new Set()).size > 1;
+  const keyOf = (p) => (PER_VARIANT ? p.id : lineOf(p) + (byColor(p) ? '|' + colorOf(p).toLowerCase() : ''));
+  // the colour a product's photo was found for (a variant shares its line's photo unless it got its own)
+  const photoColor = (p) => colorOf(p.photoSource && p.photoSource.sharedFrom ? byId.get(p.photoSource.sharedFrom) || p : p).toLowerCase();
+  const wrongColor = (p) => byColor(p) && (p.localImages || []).length > 0 && !!p.photoSource && photoColor(p) !== colorOf(p).toLowerCase();
+  const inScope = (p) => {
+    if (!siteItems) return true;
+    const i = site.get(p.id); if (!i) return false;
+    if (DEPTS.length && !DEPTS.includes(i.dept)) return false;
+    if (SUBS.length && !SUBS.includes(String(i.sub || '').toLowerCase())) return false;
+    if (COLORS && !DEPTS.length && !GUNS.has(i.dept)) return false;          // colourways: the guns, unless --dept says otherwise
+    if (COLORS && !TOP && !DEPTS.length && i.status === 'out') return false;  // a broad colour run skips what can't be bought; --dept covers it all
+    return true;
+  };
+  const ps = (p) => p.photoSearch || {};
+  const todo = all.filter((p) => {
+    if (own(p) || !inScope(p)) return false;
+    const n = (p.localImages || []).length;
+    if (n && !p.photoSource) return false;                                     // the store's own photo is never touched
+    if (!n) return RETRY || ps(p).result !== 'none' || (byColor(p) && !ps(p).colorTried);
+    if (wrongColor(p)) return RETRY || !ps(p).colorTried;                      // showing another colour's photo
+    if (GALLERY > 1 && n < GALLERY) return RETRY || !((ps(p).gallery || 0) >= GALLERY);
+    return false;
+  });
+  // one search per product LINE (per colour with --colors): its variants share the photos, unless --per-variant
   const groups = new Map();
-  for (const p of todo) { const k = PER_VARIANT ? p.id : (p.line || `${p.brand || ''}|${p.name}`); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+  for (const p of todo) { const k = keyOf(p); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
   let allGroups = [...groups.values()];
+  // the best-ranked variant stands for its group, and the groups go best first (the Armory's merit order)
+  if (siteItems && !TOP && !COVER) {
+    const rank = (p) => { const i = site.get(p.id); return i ? (i.rank ?? 1e6) + (i.status === 'out' ? 1e7 : 0) : 1e8; };
+    allGroups = allGroups.map((g) => g.slice().sort((a, b) => rank(a) - rank(b))).sort((a, b) => rank(a[0]) - rank(b[0]));
+  }
+  // a sibling of the same line (and colour) that already has the right photos lends them: no search needed
+  const usedFiles = new Set(all.flatMap((p) => p.localImages || []));
+  const donors = new Map();
+  for (const p of all) {
+    const n = (p.localImages || []).length;
+    if (!n || (byColor(p) && p.photoSource && photoColor(p) !== colorOf(p).toLowerCase())) continue;
+    const k = keyOf(p); const cur = donors.get(k);
+    if (!cur || n > cur.localImages.length) donors.set(k, p);
+  }
+  if (DEPTS.length || SUBS.length) console.log(`→ scope: ${[DEPTS.length ? `department ${DEPTS.join(', ')}` : '', SUBS.length ? `category ${SUBS.join(', ')}` : ''].filter(Boolean).join(' · ')}`);
+  if (COLORS) console.log(`→ colours: ${allGroups.filter((g) => byColor(g[0])).length} colourways to find (variants showing another colour's photo, or none)`);
+  if (GALLERY > 1) console.log(`→ gallery: up to ${GALLERY} distinct photos per product`);
   if (COVER) {
     // the first page of every view, in the Armory's own order (the site's catalog + assets/js/order.js)
-    const catJs = path.resolve(arg('catalog-js', 'assets/data/catalog.js'));
-    let items;
-    try { const w = {}; new Function('window', await readFile(catJs, 'utf8'))(w); items = w.AA_CATALOG.items; }
-    catch (e) { console.error(`✗ --cover needs the site catalog (${path.relative(process.cwd(), catJs)}): run npm run build:catalog first`); process.exit(1); }
+    const items = siteItems;
     const order = createRequire(import.meta.url)(arg('order-js', null) ? path.resolve(arg('order-js')) : '../assets/js/order.js');
     const { ids, views } = order.coverIds(items, { page: COVER });
     const at = new Map(ids.map((id, n) => [id, n]));
@@ -277,13 +390,9 @@ async function main() {
   }
   if (TOP) {
     // the lines most worth a photo: a hologram on a first page first, then by the Armory's merit rank; never out of stock
-    const catJs = path.resolve(arg('catalog-js', 'assets/data/catalog.js'));
-    let items;
-    try { const w = {}; new Function('window', await readFile(catJs, 'utf8'))(w); items = w.AA_CATALOG.items; }
-    catch (e) { console.error(`✗ --top needs the site catalog (${path.relative(process.cwd(), catJs)}): run npm run build:catalog first`); process.exit(1); }
+    const items = siteItems;
     const order = createRequire(import.meta.url)(arg('order-js', null) ? path.resolve(arg('order-js')) : '../assets/js/order.js');
     const cover = new Set(order.coverIds(items.map((i) => ({ ...i })), { page: 48 }).ids);
-    const site = new Map(items.map((i) => [i.id, i]));
     const worth = (p) => { const i = site.get(p.id); return i && i.status !== 'out' ? (cover.has(p.id) ? 0 : 1e7) + (i.rank ?? 1e6) : Infinity; };
     allGroups = allGroups.map((g) => g.slice().sort((a, b) => worth(a) - worth(b)))
       .filter((g) => worth(g[0]) < Infinity)
@@ -294,14 +403,14 @@ async function main() {
   console.log(STRICT ? `  photo bar: match score ${MIN_SCORE}+, clean packshots only, small ones enlarged to ${SIZE}px (--lenient for the old bar)` : '  photo bar: lenient');
   const work = LIMIT ? allGroups.slice(0, LIMIT) : allGroups;
   const est = (n) => `$${(n * 0.005).toFixed(2)}`;
-  console.log(`→ ${todo.length} products without a photo, ${allGroups.length} ${PER_VARIANT ? 'searches' : 'product lines'} to look up; this run: ${work.length}`);
+  console.log(`→ ${todo.length} products to work on, ${allGroups.length} ${PER_VARIANT ? 'searches' : COLORS ? 'product lines and colourways' : 'product lines'} to look up; this run: ${work.length}`);
   console.log(`  about ${work.length}–${Math.min(BUDGET, Math.round(work.length * 1.6))} searches (${est(work.length)}–${est(Math.min(BUDGET, work.length * 1.6))} at $5 per 1,000), never more than ${BUDGET} (--budget)${sharp ? `; photos saved as ${SIZE}px WebP` : ''}`);
   if (!sharp && !DRY && !flag('no-resize') && work.length > 20) {
     console.error('✗ install the photo resizer first, so a couple of thousand full-size photos never land in the repo:\n    npm install sharp\n  then run this again (or add --no-resize to save photos as they come)');
     process.exit(1);
   }
 
-  let calls = 0, found = 0, none = 0, last = 0, looked = 0, skipped = 0, downInARow = 0;
+  let calls = 0, found = 0, none = 0, last = 0, looked = 0, skipped = 0, downInARow = 0, extra = 0, recolored = 0, lent = 0;
   // A dropped connection, a timeout, a rate limit or a server error is retried (2s, 4s, 8s), never taken
   // as "no photo": if it keeps failing, the product is skipped this run and searched again next run.
   const NetError = (why) => Object.assign(new Error(why), { network: true });
@@ -345,28 +454,56 @@ async function main() {
   try {
     for (const group of work) {
       if (calls >= BUDGET) { console.log(`  budget of ${BUDGET} searches reached — run again to continue`); break; }
-      // the variant the store shows first stands for the line
+      // the variant the store shows first stands for the line (or the colourway)
       const p = group[0];
       const upc = upcOf(p);
-      const queries = queriesFor(p, upc);
-      let chosen = null;
+      const colorway = byColor(p) ? colorOf(p) : '';
+      const expect = colorway && GUNS.has((site.get(p.id) || {}).dept) ? colorFamily(colorway) : null;
+      const queries = queriesFor(p, upc, { color: colorway });
+      // photos already right for this group stay (a gallery adds to them); another colour's photo doesn't count
+      const keep = wrongColor(p) || !p.photoSource ? [] : (p.localImages || []).slice(0, 6);
+      const want = Math.max(1, GALLERY) - keep.length;
+      const at = new Date().toISOString();
+      const mark = (q, extra) => { q.photoSearch = { ...(q.photoSearch || {}), at, ...extra }; };
+      const tried = { ...(colorway ? { colorTried: true } : {}), ...(GALLERY > 1 ? { gallery: GALLERY } : {}) };
+      // a sibling of the same line and colour already has the right photos: share them, no search
+      const donor = !keep.length ? donors.get(keyOf(p)) : null;
+      if (donor && !group.includes(donor) && donor.localImages.length >= (GALLERY > 1 ? GALLERY : 1)) {
+        if (!DRY) group.forEach((q) => { q.localImages = donor.localImages.slice(); q.photoSource = { ...(donor.photoSource || {}), sharedFrom: donor.photoSource && donor.photoSource.sharedFrom ? donor.photoSource.sharedFrom : donor.id }; });
+        group.forEach((q) => mark(q, { result: 'found', ...tried }));
+        found += group.length; lent += group.length;
+        if (++looked % 25 === 0) console.log(`    ${looked}/${work.length} looked up · ${found} products with a photo · ${calls} searches`);
+        continue;
+      }
+      const chosen = [];
+      const hashes = [];
+      if (sharp && GALLERY > 1) for (const f of keep) { try { hashes.push(await dhash(sharp, await readFile(path.resolve(f)))); } catch { /* gone */ } }
+      // never a photo taken down before, nor (for more angles) one this product already shows
+      const refused = new Set([...group.flatMap((q) => (q.photoSearch && q.photoSearch.refused) || []), ...(keep.length ? group.map((q) => q.photoSource && q.photoSource.image).filter(Boolean) : [])]);
       try {
       for (const q of queries) {
-        if (calls >= BUDGET) break;
+        if (calls >= BUDGET || chosen.length >= want) break;
         const ranked = (await search(q)).map((r) => ({ ...r, score: scoreResult(r, p, upc, { strict: STRICT }) })).filter((r) => r.score >= MIN_SCORE).sort((a, b) => b.score - a.score);
-        const refused = new Set(group.flatMap((q) => (q.photoSearch && q.photoSearch.refused) || []));
-        for (const r of ranked.filter((x) => !refused.has(x.image)).slice(0, 5)) {   // never a photo taken down before
-          if (DRY) { chosen = { r }; break; }
+        for (const r of ranked.filter((x) => !refused.has(x.image)).slice(0, want > 1 ? 10 : 5)) {
+          if (chosen.length >= want) break;
+          refused.add(r.image);                                         // one try per picture
+          if (DRY) { chosen.push({ r }); continue; }
           try {
             let b = await download(r.image); let ext = extOf(b);
-            if (sharp) { b = await fitPhoto(sharp, b, SIZE, { strict: STRICT }); ext = '.webp'; }   // trimmed to the product; cut-off or cluttered photos skipped
-            const name = `${p.id}-1${ext}`;
+            if (sharp) { b = await fitPhoto(sharp, b, SIZE, { strict: STRICT, expect }); ext = '.webp'; }   // trimmed; cut-off, cluttered or wrong-colour photos skipped
+            if (sharp && GALLERY > 1) {                                  // a gallery shows different angles, not the same picture twice
+              const h = await dhash(sharp, b);
+              if (hashes.some((x) => hamming(x, h) <= 10)) continue;
+              hashes.push(h);
+            }
+            // a new name: never one a product shows (a sibling's photo, another colour's), nor a later angle already on disk
+            let k = keep.length + chosen.length + 1, name = `${p.id}-${k}${ext}`;
+            while (usedFiles.has(`${IMG_REL}/${name}`) || (k > 1 && existsSync(path.join(IMG_DIR, name)))) name = `${p.id}-${++k}${ext}`;
             await writeFile(path.join(IMG_DIR, name), b);
-            chosen = { r, file: `${IMG_REL}/${name}` };
-            break;
+            usedFiles.add(`${IMG_REL}/${name}`);
+            chosen.push({ r, file: `${IMG_REL}/${name}` });
           } catch { /* try the next result */ }
         }
-        if (chosen) break;
       }
       } catch (e) {
         if (!e.network) throw e;
@@ -377,14 +514,27 @@ async function main() {
         continue;
       }
       downInARow = 0;
-      const at = new Date().toISOString();
-      if (chosen) {
+      if (chosen.length) {
         found += group.length;
+        if (keep.length) extra += chosen.length;
+        if (colorway) recolored += group.length;
+        // where the photos came from: the first (kept, or new), and the further angles
+        const more = chosen.slice(keep.length ? 0 : 1).map((c) => ({ image: c.r.image, page: c.r.page }));
+        const base = keep.length
+          ? { ...p.photoSource, more: [...((p.photoSource && p.photoSource.more) || []), ...more] }
+          : { image: chosen[0].r.image, page: chosen[0].r.page, score: chosen[0].r.score, ...(more.length ? { more } : {}) };
         group.forEach((q, n) => {
-          if (!DRY) { q.localImages = [chosen.file]; q.photoSource = { image: chosen.r.image, page: chosen.r.page, score: chosen.r.score, ...(n ? { sharedFrom: p.id } : {}) }; }
-          q.photoSearch = { at, result: 'found', ...(q.photoSearch && q.photoSearch.refused ? { refused: q.photoSearch.refused } : {}) };
+          if (!DRY) {
+            q.localImages = [...keep, ...chosen.map((c) => c.file)].slice(0, 6);
+            q.photoSource = n ? { ...base, sharedFrom: base.sharedFrom || p.id } : base;
+          }
+          const refusedList = q.photoSearch && q.photoSearch.refused;
+          q.photoSearch = { at, result: 'found', ...tried, ...(refusedList ? { refused: refusedList } : {}) };
         });
-      } else { none += group.length; group.forEach((q) => { q.photoSearch = { at, result: 'none', ...(q.photoSearch && q.photoSearch.refused ? { refused: q.photoSearch.refused } : {}) }; }); }
+      } else if (group.some((q) => (q.localImages || []).length)) {
+        // nothing new: what they show stays (another colour's photo beats a hologram), and they aren't searched again
+        group.forEach((q) => mark(q, tried));
+      } else { none += group.length; group.forEach((q) => mark(q, { result: 'none', ...tried })); }
       if (++looked % 25 === 0) console.log(`    ${looked}/${work.length} looked up · ${found} products with a photo · ${calls} searches`);
     }
   } catch (e) {
@@ -400,9 +550,10 @@ async function main() {
 <style>body{font:14px system-ui;margin:20px;background:#f4f4f4}h1{font-size:18px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .c{background:#fff;padding:10px;border:1px solid #ddd}.c img{width:100%;height:180px;object-fit:contain}.n{font-weight:600;margin:6px 0 2px}.m{color:#666;font-size:12px;word-break:break-all}.lo{outline:3px solid #f0a}</style>
 <h1>Photo review — ${withSrc.length} products found online. Pink outline = weaker match; check those first.</h1><div class="g">${withSrc.map((p) =>
-    `<div class="c${p.photoSource.score < 6 ? ' lo' : ''}"><img src="${esc(rel + '/' + p.localImages[0])}" loading="lazy" alt=""><div class="n">${esc(p.brand)} — ${esc(p.name)}</div><div class="m">UPC ${esc(upcOf(p) || '—')} · <a href="${esc(p.photoSource.page)}" target="_blank">${esc((() => { try { return new URL(p.photoSource.page).hostname; } catch { return 'source'; } })())}</a> · score ${p.photoSource.score}</div></div>`).join('')}</div>`);
+    `<div class="c${p.photoSource.score < 6 ? ' lo' : ''}"><img src="${esc(rel + '/' + p.localImages[0])}" loading="lazy" alt=""><div class="n">${esc(p.brand)} — ${esc(p.name)}</div><div class="m">UPC ${esc(upcOf(p) || '—')} · <a href="${esc(p.photoSource.page)}" target="_blank">${esc((() => { try { return new URL(p.photoSource.page).hostname; } catch { return 'source'; } })())}</a> · score ${p.photoSource.score}${p.localImages.length > 1 ? ` · ${p.localImages.length} photos` : ''}${colorOf(p) ? ` · ${esc(colorOf(p))}` : ''}</div></div>`).join('')}</div>`);
 
-  console.log(`\n✓ ${found} photos found, ${none} not found, ${calls} searches used${skipped ? ` · ${skipped} skipped (the network failed; run again to search them)` : ''}`);
+  console.log(`\n✓ ${found} products given photos, ${none} not found, ${calls} searches used${skipped ? ` · ${skipped} skipped (the network failed; run again to search them)` : ''}`);
+  if (GALLERY > 1 || COLORS || lent) console.log(`  ${extra ? `${extra} more angles added to photos already there · ` : ''}${COLORS ? `${recolored} variants given their own colour's photo · ` : ''}${lent} shared from a sibling (no search)`);
   console.log(`  check: ${path.relative(process.cwd(), path.join(CAT_DIR, 'photo-review.html'))} (open in a browser)`);
   console.log('  then: npm run build:catalog');
 }
