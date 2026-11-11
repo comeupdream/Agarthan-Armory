@@ -1,7 +1,7 @@
 /*
  * EVERY REALM — the whole home page, in every realm, and the trip that grows under it.
  *
- * Five passes down the real home page, one per realm, each about fourteen and a half seconds:
+ * Five passes down the real home page, one per realm, each thirteen and a half seconds:
  * the saucer pointer works the real Realm button in the header, the camera stops on the banner
  * and the pointer turns it from the manifesto to "3–5 day lead times" over the realm's own
  * crystal, then the whole page goes by, lingering on what that realm shows (the departments,
@@ -12,17 +12,21 @@
  *
  * The trip grows the whole way: trails from the first pass, then tracers (the page's own edges
  * echoing outward in colour), breathing and bubble print, a little more each realm. The last
- * pass ends on the banner, the lead time over the amethyst, and it goes all the way: mirrors,
- * a tunnel, the hue turning; and on the way down the page's script changes under it (Runic,
- * Old World, Future). CALM: the name walks the scripts, and the dark.
+ * pass ends on the banner, the lead time over the amethyst, and the trip is made of the site's
+ * own crystals: the camera pushes into the amethyst geode; the giga-geode's amethyst pillars
+ * become a looping ring (the tunnel wraps whatever is on screen); the rhodochrosite and the
+ * green geode halves orbit the seal over the amethyst bed, trailing tracers; every realm's
+ * crystal (fluorite, green quartz, rhodochrosite, amethyst) becomes the ring in turn; and only
+ * a moment of mirrors, on the glowing geodes. On the way down, back on the banner, the page's
+ * script changes under it (Runic, Old World, Future). CALM: the name walks the scripts.
  *
  * Future font throughout until the end. No space: the sky behind the page is aurora only.
  */
 
 // the realm passes: the first starts at START, each lasts LEN; the realm clicks, in film seconds
-export const START = 2.4, LEN = 14.6;
-export const SWITCHES = [[17.6, 'vril', 1], [32.2, 'inner-earth', 2], [46.8, 'mono', 1], [61.4, 'crystal', 2]];
-export const TRIP = START + 5 * LEN;   // 75.4
+export const START = 2.4, LEN = 13.6;
+export const SWITCHES = [[16.6, 'vril', 1], [30.2, 'inner-earth', 2], [43.8, 'mono', 1], [57.4, 'crystal', 2]];
+export const TRIP = START + 5 * LEN;   // 70.4
 // the page's script on the way down from the trip, the banner back in view: [t, font]
 export const FONTS = [[83.3, 'runic'], [84.0, 'oldworld'], [84.7, 'future']];
 // the calm's changes of script on the name: [t, font] (the plates' order below)
@@ -33,8 +37,8 @@ function act(t, S) {
   const { seg, ease, at, lerp } = S;
   const W = innerWidth, H = innerHeight;
   // (the act runs inside the page, so it carries its own copies of the timings)
-  const START = 2.4, LEN = 14.6, TRIP = START + 5 * LEN;
-  const SW = [[17.6, 'vril'], [32.2, 'inner-earth'], [46.8, 'mono'], [61.4, 'crystal']];
+  const START = 2.4, LEN = 13.6, TRIP = START + 5 * LEN;
+  const SW = [[16.6, 'vril'], [30.2, 'inner-earth'], [43.8, 'mono'], [57.4, 'crystal']];
   const FONTS = [[83.3, 'runic'], [84.0, 'oldworld'], [84.7, 'future']];
   const LABEL = {
     polar: ['01', 'Polar Night', 'blue fluorite · the ice cave'],
@@ -54,6 +58,23 @@ function act(t, S) {
     document.head.appendChild(st);
     for (const r of ['inner-earth', 'crystal', 'vril', 'mono', 'polar']) { const i = new Image(); i.src = `assets/img/feature/realm/${r}/geode-tile.webp`; }
     for (const r of ['inner-earth', 'crystal', 'vril', 'mono']) { const i = new Image(); i.src = `assets/img/feature/realm/${r}/manifesto-1280.webp`; }
+    // THE TRIP's stage: the realms' own crystals, laid over the page and shown in turn
+    const R = 'assets/img/feature/realm/';
+    // (max-width:none: the site caps every image at its parent's width, and the ring has none)
+    const stone = (src, k) => `<img class="__st" src="${src}" style="position:absolute;left:0;top:0;width:230px;height:auto;max-width:none;filter:drop-shadow(0 18px 30px rgba(0,0,0,.75))" data-k="${k}">`;
+    const ring = [];
+    for (let k = 0; k < 9; k++) ring.push(stone(['assets/img/feature/realm/inner-earth/rhodochrosite-760.webp', 'assets/img/realm-src/green-geode-left.png', 'assets/img/realm-src/green-geode-right.png'][k % 3], k));
+    const T = document.createElement('div'); T.id = '__trip';
+    T.style.cssText = 'position:fixed;inset:0;z-index:2147482200;pointer-events:none;opacity:0;background:#05020c;overflow:hidden';
+    T.innerHTML = `<div id="__am" style="position:absolute;inset:0;background:url('${R}crystal/amethyst-geode-1600.webp') 50% 50%/cover no-repeat;opacity:0"></div>
+      <div id="__pil" style="position:absolute;inset:0;display:flex;justify-content:center;align-items:stretch;opacity:0">
+        <img src="assets/img/eye/giga-geode.webp" style="height:100%;width:auto;transform:scaleX(-1)"><img src="assets/img/eye/giga-geode.webp" style="height:100%;width:auto"><img src="assets/img/eye/giga-geode.webp" style="height:100%;width:auto;transform:scaleX(-1)"></div>
+      <div id="__bed" style="position:absolute;inset:-45%;background-size:520px;background-position:50% 50%;opacity:0"></div>
+      <div id="__ring" style="position:absolute;left:50%;top:50%;width:0;height:0;opacity:0">${ring.join('')}</div>
+      <img id="__seal" src="assets/img/brand/seal-600.png" style="position:absolute;left:50%;top:50%;width:250px;height:250px;margin:-125px 0 0 -125px;opacity:0;filter:drop-shadow(0 0 46px rgba(199,155,255,.85))">
+      <div id="__glow" style="position:absolute;inset:0;background:#000 url('${R}vril/glowing-geodes-1500.webp') 50% 50%/cover no-repeat;opacity:0"></div>`;
+    document.body.appendChild(T);
+    for (const r of ['polar', 'vril', 'inner-earth', 'crystal']) { const i = new Image(); i.src = `${R}${r}/geode-tile.webp`; }
   });
   // the banner moves on by itself every 8 s unless somebody is on it: the film is always on it
   const man = document.querySelector('.manifesto');
@@ -96,15 +117,15 @@ function act(t, S) {
     else if (r < 1.2) y = 0;
     else if (r < 2.6) y = lerp(0, aB, ease.inOut(seg(r, 1.2, 2.6)));
     else if (r < 4.4) y = aB;
-    else if (r < 13.0) {
+    else if (r < 12.0) {
       // ease in and out of the run, a steady pace between
-      const u = seg(r, 4.4, 13.0), k = 0.12;
+      const u = seg(r, 4.4, 12.0), k = 0.12;
       const v = u < k ? (u * u) / (2 * k * (1 - k)) : u > 1 - k ? 1 - ((1 - u) * (1 - u)) / (2 * k * (1 - k)) : (u - k / 2) / (1 - k);
       y = run(v);
-    } else if (r < 13.3) y = bottom();
-    else y = lerp(S.memo('bot' + i, bottom), last ? aB : 0, ease.inOut(seg(r, 13.3, 14.6)));
+    } else if (r < 12.3) y = bottom();
+    else y = lerp(S.memo('bot' + i, bottom), last ? aB : 0, ease.inOut(seg(r, 12.3, 13.6)));
     slide = sm(seg(r, 3.3, 3.9));
-    if (!last && r > 13.9) slide = 0;   // back to the manifesto, out of sight, for the next realm
+    if (!last && r > 12.9) slide = 0;   // back to the manifesto, out of sight, for the next realm
     if (t >= TRIP) slide = 1;
   }
   scrollTo(0, y);
@@ -159,7 +180,44 @@ function act(t, S) {
   lab.style.opacity = String(Math.max(0, Math.min(seg(since, 0.2, 0.7), 1 - seg(since, 3.4, 3.9))));
   lab.style.transform = `translateY(${(1 - seg(since, 0.2, 0.7)) * 14}px)`;
 
-  /* ---------- the trip: the page changes script under it ---------- */
+  /* ---------- THE TRIP: the realms' own crystals ---------- */
+  const T = document.getElementById('__trip');
+  if (T && t >= TRIP - 0.5) {
+    const op = (el, v) => { el.style.opacity = Math.max(0, Math.min(1, v)).toFixed(3); };
+    op(T, sm(seg(t, 71.0, 71.8)) * (1 - sm(seg(t, 82.4, 83.2))));
+    // 1. into the amethyst geode, as if the push into the banner went on into the crystal
+    const am = document.getElementById('__am');
+    op(am, 1 - sm(seg(t, 72.2, 72.8)));
+    am.style.transform = `scale(${lerp(1.3, 1.0, ease.out(seg(t, 71.0, 72.8)))})`;
+    // 2. the giga-geode's amethyst pillars, wrapped into a looping ring by the lens
+    const pil = document.getElementById('__pil');
+    op(pil, sm(seg(t, 72.2, 72.8)) * (1 - sm(seg(t, 76.0, 76.6))));
+    pil.style.transform = `translateY(${-30 * Math.sin(t * 0.6)}px)`;
+    // 3. the stones orbit the seal over the amethyst bed; 4. every realm's crystal in turn
+    const bed = document.getElementById('__bed');
+    op(bed, sm(seg(t, 76.0, 76.6)) * (1 - sm(seg(t, 81.0, 81.6))));
+    const tiles = ['polar', 'vril', 'inner-earth', 'crystal'];
+    const which = t < 79.4 ? 'crystal' : tiles[Math.min(3, Math.floor((t - 79.4) / 0.5))];
+    const url = `url("assets/img/feature/realm/${which}/geode-tile.webp")`;
+    if (bed.dataset.k !== which) { bed.dataset.k = which; bed.style.backgroundImage = url; }
+    bed.style.filter = `brightness(${t < 79.4 ? 0.45 : 1})`;
+    bed.style.transform = `rotate(${(t - 76) * 4}deg) scale(${1 + 0.04 * Math.sin(t * Math.PI)})`;
+    const ring = document.getElementById('__ring'), seal = document.getElementById('__seal');
+    const rv = sm(seg(t, 76.4, 77.0)) * (1 - sm(seg(t, 79.2, 79.6)));
+    op(ring, rv); op(seal, rv);
+    const breath = 0.5 + 0.5 * Math.sin(t * Math.PI);
+    seal.style.transform = `scale(${0.9 + 0.12 * breath}) rotate(${(t - 76.4) * -12}deg)`;
+    ring.querySelectorAll('.__st').forEach((el, k) => {
+      const a = k * 2 * Math.PI / 9 + (t - 76.4) * 0.9, R0 = 380 + 40 * breath;
+      const pop = ease.out(seg(t, 76.4 + k * 0.05, 76.9 + k * 0.05));
+      el.style.transform = `translate(${R0 * Math.cos(a) - 115}px, ${R0 * 0.62 * Math.sin(a) - 100}px) rotate(${(t - 76.4) * (k % 2 ? 40 : -30) + k * 40}deg) scale(${pop * (0.85 + 0.25 * (0.5 + 0.5 * Math.sin(a)))})`;
+      el.style.zIndex = String(Math.round(100 + 100 * Math.sin(a)));
+    });
+    // 5. a moment of mirrors, on the geodes glowing under ultraviolet
+    op(document.getElementById('__glow'), sm(seg(t, 81.0, 81.5)) * (1 - sm(seg(t, 82.3, 82.9))));
+  }
+
+  /* ---------- the way down: the page changes script under the trip ---------- */
   for (const [tc, f] of FONTS) at('font-' + tc, tc, () => S.click(`.prefs-opt[data-k="font"][data-v="${f}"]`, W / 2, H / 2));
 
   /* ---------- CALM: a veil over the page for the name ---------- */
@@ -195,8 +253,9 @@ function lens(t) {
   u.warp = 0.001 + 0.003 * I;
   u.chroma = 0.001 + 0.0025 * I;
   u.edge = [(0.14 + 0.5 * I) * tr, 2 + 5 * I, 0.005 + 0.006 * I, B];
+  u.edgeTint = 0.35;   // through the tour the tracers lean to the page's own colours
   u.breathe = [0.55 * I * I * tr, B];
-  u.bubble = [0.2 * sm(seg(52, TRIP)), 44, 1];
+  u.bubble = [0.2 * sm(seg(48, TRIP)), 44, 1];
   u.bloom = 0.22 + 0.06 * I; u.glow = 0.36 + 0.08 * I;
   u.cam = [1, 1.6 * I * Math.sin(t * 0.31), 1.1 * I * Math.sin(t * 0.23)];
 
@@ -210,8 +269,8 @@ function lens(t) {
   for (let i = 0; i < 5 && t < TRIP + 0.1; i++) {
     const s = START + i * LEN;
     const swoop = Math.sin(Math.PI * seg(s + 1.2, s + 2.6));
-    const run = Math.sin(Math.PI * seg(s + 4.4, s + 13.0));
-    const rush = Math.sin(Math.PI * seg(s + 13.3, s + 14.6));
+    const run = Math.sin(Math.PI * seg(s + 4.4, s + 12.0));
+    const rush = Math.sin(Math.PI * seg(s + 12.3, s + 13.6));
     u.trails = Math.max(u.trails, 0.08 + (0.18 + 0.12 * I) * Math.max(swoop, 0.7 * run), 0.1 + (0.32 + 0.12 * I) * rush);
     u.zoom += 0.02 * swoop + 0.05 * rush;
     u.warp += 0.002 * swoop + 0.006 * rush;
@@ -227,30 +286,37 @@ function lens(t) {
     u.chroma += 0.004 * kick; u.warp += 0.004 * kick;
   }
 
-  // THE TRIP, on the lead time over the amethyst: build, PEAK (mirrors, the tunnel, the hue turning,
-  // the page's script changing on the way down), come down
+  // THE TRIP, made of the realms' own crystals (act): into the amethyst; the giga-geode's pillars as a
+  // looping ring (the tunnel wraps whatever is on screen); the stones' orbit, trailing; every realm's
+  // crystal as the ring in turn; a moment of mirrors on the glowing geodes; the way down
   if (t >= TRIP && t < 85.4) {
-    const build = sm(seg(TRIP, TRIP + 2.0)), peak = sm(seg(77.4, 78.2)) * (1 - sm(seg(83.0, 84.6)));
-    const down = sm(seg(83.0, 85.4)), on = build * (1 - down);
-    // the hue: still through the tour, turning faster into the peak, home to a whole turn on the way down
-    const speed = (x) => (x < 76 ? 0 : x < 79 ? 60 * (x - 76) / 3 : x < 83 ? 60 + 50 * sm((x - 79) / 4) : 0);
-    let turned = 0;
-    for (let x = 76; x < Math.min(t, 83); x += 0.01) turned += speed(x) * 0.01;
-    const peakTurn = (() => { let s = 0; for (let x = 76; x < 83; x += 0.01) s += speed(x) * 0.01; return s; })();
-    u.hue = t < 83 ? turned : peakTurn + (Math.ceil(peakTurn / 360) * 360 - peakTurn) * down;
-    u.breathe = [Math.max(u.breathe[0], on), B];
-    u.edge = [Math.max(u.edge[0], 0.95 * on), 3 + 6 * on, 0.011 + 0.005 * peak, B];
-    u.bubble = [Math.max(u.bubble[0] * (1 - down), 0.32 * on + 0.36 * peak), 40 - 10 * peak, 1 + 0.8 * peak];
-    u.trails = 0.16 + 0.16 * on + 0.1 * peak;
-    u.warp = 0.003 + 0.007 * on + 0.006 * peak; u.chroma = 0.002 + 0.004 * on + 0.004 * peak;
-    u.kaleido = 0.88 * peak; u.kalN = 6 + 2 * sm(seg(79.0, 79.6));
-    const tun = sm(seg(80.8, 81.5)) * (1 - sm(seg(82.4, 83.1)));
-    u.tunnel = [0.55 * tun, (t - 80.8) * 2.6, 0.35, 0.4 * tun];
-    u.zoom = 1 + 0.05 * on + 0.04 * peak * beat(t);
-    u.cam = [1, 3 * on * Math.sin(t * 0.5), 2.2 * on * Math.sin(t * 0.37)];
-    u.bloom = 0.2 + 0.06 * peak; u.glow = 0.34 + 0.08 * peak;
+    const on = sm(seg(TRIP, 72.0)) * (1 - sm(seg(82.6, 85.4)));
+    u.edge = [0.75 * on, 3 + 5 * on, 0.009, B];
+    u.edgeTint = 0.85 * on;   // the tracers echo each crystal in its own colour
+    u.breathe = [0.8 * on, B];
+    u.bubble = [Math.max(u.bubble[0] * (1 - on), 0.12 * on), 40, 1];
+    u.trails = 0.18 + 0.16 * on;
+    u.warp = 0.002 + 0.004 * on; u.chroma = 0.0015 + 0.003 * on;
+    u.bloom = 0.24 + 0.06 * on; u.glow = 0.4 + 0.08 * on;
+    u.cam = [1, 2.2 * on * Math.sin(t * 0.5), 1.6 * on * Math.sin(t * 0.37)];
+    // into the crystal: the push into the banner carries on into the amethyst
+    const push = sm(seg(TRIP, 71.8)) * (1 - sm(seg(71.8, 72.6)));
+    u.zoom = 1 + 0.35 * push;
+    // the amethyst ring
+    const tb = sm(seg(72.5, 73.1)) * (1 - sm(seg(75.8, 76.4)));
+    // every realm's crystal as the ring
+    const td = sm(seg(79.5, 79.9)) * (1 - sm(seg(81.0, 81.4)));
+    if (tb > 0) u.tunnel = [0.92 * tb, (t - 72.5) * 1.5, 0.22, 0.3 * tb];
+    if (td > 0) u.tunnel = [0.9 * td, (t - 79.5) * 2.2, 0.35, 0.3 * td];
+    u.zoom += 0.04 * Math.max(tb, td) * beat(t);
+    // the stones' orbit leaves its trail
+    const tc = sm(seg(76.4, 77.0)) * (1 - sm(seg(79.2, 79.6)));
+    u.trails = Math.max(u.trails, 0.42 * tc);
+    // only a moment of mirrors
+    const te = sm(seg(81.5, 81.9)) * (1 - sm(seg(82.3, 82.7)));
+    u.kaleido = 0.5 * te; u.kalN = 6;
     // each change of script glitches the page from the frame before it
-    for (const [tc] of FONTS) if (t >= tc && t < tc + 0.45) { u.wipe = seg(tc, tc + 0.4); u.held = Math.round(tc * FPS) - 1; u.wipeKind = 2; }
+    for (const [tc2] of FONTS) if (t >= tc2 && t < tc2 + 0.45) { u.wipe = seg(tc2, tc2 + 0.4); u.held = Math.round(tc2 * FPS) - 1; u.wipeKind = 2; }
   } else if (t >= 85.4) {
     // CALM: the name over the veiled page, walking the scripts; a slow ripple at each change; the dark
     let rip = 0;
@@ -275,8 +341,8 @@ function lens(t) {
 
 export default {
   key: 'every-realm',
-  poster: 79.2,
-  title: 'Every Realm — the whole home page in every realm, the banner turning to the lead time, and the trip that grows under it',
+  poster: 74.6,
+  title: 'Every Realm — the whole home page in every realm, the banner turning to the lead time, and a trip made of the realms’ own crystals',
   dur: 90,
   url: '/index.html',
   prefs: { cursor: 'disc', font: 'future' },
@@ -288,12 +354,13 @@ export default {
     ...[0, 1, 2, 3, 4].flatMap((i) => {
       const s = START + i * LEN;
       return [{ t: s + 1.2, kind: 'swoop' }, { t: s + 3.3, kind: 'click' }, { t: s + 3.3, kind: 'shift' }, { t: s + 4.4, kind: 'swoop' },
-        ...(i < 4 ? [{ t: s + 13.3, kind: 'zoom' }] : [{ t: s + 13.3, kind: 'relic' }])];
+        ...(i < 4 ? [{ t: s + 12.3, kind: 'zoom' }] : [{ t: s + 12.3, kind: 'relic' }])];
     }),
     ...SWITCHES.flatMap(([tc]) => [{ t: tc - 0.55, kind: 'click' }, { t: tc, kind: 'realm' }, { t: tc + 0.6, kind: 'click' }]),
-    { t: TRIP, kind: 'trip' }, { t: 77.4, kind: 'peak' }, { t: 77.4, kind: 'mandala' }, { t: 80.8, kind: 'tunnel' },
+    { t: TRIP, kind: 'trip' }, { t: 72.5, kind: 'tunnel' }, { t: 76.4, kind: 'orbit' }, { t: 76.4, kind: 'peak' },
+    { t: 79.5, kind: 'tunnel' }, { t: 81.5, kind: 'mandala' }, { t: 82.6, kind: 'down' },
     ...FONTS.map(([t, font]) => ({ t, kind: 'font', font })),
-    { t: 83.0, kind: 'down' }, { t: 85.4, kind: 'calm' }, { t: 85.8, kind: 'seal' },
+    { t: 85.4, kind: 'calm' }, { t: 85.8, kind: 'seal' },
     ...OUTRO.map(([t, font]) => ({ t, kind: 'font', font })),
   ],
 };
