@@ -45,14 +45,19 @@ ONLY = {
     'ice-cave': {'src': 'ice-cave.jpg', 'realms': ['polar'], 'widths': [1600, 2600], 'keep': True},
     # 1920: also blown up behind the ice wall map when the plate's Backdrop switch is on
     'ice-cave-exit': {'src': 'ice-cave-exit.jpg', 'realms': ['polar'], 'widths': [980, 1920], 'keep': True},
-    'fluorite': {'src': 'fluorite.jpg', 'realms': ['polar'], 'widths': [980], 'keep': True},
+    # 1920 / 1600: the Featured plates can also be laid behind the departments at the top of the page
+    'fluorite': {'src': 'fluorite.jpg', 'realms': ['polar'], 'widths': [980, 1920], 'keep': True},
     'amethyst-geode': {'src': 'amethyst-geode.jpg', 'realms': ['crystal'], 'widths': [1600, 2600], 'keep': True},
     'endurance-dawn': {'src': 'endurance-dawn.jpg', 'realms': ['crystal'], 'widths': [980, 1920], 'keep': True},
-    'atomium': {'src': 'atomium.jpg', 'realms': ['crystal'], 'widths': [980], 'keep': True},
-    'petra-treasury': {'src': 'petra-treasury.jpg', 'realms': ['inner-earth'], 'widths': [700], 'keep': True},
+    'atomium': {'src': 'atomium.jpg', 'realms': ['crystal'], 'widths': [980, 1920], 'keep': True},
+    # 1600: also Inner Earth's picture behind the map, and behind the departments
+    'petra-treasury': {'src': 'petra-treasury.jpg', 'realms': ['inner-earth'], 'widths': [700, 1600], 'keep': True},
     'rhodochrosite': {'src': 'rhodochrosite.png', 'realms': ['inner-earth'], 'widths': [760], 'keep': True},
     # Vril's backdrop behind the Lasers chapter: two geodes glowing green under ultraviolet, on black
     'glowing-geodes': {'src': 'glowing-geodes.jpg', 'realms': ['vril'], 'widths': [900, 1500], 'keep': True},
+    # Vril's plate beside the map, and its picture behind the map: the aurora over Bear Lake, Alaska
+    # (U.S. Air Force photo by Joshua Strang, public domain), the green fire the Vril stories describe
+    'aurora': {'src': 'aurora.jpg', 'realms': ['vril'], 'widths': [980, 1920], 'keep': True},
 }
 # A realm-only photo is mostly near-white or grey (crystal, an engraving), so moving its hues does
 # little; instead its lightness is mapped through the realm's own ramp, dark to light (a tone map).

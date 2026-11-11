@@ -87,30 +87,44 @@
     if (!AA.reduced) setInterval(() => { if (onScreen && !held && !document.hidden) go(at + 1); }, 8000);
   })();
 
-  /* ---------- the map backdrop: the realm plate's picture, blown up behind the ice wall map ----------
-     Off unless the visitor presses the Backdrop switch in the corner of the small picture; the choice
-     is remembered on this browser. One switch for every realm: each realm shows its own picture. */
-  (function mapBackdrop() {
-    const sec = document.getElementById('map');
-    const switches = [...document.querySelectorAll('[data-map-backdrop]')];
-    if (!sec || !switches.length) return;
-    const KEY = 'aa-map-backdrop';
-    const set = (on) => {
-      sec.classList.toggle('has-backdrop', on);
-      switches.forEach((b) => {
+  /* ---------- backdrop switches, in the corner of a plate's picture ----------
+     Backdrop (beside the map): the realm's picture behind the ice wall map. Top backdrop (on the
+     Featured plates): that picture behind the departments at the top of the page, and See-through
+     turns the department cards see-through over it. All off unless the visitor presses them; each
+     choice is remembered on this browser, and one switch serves every realm (each shows its own). */
+  (function backdrops() {
+    const depts = document.getElementById('departments');
+    const SWITCHES = {
+      map: { sec: document.getElementById('map'), cls: 'has-backdrop', key: 'aa-map-backdrop',
+        on: 'Take this picture out from behind the map', off: 'Show this picture behind the map' },
+      top: { sec: depts, cls: 'has-backdrop', key: 'aa-top-backdrop',
+        on: 'Take this picture out from behind the departments', off: 'Show this picture behind the departments, at the top of the page' },
+      'see-through': { sec: depts, cls: 'see-through', key: 'aa-top-see-through',
+        on: 'Make the department cards solid again', off: 'Let the picture show through the department cards (once the Top backdrop is on)' },
+    };
+    const all = [...document.querySelectorAll('[data-switch]')];
+    const paint = () => {
+      const topOn = !!depts && depts.classList.contains('has-backdrop');
+      all.forEach((b) => {
+        const sw = SWITCHES[b.dataset.switch]; if (!sw || !sw.sec) return;
+        const on = sw.sec.classList.contains(sw.cls);
         b.setAttribute('aria-pressed', String(on));
-        b.title = on ? 'Take this picture out from behind the map' : 'Show this picture behind the map';
+        b.title = on ? sw.on : sw.off;
+        b.toggleAttribute('data-idle', b.dataset.switch === 'see-through' && !topOn);
       });
     };
-    set(AA.store.get(KEY, false) === true);
-    switches.forEach((b) => {
+    for (const sw of Object.values(SWITCHES)) if (sw.sec) sw.sec.classList.toggle(sw.cls, AA.store.get(sw.key, false) === true);
+    all.forEach((b) => {
+      const sw = SWITCHES[b.dataset.switch]; if (!sw || !sw.sec) return;
       b.hidden = false;
       b.addEventListener('click', () => {
-        const on = !sec.classList.contains('has-backdrop');
-        set(on);
-        AA.store.set(KEY, on);
+        const on = !sw.sec.classList.contains(sw.cls);
+        sw.sec.classList.toggle(sw.cls, on);
+        AA.store.set(sw.key, on);
+        paint();
       });
     });
+    paint();
   })();
 
   /* ---------- Spotlight: the store's promotion slides, from the Ops Console ---------- */
