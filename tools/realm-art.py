@@ -3,7 +3,7 @@ realm-art.py — recolour the owner's art for each realm (colour theme).
 
     python3 tools/realm-art.py            writes assets/img/feature/realm/<theme>/<file>.webp
     python3 tools/realm-art.py --sheet S  also writes a contact sheet to S
-    python3 tools/realm-art.py --only     just the realm-only pieces (ONLY below)
+    python3 tools/realm-art.py --only     just the realm-only pieces (ONLY below); --only a,b  just those
     python3 tools/realm-art.py --files a.webp,b.webp   just those pictures of the owner's art
     python3 tools/realm-art.py --geodes   the geode fields: rhodochrosite (Inner Earth), amethyst (Crystal), fluorite (Polar),
                                           green quartz and druzy (Vril)
@@ -43,10 +43,11 @@ ONLY = {
                     'crop': (14, 14, 997, 712), 'invert': True},
     # the picks matched to a realm by their own colours (keep: shown as photographed, not recoloured)
     'ice-cave': {'src': 'ice-cave.jpg', 'realms': ['polar'], 'widths': [1600, 2600], 'keep': True},
-    'ice-cave-exit': {'src': 'ice-cave-exit.jpg', 'realms': ['polar'], 'widths': [980], 'keep': True},
+    # 1920: also blown up behind the ice wall map when the plate's Backdrop switch is on
+    'ice-cave-exit': {'src': 'ice-cave-exit.jpg', 'realms': ['polar'], 'widths': [980, 1920], 'keep': True},
     'fluorite': {'src': 'fluorite.jpg', 'realms': ['polar'], 'widths': [980], 'keep': True},
     'amethyst-geode': {'src': 'amethyst-geode.jpg', 'realms': ['crystal'], 'widths': [1600, 2600], 'keep': True},
-    'endurance-dawn': {'src': 'endurance-dawn.jpg', 'realms': ['crystal'], 'widths': [980], 'keep': True},
+    'endurance-dawn': {'src': 'endurance-dawn.jpg', 'realms': ['crystal'], 'widths': [980, 1920], 'keep': True},
     'atomium': {'src': 'atomium.jpg', 'realms': ['crystal'], 'widths': [980], 'keep': True},
     'petra-treasury': {'src': 'petra-treasury.jpg', 'realms': ['inner-earth'], 'widths': [700], 'keep': True},
     'rhodochrosite': {'src': 'rhodochrosite.png', 'realms': ['inner-earth'], 'widths': [760], 'keep': True},
@@ -168,8 +169,10 @@ def tone(rgb, stops, mix=0.88):
     return toned * mix + rgb * (1 - mix)
 
 
-def render_only():
+def render_only(names=None):
     for name, spec in ONLY.items():
+        if names and name not in names:
+            continue
         master = Image.open(os.path.join(MASTERS, spec['src']))
         if spec.get('keep'):
             # as photographed (a cut-out keeps its transparency): only sized
@@ -404,7 +407,8 @@ def main():
             crystal_bed(realm)
         return
     if '--only' in sys.argv:
-        render_only()
+        i = sys.argv.index('--only') + 1
+        render_only(sys.argv[i].split(',') if i < len(sys.argv) and not sys.argv[i].startswith('-') else None)
         return
     sheet = sys.argv[sys.argv.index('--sheet') + 1] if '--sheet' in sys.argv else None
     if '--files' in sys.argv:

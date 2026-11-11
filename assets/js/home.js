@@ -87,6 +87,32 @@
     if (!AA.reduced) setInterval(() => { if (onScreen && !held && !document.hidden) go(at + 1); }, 8000);
   })();
 
+  /* ---------- the map backdrop: the realm plate's picture, blown up behind the ice wall map ----------
+     Off unless the visitor presses the Backdrop switch in the corner of the small picture; the choice
+     is remembered on this browser. One switch for every realm: each realm shows its own picture. */
+  (function mapBackdrop() {
+    const sec = document.getElementById('map');
+    const switches = [...document.querySelectorAll('[data-map-backdrop]')];
+    if (!sec || !switches.length) return;
+    const KEY = 'aa-map-backdrop';
+    const set = (on) => {
+      sec.classList.toggle('has-backdrop', on);
+      switches.forEach((b) => {
+        b.setAttribute('aria-pressed', String(on));
+        b.title = on ? 'Take this picture out from behind the map' : 'Show this picture behind the map';
+      });
+    };
+    set(AA.store.get(KEY, false) === true);
+    switches.forEach((b) => {
+      b.hidden = false;
+      b.addEventListener('click', () => {
+        const on = !sec.classList.contains('has-backdrop');
+        set(on);
+        AA.store.set(KEY, on);
+      });
+    });
+  })();
+
   /* ---------- Spotlight: the store's promotion slides, from the Ops Console ---------- */
   (function spotlight() {
     const box = document.getElementById('spotlight');
