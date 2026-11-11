@@ -5,16 +5,20 @@
  * scripts/find-images.mjs --cover spends photo searches on exactly the
  * products a shopper sees first, so both must agree on what comes first.
  *
- *   hand-picked (featured) first; then the store's own shelf, then what
- *   ships, then special order, then out of stock; inside each, departments
- *   take turns; inside a department, photos and shelf stock lead, one
- *   variant of every product line before a second of any, and the
- *   subcategories rotate (a pistol, a revolver, a bolt gun, …).
+ *   hand-picked (featured) first; then what can be bought (on the store's
+ *   shelf or shipping from a distributor), then special order, then out of
+ *   stock; inside each, departments take turns; inside a department,
+ *   products with a photo lead, one variant of every product line before a
+ *   second of any, the subcategories rotate (a pistol, a revolver, a bolt
+ *   gun, …), and inside a subcategory the best come first: the merit rank
+ *   from the catalogue build (premium price for the category, how deep the
+ *   distributors stock it, a maker people ask for, on the store's shelf).
  * ===========================================================================*/
 (function (root) {
   'use strict';
   const DEPT_ORDER = ['sidearms', 'longarms', 'shotguns', 'ammo', 'optics', 'gear', 'nfa'];
-  const bucketOf = (i) => (i.status === 'in' || i.status === 'low' ? 0 : i.status === 'ship' ? 1 : i.status === 'out' ? 3 : 2);
+  const ADDON = /mount|rings?\b|bases?\b|accessor|parts|reloading|black powder|receivers? & frames|combos|merch/i;
+  const bucketOf = (i) => (i.status === 'in' || i.status === 'low' || i.status === 'ship' ? 0 : i.status === 'out' ? 2 : 1);
 
   /** stamps _bucket, _dept, _v and _mix on every item (once, after the catalog loads) */
   function prepare(items, deptOrder = DEPT_ORDER) {
@@ -25,18 +29,31 @@
     }
     for (const g of groups.values()) {
       g.sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9));
+      // the best variant of a line WITH a photo stands for it among the photos (another may lack one)
       const seen = new Map();
-      for (const i of g) { const k = i.ln || i.id; const n = seen.get(k) || 0; seen.set(k, n + 1); i._v = n; }
+      for (const i of g) { const ph = i.images && i.images[0] ? 0 : 1; const k = ph + '|' + (i.ln || i.id); const n = seen.get(k) || 0; seen.set(k, n + 1); i._v = n; i._ph = ph; }
       const tiers = new Map();
       for (const i of g) {
-        const t = `${i.images && i.images[0] ? 0 : 1}${i.shelf ? 0 : 1}${String(Math.min(i._v, 999)).padStart(3, '0')}`;
+        const t = `${i._ph}${String(Math.min(i._v, 999)).padStart(3, '0')}`;
         if (!tiers.has(t)) tiers.set(t, new Map());
         const bySub = tiers.get(t); if (!bySub.has(i.sub)) bySub.set(i.sub, []); bySub.get(i.sub).push(i);
       }
+      // the subcategories take turns, the big ones more often (in proportion to the square root of their
+      // size: Semi-Auto Pistols most, a derringer now and then); add-ons (mounts, rings, bases, parts,
+      // reloading, black powder) less often and only after the first rows, which show what they go on
+      const size = new Map(); for (const i of g) size.set(i.sub, (size.get(i.sub) || 0) + 1);
       let n = 0;
       for (const t of [...tiers.keys()].sort()) {
-        const lists = [...tiers.get(t).values()];
-        for (let r = 0; lists.some((l) => r < l.length); r++) for (const l of lists) if (r < l.length) l[r]._mix = n++;
+        const keyed = [];
+        let order = 0;
+        for (const [sub, l] of tiers.get(t)) {
+          const addon = ADDON.test(sub || '');
+          const w = Math.sqrt(size.get(sub)) * (addon ? 0.5 : 1);
+          l.forEach((i, k) => keyed.push([(k + (addon ? 4 : 0.5)) / w, -w, order, i]));
+          order++;
+        }
+        keyed.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+        for (const [, , , i] of keyed) i._mix = n++;
       }
     }
     return items;

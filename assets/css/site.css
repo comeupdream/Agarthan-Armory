@@ -606,7 +606,7 @@ html[data-theme="mono"] .seal::after { display: none; }
    ARMORY PAGE
    ===================================================================== */
 .armory-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; align-items: start; }
-@media (max-width: 960px) { .armory-layout { grid-template-columns: 1fr; } }
+@media (max-width: 960px) { .armory-layout { grid-template-columns: minmax(0, 1fr); } }   /* minmax: the swipeable department row must not widen the page */
 .filters { padding: 20px; position: sticky; top: calc(var(--nav-h) + 20px); }
 .filters-toggle { display: none; }
 @media (max-width: 960px) {
@@ -1326,3 +1326,119 @@ html[data-theme="vril"] :is(.realm-only[data-realms~="vril"], .realm-only [data-
 .yt-play { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; margin: 16px 0; padding: 0; border: 1px solid var(--line); background: #000; cursor: pointer; overflow: hidden; }
 .yt-play img { width: 100%; height: 100%; object-fit: cover; opacity: .85; }
 .cond-badge { display: inline-block; padding: 2px 6px; margin-right: 4px; border: 1px solid rgba(255, 191, 90, .55); color: var(--amber); font: 400 10px/1.2 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; vertical-align: middle; }
+
+/* =====================================================================
+   ARMORY ON PHONES AND TABLETS (ported from the PAMAX Armory rebuild)
+   On a phone the hero, a "More filters" button, departments wrapped over four
+   rows, then Show and Sort on their own rows came before any product, and one
+   card per row made 48 products a 21,000px scroll. Now: departments in one
+   swipeable row, every other filter in a bottom sheet behind a button that
+   always names what is filtering, two products per row, and a way back up.
+   ===================================================================== */
+.dept-row, .fbar, .fsheet-head, .fsheet-foot { display: none; }
+.fscrim[hidden] { display: none !important; }
+@media (max-width: 960px) {
+  /* departments: one row you swipe, not a wall */
+  .dept-row { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin: 0 calc(-1 * var(--gutter)) 10px;
+    padding: 2px var(--gutter) 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; scroll-padding-inline: var(--gutter); }
+  .dept-row::-webkit-scrollbar { display: none; }
+  .dept-row .chip { flex: 0 0 auto; scroll-snap-align: start; min-height: 40px; padding: 10px 12px; }
+  .chip small { margin-left: 6px; opacity: .7; }
+  /* the button that opens the sheet names the filters in force; Clear sits beside it */
+  .fbar { display: flex; gap: 8px; margin: 0 0 12px; }
+  .fbtn { flex: 1; min-width: 0; min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; background: rgba(var(--field-rgb), .75); border: 1px solid var(--line-strong); color: var(--cyan); cursor: pointer;
+    font: 400 11px/1 var(--f-mono); letter-spacing: .18em; text-transform: uppercase; }
+  .fbtn > span { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .fbtn svg { width: 16px; height: 16px; }
+  .fbtn b { color: var(--frost); font-weight: 400; letter-spacing: .1em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fbtn.on { border-color: var(--cyan); }
+  .fclear { flex: 0 0 auto; min-height: 46px; padding: 0 14px; background: transparent; border: 1px solid var(--line); color: var(--muted); cursor: pointer;
+    font: 400 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; }
+  .fclear:hover { color: var(--frost); border-color: var(--line-strong); }
+  /* count on its own line; Show and Sort share the next */
+  .results-bar { gap: 10px; }
+  .results-bar #resultCount { flex-basis: 100%; }
+  .results-bar label:first-of-type { margin-left: 0; }
+  .results-bar label { display: flex; align-items: center; gap: 8px; }
+  .results-bar label:last-of-type { flex: 1 1 0; min-width: 0; justify-content: flex-end; }
+  .results-bar label:last-of-type select { flex: 1 1 auto; width: 0; min-width: 0; max-width: 240px; }
+
+  /* the filter panel becomes a sheet that rises from the bottom */
+  .filters { position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 96; max-height: 82vh; max-height: 82dvh;
+    display: block; padding: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; border-radius: 14px 14px 0 0;
+    background-color: var(--drawer-bg); -webkit-backdrop-filter: none; backdrop-filter: none;
+    border: 0; border-top: 1px solid var(--cyan); box-shadow: 0 -24px 60px rgba(0, 0, 0, .65);
+    transform: translateY(105%); visibility: hidden; transition: transform .28s ease, visibility 0s linear .28s; }
+  .filters.sheet-open { transform: none; visibility: visible; transition: transform .28s ease, visibility 0s; }
+  .filters > fieldset, .filters #moreFilters { padding: 0 18px; }
+  .filters #moreFilters { display: block !important; padding-bottom: 6px; }
+  .filters-toggle, .filters .dept-set, .filters #resetFilters { display: none !important; }
+  .fsheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: 0; z-index: 2;
+    padding: 14px 14px 12px 18px; border-bottom: 1px solid var(--line); margin-bottom: 14px; background: var(--drawer-bg); }
+  .fsheet-head span { font: 400 11px/1 var(--f-mono); letter-spacing: .24em; color: var(--cyan); text-transform: uppercase; }
+  .fsheet-head .close-x { position: static; }
+  .fsheet-foot { display: flex; position: sticky; bottom: 0; z-index: 2; gap: 8px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--drawer-bg); }
+  .fsheet-foot .btn { flex: 1; justify-content: center; min-height: 48px; }
+  /* the categories of the department, two to a row (one per row was a long scroll inside the sheet);
+     long names wrap rather than cut off, their counts pinned right */
+  .filters #subChips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .filters #subChips .chip { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 44px;
+    text-align: left; white-space: normal; line-height: 1.25; padding: 8px 10px; }
+  .filters #subChips .chip small { flex: 0 0 auto; }
+  .filters .fopt { min-height: 36px; }
+  .fscrim { position: fixed; inset: 0; z-index: 95; background: var(--backdrop); }
+  body.sheet-open { overflow: hidden; }
+  /* the hero is shorter, so products start on the first screen: the header art (beside the title on
+     wide screens, a block of its own here) steps aside */
+  .armory-hero { padding: 40px 0 28px; }
+  .armory-hero .page-hero-art { display: none !important; }
+  .armory-section { padding-top: 24px !important; }
+}
+
+/* ---------- phones: two products per row ----------
+   One full-width card per screen showed about one product at a time. Two columns puts four in
+   view; the name clamps to three lines so a long one can't push the prices out of line across
+   a row. (After the base .card rules on purpose: same specificity, so the later rule wins.) */
+@media (max-width: 600px) {
+  #armoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  #armoryGrid .card { padding: 10px 10px 12px; }
+  #armoryGrid .card:hover { transform: none; }
+  #armoryGrid .card-top { font-size: 8.5px; letter-spacing: .1em; gap: 6px; }
+  #armoryGrid .card-top > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #armoryGrid .card-top .stock { flex: 0 0 auto; font-size: 0; gap: 0; }            /* the dot says it; the words don't fit */
+  #armoryGrid .card .viz { margin: 8px 0; aspect-ratio: 4 / 3; }
+  #armoryGrid .nfa-tag { top: 5px; left: 5px; font-size: 9px; padding: 3px 5px 2px; letter-spacing: .12em; }
+  #armoryGrid .cond-badge { font-size: 8px; padding: 1px 4px; letter-spacing: .1em; }
+  #armoryGrid .card .brandline { font-size: 9px; letter-spacing: .12em; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #armoryGrid .card h3 { font-size: 13px; line-height: 1.28; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  #armoryGrid .card .specs { margin-top: 6px; font-size: 10px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #armoryGrid .card-foot { padding-top: 10px; gap: 6px; align-items: flex-end; }
+  #armoryGrid .price { font-size: 16px; }
+  #armoryGrid .price small { font-size: 8px; letter-spacing: .08em; }
+  #armoryGrid .card .add { width: 36px; height: 36px; flex: 0 0 auto; }
+  /* the hero: products in the first screen. The title and the search stay; the intro line and the
+     header art (shown beside the title on wide screens) step aside */
+  .armory-hero { padding: 18px 0 20px; }
+  .armory-hero .eyebrow { display: none; }                         /* wraps to two lines here; the title says it */
+  .armory-hero h1 { font-size: clamp(30px, 9vw, 40px); margin-top: 0; }
+  .armory-hero #armoryLede, .armory-hero .page-hero-art { display: none !important; }
+  .armory-hero .query { margin-top: 16px; height: 50px; }
+  .armory-section { padding-top: 16px !important; }
+}
+
+/* ---------- back to top (phones and tablets, every page) ----------
+   Long pages and the departments at the top made the way back a scroll marathon. It fades in
+   after about a screen and a half, sits bottom-right in thumb reach, and steps aside while a
+   sheet or the menu is open. */
+.to-top { position: fixed; right: 14px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 75;
+  display: none; align-items: center; gap: 7px; height: 44px; padding: 0 16px; cursor: pointer;
+  background: var(--drawer-bg); border: 1px solid var(--line-strong); color: var(--cyan);
+  font: 400 11px/1 var(--f-mono); letter-spacing: .2em; text-transform: uppercase;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55), 0 0 0 1px rgba(var(--accent-rgb), .12);
+  opacity: 0; transform: translateY(10px); pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+.to-top.show { opacity: 1; transform: none; pointer-events: auto; }
+.to-top:hover { background: var(--cyan); color: var(--on-accent); }
+@media (max-width: 960px) { .to-top { display: inline-flex; } }
+body.sheet-open .to-top, .site-header.open ~ .to-top { display: none; }
+@media (prefers-reduced-motion: reduce) { .to-top, .filters { transition: none !important; } }

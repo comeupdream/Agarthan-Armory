@@ -107,7 +107,7 @@ async function main() {
   const IMG_REL = path.relative(process.cwd(), IMG_DIR).split(path.sep).join('/');
   const DRY = flag('dry-run'), REPLACE = flag('replace');
   let sharp = null;
-  try { sharp = (await import('sharp')).default; } catch { /* optional */ }
+  if (!process.env.AA_NO_SHARP) try { sharp = (await import('sharp')).default; } catch { /* optional */ }
   console.log(sharp ? `→ resizing to ${SIZE}px JPEG (sharp)` : '→ sharp not installed: copying files as they are (npm i sharp to resize)');
 
   /* catalogs */

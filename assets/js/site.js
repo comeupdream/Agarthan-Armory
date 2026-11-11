@@ -657,6 +657,25 @@
   }
 
   /* ---------- boot ---------- */
+  /* ---------- back to top (phones and tablets; ported from the PAMAX Armory) ----------
+     Fades in after about a screen and a half; the stylesheet keeps it to narrow screens and out
+     of the way while a sheet or the menu is open. */
+  function toTop() {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'to-top'; b.setAttribute('aria-label', 'Back to the top of the page');
+    b.innerHTML = '<span aria-hidden="true">▲</span> Top';
+    document.body.appendChild(b);
+    let ticking = false;
+    const paint = () => { ticking = false; b.classList.toggle('show', scrollY > innerHeight * 1.5); };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(paint); } }, { passive: true });
+    paint();
+    b.addEventListener('click', () => {
+      scrollTo({ top: 0, behavior: AA.reduced ? 'auto' : 'smooth' });
+      const skip = document.querySelector('.site-header a, .site-header button');   // keyboard focus goes back up too
+      if (skip) skip.focus({ preventScroll: true });
+    });
+  }
+
   function boot() {
     fillConfig();
     notices();
@@ -672,6 +691,7 @@
     ufo();
     transmissions();
     reveal();
+    toTop();
     document.dispatchEvent(new CustomEvent('aa:ready'));
     AA.beacon({ p: location.pathname });
   }

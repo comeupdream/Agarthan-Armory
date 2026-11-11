@@ -163,6 +163,21 @@ eq(A.clientIp({ headers: { 'x-forwarded-for': '6.6.6.6, 10.0.0.1, 203.0.113.9' }
   O.setRoot(ROOT);
 }
 
+// a Windows checkout (CRLF) and Render (LF) fingerprint the catalog's inputs the same, so a build made on
+// either is recognised by the other (a mismatch rebuilt the catalog on every deploy)
+{
+  const { inputsHash } = await import('./lib-inputs.mjs');
+  const fp = (eol) => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'ops-eol-'));
+    mkdirSync(path.join(dir, 'assets/data/scraped'), { recursive: true }); mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+    writeFileSync(path.join(dir, 'assets/data/overrides.json'), ['{', '  "a": { "hide": true }', '}', ''].join(eol));
+    writeFileSync(path.join(dir, 'scripts/build-catalog.mjs'), ['// build', 'export const x = 1;', ''].join(eol));
+    writeFileSync(path.join(dir, 'assets/data/scraped/catalog.json'), '[]');
+    return inputsHash(dir);
+  };
+  eq(fp('\r\n'), fp('\n'), 'fingerprint: Windows and Unix line endings give the same catalog fingerprint');
+}
+
 /* -------------------------------------------------------------- HTTP */
 const gh = await mockGitHub({
   'assets/data/overrides.json': JSON.stringify({ _readme: 'r', existing: { noPhoto: true, _photo: 'cut off' } }, null, 2),
