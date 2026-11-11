@@ -81,8 +81,9 @@ for (const [key, file] of [['optics/Lasers', 'lasers-900'], ['optics/Night Visio
 ok(/art\[2\]\.includes\(document\.documentElement\.dataset\.theme\)/.test(armory), 'showArt honours a header\'s sit-out realms');
 
 // the geode field: the Silent Vault and the gate share one bed of crystal in Inner Earth (rhodochrosite),
-// Agarthan Crystal (amethyst) and Polar Night (fluorite); each realm asks only for its own tile, the others for none
-const GEODES = { 'inner-earth': 'html[data-theme="inner-earth"]', crystal: 'html[data-theme="crystal"]', polar: 'html:not([data-theme])' };
+// Agarthan Crystal (amethyst), Polar Night (fluorite) and Vril (green quartz and druzy); each realm asks only for its
+// own tile, and Black & White for none
+const GEODES = { 'inner-earth': 'html[data-theme="inner-earth"]', crystal: 'html[data-theme="crystal"]', vril: 'html[data-theme="vril"]', polar: 'html:not([data-theme])' };
 const field = home.match(/<div class="geode-field">([\s\S]*?)\n  <\/div>\n/);
 ok(!!field, 'the home page has a geode field');
 if (field) for (const id of ['silent-vault', 'gate-in-the-wall']) ok(field[1].includes(`id="${id}"`), `the geode field holds #${id}`);
@@ -95,8 +96,13 @@ for (const [realm, sel] of Object.entries(GEODES)) {
   ok(rules.length === 1 && rules[0][0] === `${sel} .geode-field`, `only ${realm} asks for its own geode tile (rules: ${rules.map(([x]) => x).join(' | ')})`);
 }
 ok(tileRules.every(([, r]) => r in GEODES), `no other realm has a geode tile (${tileRules.map(([, r]) => r)})`);
-for (const sel of ['html[data-theme="mono"]', 'html[data-theme="vril"]'])
+for (const sel of ['html[data-theme="mono"]'])
   ok(!tileRules.some(([x]) => x.includes(sel)), `${sel} asks for no geode tile`);
+
+// Vril: the glowing geodes lie behind the Lasers chapter, and only Vril shows (and downloads) them
+const lasersChapter = home.match(/<article class="chapter[^"]*">\s*<div class="ch-backdrop realm-only" data-realms="([^"]+)"[\s\S]*?<\/div>\s*<a class="ch-art"[^>]*sub=Lasers/);
+ok(!!lasersChapter && lasersChapter[1] === 'vril', `the Lasers chapter has a Vril-only backdrop (found ${lasersChapter && lasersChapter[1]})`);
+if (lasersChapter) ok(/glowing-geodes-1500\.webp/.test(lasersChapter[0]) && /loading="lazy"/.test(lasersChapter[0]), 'the backdrop is the glowing geodes, loaded lazily');
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

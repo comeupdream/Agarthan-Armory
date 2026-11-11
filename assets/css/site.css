@@ -1124,6 +1124,21 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
 .chapter.flip .ch-art .ch-inset { right: auto; left: -3%; }
 .ch-art.inset-left .ch-inset { right: auto; left: -3%; }
 .ch-art.solo { padding-bottom: 0; }
+/* a chapter's backdrop (.ch-backdrop): a picture laid wide behind the chapter, the way the $20 lies behind
+   the gate. Vril's Lasers chapter sits in front of two geodes glowing green under ultraviolet; the photo's
+   black is the page's, and a wash of the realm's dark deepens over the words so they still read. */
+.chapter { position: relative; }
+.chapter > .ch-art, .chapter > .ch-text { position: relative; z-index: 1; }
+.ch-backdrop { position: absolute; z-index: 0; top: -14%; bottom: -14%; left: 50%; width: min(100vw, 1500px); transform: translateX(-50%); pointer-events: none; }
+.ch-backdrop img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ch-backdrop::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(var(--bg-rgb), .1) 0%, rgba(var(--bg-rgb), .2) 48%, rgba(var(--bg-rgb), .74) 72%, rgba(var(--bg-rgb), .82) 100%),
+    linear-gradient(180deg, rgb(var(--bg-rgb)) 0%, transparent 14%, transparent 86%, rgb(var(--bg-rgb)) 100%); }
+#into-the-dark { overflow-x: clip; }
+@media (max-width: 900px) {
+  .ch-backdrop { top: -6%; bottom: -6%; }
+  .ch-backdrop::after { background: linear-gradient(180deg, rgb(var(--bg-rgb)) 0%, rgba(var(--bg-rgb), .15) 10%, rgba(var(--bg-rgb), .3) 50%, rgba(var(--bg-rgb), .85) 66%, rgb(var(--bg-rgb)) 100%); }
+}
 /* data-sits-out="realm …": art the named realms leave out (the green-laser and night-vision photos clash
    with Inner Earth's ember and Crystal's violet). Hidden, so its lazy pictures never download there; a
    chapter whose art sits out reads as its text alone. Elsewhere the art keeps its own layout. */
@@ -1202,29 +1217,32 @@ html:not([data-theme]) .chapter:has(> .ch-art[data-sits-out~="polar"]) { grid-te
 
 /* ---------- the geode field: the Silent Vault and the gate sit in one massive geode ----------
    Each realm with a geode has its own seamless tile (tools/realm-art.py --geodes): rhodochrosite in
-   Inner Earth, amethyst in Agarthan Crystal, blue fluorite in Polar Night. It repeats behind both
+   Inner Earth, amethyst in Agarthan Crystal, blue fluorite in Polar Night, green quartz and druzy in
+   Vril. It repeats behind both
    sections under a wash of the realm's own dark (--geode-wash: deeper over the bright fluorite,
    lighter over the dark amethyst), heaviest at the top and bottom edges so the field fades into the
-   page. A realm asks only for its own tile; Vril and Black & White keep the plain page. */
+   page. A realm asks only for its own tile; Black & White keeps the plain page. */
 .geode-field { position: relative; isolation: isolate; --geode-wash: .62; --geode-deepen: 0; }
 html[data-theme="crystal"] .geode-field { --geode-wash: .5; }
 html:not([data-theme]) .geode-field { --geode-wash: .56; }
-:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html:not([data-theme])) .geode-field {
+html[data-theme="vril"] .geode-field { --geode-wash: .62; }
+:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html:not([data-theme])) .geode-field {
   background-position: 50% 0; background-size: auto, 700px; background-repeat: repeat;
 }
 html[data-theme="inner-earth"] .geode-field { background-image: var(--geode-over), url("../img/feature/realm/inner-earth/geode-tile.webp"); }
 html[data-theme="crystal"] .geode-field { background-image: var(--geode-over), url("../img/feature/realm/crystal/geode-tile.webp"); }
 html:not([data-theme]) .geode-field { background-image: var(--geode-over), url("../img/feature/realm/polar/geode-tile.webp"); }
+html[data-theme="vril"] .geode-field { background-image: var(--geode-over), url("../img/feature/realm/vril/geode-tile.webp"); }
 .geode-field { --geode-over: linear-gradient(180deg, rgb(var(--bg-rgb)) 0, rgba(var(--bg-rgb), calc(var(--geode-wash) + var(--geode-deepen))) 9%,
   rgba(var(--bg-rgb), calc(var(--geode-wash) + var(--geode-deepen))) 91%, rgb(var(--bg-rgb)) 100%); }
-:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html:not([data-theme])) .geode-field #gate-in-the-wall { background: none !important; }   /* its blue band would cover the field */
+:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html:not([data-theme])) .geode-field #gate-in-the-wall { background: none !important; }   /* its blue band would cover the field */
 /* the $20 sits smaller in the bed, so the crystals show round it, under a wash of the realm's own dark */
-:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html:not([data-theme])) .geode-field .gate-money picture { width: min(80%, 1120px); background: rgb(var(--bg-rgb)); box-shadow: 0 0 0 1px rgba(var(--line-rgb), .22), 0 24px 80px rgba(0, 0, 0, .7); border-radius: 6px; }
-:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html:not([data-theme])) .geode-field .gate-money::after { display: none; }   /* the wash moves onto the bill alone */
-:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html:not([data-theme])) .geode-field .gate-money picture::after { content: ""; position: absolute; inset: 0; border-radius: 6px;
+:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html:not([data-theme])) .geode-field .gate-money picture { width: min(80%, 1120px); background: rgb(var(--bg-rgb)); box-shadow: 0 0 0 1px rgba(var(--line-rgb), .22), 0 24px 80px rgba(0, 0, 0, .7); border-radius: 6px; }
+:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html:not([data-theme])) .geode-field .gate-money::after { display: none; }   /* the wash moves onto the bill alone */
+:is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html:not([data-theme])) .geode-field .gate-money picture::after { content: ""; position: absolute; inset: 0; border-radius: 6px;
   background: linear-gradient(180deg, rgba(var(--bg-rgb), .78) 0%, rgba(var(--bg-rgb), .45) 30%, rgba(var(--bg-rgb), .38) 70%, rgba(var(--bg-rgb), .74) 100%); }
 @media (max-width: 760px) {   /* smaller crystals, and a deeper wash: on a phone the text runs across the whole field */
-  :is(html[data-theme="inner-earth"], html[data-theme="crystal"], html:not([data-theme])) .geode-field { background-size: auto, 460px; --geode-deepen: .1; }
+  :is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html:not([data-theme])) .geode-field { background-size: auto, 460px; --geode-deepen: .1; }
 }
 
 /* =====================================================================
