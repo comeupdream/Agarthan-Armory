@@ -145,7 +145,7 @@ if (deptHtml) ok(/^\s*<!--[^>]*-->\s*<div class="sec-backdrop top-backdrop" aria
 const SEL = { polar: 'html:not([data-theme])', 'inner-earth': 'html[data-theme="inner-earth"]', mono: 'html[data-theme="mono"]', crystal: 'html[data-theme="crystal"]', vril: 'html[data-theme="vril"]' };
 const BACKDROPS = {
   map: { polar: 'polar/ice-cave-exit-1920.webp', crystal: 'crystal/endurance-dawn-1920.webp', 'inner-earth': 'inner-earth/petra-treasury-1600.webp',
-    mono: 'mono/symmes-hole-980.webp', vril: 'vril/aurora-1920.webp' },
+    mono: 'mono/symmes-hole-980.webp', vril: 'vril/aurora-sky-2600.webp' },
   top: { polar: 'polar/fluorite-1920.webp', 'inner-earth': 'inner-earth/petra-treasury-1600.webp', crystal: 'crystal/atomium-1920.webp' },
 };
 for (const [target, pics] of Object.entries(BACKDROPS)) {
