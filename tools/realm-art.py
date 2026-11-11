@@ -5,7 +5,8 @@ realm-art.py — recolour the owner's art for each realm (colour theme).
     python3 tools/realm-art.py --sheet S  also writes a contact sheet to S
     python3 tools/realm-art.py --only     just the realm-only pieces (ONLY below)
     python3 tools/realm-art.py --files a.webp,b.webp   just those pictures of the owner's art
-    python3 tools/realm-art.py --geodes   the geode fields: rhodochrosite (Inner Earth), amethyst (Crystal), fluorite (Polar)
+    python3 tools/realm-art.py --geodes   the geode fields: rhodochrosite (Inner Earth), amethyst (Crystal), fluorite (Polar),
+                                          green quartz and druzy (Vril)
 
 Polar Night (the default) shows the art as delivered. For the other realms each
 picture keeps its own light and dark (OKLab lightness is untouched, so lettering
@@ -49,6 +50,8 @@ ONLY = {
     'atomium': {'src': 'atomium.jpg', 'realms': ['crystal'], 'widths': [980], 'keep': True},
     'petra-treasury': {'src': 'petra-treasury.jpg', 'realms': ['inner-earth'], 'widths': [700], 'keep': True},
     'rhodochrosite': {'src': 'rhodochrosite.png', 'realms': ['inner-earth'], 'widths': [760], 'keep': True},
+    # Vril's backdrop behind the Lasers chapter: two geodes glowing green under ultraviolet, on black
+    'glowing-geodes': {'src': 'glowing-geodes.jpg', 'realms': ['vril'], 'widths': [900, 1500], 'keep': True},
 }
 # A realm-only photo is mostly near-white or grey (crystal, an engraving), so moving its hues does
 # little; instead its lightness is mapped through the realm's own ramp, dark to light (a tone map).
@@ -258,57 +261,71 @@ def geode_tile(seed=11):
     print('geode tile', out_im.size, n, 'crystals', os.path.getsize(out), 'bytes')
 
 
-# the crystal beds for the other realms: (realm, master, the crystal to keep as an OKLCh hue band
-# and minimum chroma and lightness, source patch size range, scale range, how much of a patch must be that crystal)
+# the crystal beds for the other realms. Each source: the master, which part of it is the crystal (an
+# OKLCh hue band with minimum chroma and lightness, or everything but an 'avoid' rectangle), the source
+# patch size range, the scale range, how much of a patch must be that crystal, and (with two or more
+# sources) how often it is used. 'div' is how far the photo is shrunk to judge patches.
 BEDS = {
-    'crystal': {'src': 'amethyst-geode.jpg', 'hue': None, 'chroma': None, 'light': 0.12,
-                'avoid': (1640, 0, 2440, 920),   # the cream calcite lump, with a margin
-                'patch': (480, 760), 'scale': (1.05, 1.45), 'keep': 0.84, 'seed': 5},
-    'polar':   {'src': 'fluorite.jpg', 'hue': (200, 255), 'chroma': 0.055, 'light': 0.30,
-                'patch': (820, 1120), 'scale': (0.66, 0.86), 'keep': 0.80, 'seed': 3},
+    'crystal': {'seed': 5, 'base': (24, 10, 40), 'sources': [
+        {'src': 'amethyst-geode.jpg', 'hue': None, 'chroma': None, 'light': 0.12,
+         'avoid': (1640, 0, 2440, 920),   # the cream calcite lump, with a margin
+         'patch': (480, 760), 'scale': (1.05, 1.45), 'keep': 0.84}]},
+    'polar': {'seed': 3, 'base': (6, 30, 48), 'sources': [
+        {'src': 'fluorite.jpg', 'hue': (200, 255), 'chroma': 0.055, 'light': 0.30,
+         'patch': (820, 1120), 'scale': (0.66, 0.86), 'keep': 0.80}]},
+    # Vril: a bed of green quartz points, with the whole cut geode halves laid over it (their cut-outs come
+    # from tools/cut-geodes.py): rind, white rim and druzy, at different sizes and turns, each with a shadow
+    'vril': {'seed': 9, 'base': (6, 34, 22), 'inside': True, 'sources': [
+        {'src': 'green-quartz.jpg', 'hue': (140, 172), 'chroma': 0.08, 'light': 0.30, 'div': 4, 'pstep': 20,
+         'patch': (200, 400), 'scale': (1.15, 1.6), 'keep': 0.92}],
+     'stones': {'srcs': ['green-geode-left.png', 'green-geode-right.png'], 'count': 7, 'size': (0.30, 0.46), 'spacing': 0.27}},
 }
 
 
 def crystal_bed(realm):
-    """A seamless tile packed solid with patches of a crystal photo (one massive geode).
+    """A seamless tile packed solid with patches of crystal photos (one massive geode).
 
-    The photo is not a cut-out, so the bed is built from pieces of it: each patch is centred where
-    the photo is mostly that realm's crystal (the violet points, the blue cubes), cut with a soft,
-    irregular edge, turned and mirrored at random, and laid over the last until nothing is left
-    uncovered. A patch that crosses an edge is laid again one tile over, so the tile has no seam."""
-    cfg = BEDS[realm]
-    rng = np.random.default_rng(cfg['seed'])
-    src = Image.open(os.path.join(MASTERS, cfg['src'])).convert('RGB')
-    a = np.asarray(src).astype(np.float64) / 255
-    small = np.asarray(src.resize((src.width // 8, src.height // 8), Image.BILINEAR)).astype(np.float64) / 255
-    lab = to_oklab(small.reshape(-1, 3)).reshape(small.shape)
-    L, C = lab[..., 0], np.hypot(lab[..., 1], lab[..., 2])
-    h = np.degrees(np.arctan2(lab[..., 2], lab[..., 1])) % 360
-    if cfg['hue']:   # the crystal is a colour: the fluorite's blue cubes
-        good = (h >= cfg['hue'][0]) & (h <= cfg['hue'][1]) & (C >= cfg['chroma']) & (L >= cfg['light'])
-        bad = np.zeros_like(good)
-    else:            # the amethyst's points are small and dim (and lit gold in places), so keep
-        # everything that is not the calcite lump and not the dark crevice
-        bad = np.zeros_like(L, dtype=bool)
-        x0, y0, x1, y1 = (v // 8 for v in cfg['avoid'])
-        bad[y0:y1, x0:x1] = True
-        good = ~bad & (L >= cfg['light'])
-    # every patch that qualifies, listed up front (summed-area tables), so a failing one is never used
-    def table(m):
-        return np.pad(m.astype(np.float64).cumsum(0).cumsum(1), ((1, 0), (1, 0)))
-    gt, bt = table(good), table(bad)
-    cands = []
-    for ps in range(cfg['patch'][0], cfg['patch'][1] + 1, 40):
-        k = ps // 8
-        for y in range(0, good.shape[0] - k, 2):
-            for x in range(0, good.shape[1] - k, 2):
-                area = k * k
-                g = (gt[y + k, x + k] - gt[y, x + k] - gt[y + k, x] + gt[y, x]) / area
-                b = (bt[y + k, x + k] - bt[y, x + k] - bt[y + k, x] + bt[y, x]) / area
-                if g >= cfg['keep'] and b == 0:
-                    cands.append((x * 8, y * 8, ps))
-    if not cands:
-        raise SystemExit(f'{realm}: no patch of {cfg["src"]} qualifies')
+    The photos are not cut-outs, so the bed is built from pieces of them: each patch is centred where
+    the photo is that realm's crystal (the violet points, the blue cubes, the green quartz and druzy),
+    cut with a soft, irregular edge, turned and mirrored at random, and laid over the last until
+    nothing is left uncovered. A patch that crosses an edge is laid again one tile over, so the tile
+    has no seam. Every qualifying patch is listed up front, so one that fails is never used."""
+    bed = BEDS[realm]
+    rng = np.random.default_rng(bed['seed'])
+    pools = []
+    for cfg in bed['sources']:
+        div, pstep = cfg.get('div', 8), cfg.get('pstep', 40)
+        src = Image.open(os.path.join(MASTERS, cfg['src'])).convert('RGB')
+        small = np.asarray(src.resize((src.width // div, src.height // div), Image.BILINEAR)).astype(np.float64) / 255
+        lab = to_oklab(small.reshape(-1, 3)).reshape(small.shape)
+        L, C = lab[..., 0], np.hypot(lab[..., 1], lab[..., 2])
+        h = np.degrees(np.arctan2(lab[..., 2], lab[..., 1])) % 360
+        if cfg['hue']:   # the crystal is a colour
+            good = (h >= cfg['hue'][0]) & (h <= cfg['hue'][1]) & (C >= cfg['chroma']) & (L >= cfg['light'])
+            bad = np.zeros_like(good)
+        else:            # the amethyst's points are small and dim (and lit gold in places), so keep
+            # everything that is not the calcite lump and not the dark crevice
+            bad = np.zeros_like(L, dtype=bool)
+            x0, y0, x1, y1 = (v // div for v in cfg['avoid'])
+            bad[y0:y1, x0:x1] = True
+            good = ~bad & (L >= cfg['light'])
+
+        def table(m):
+            return np.pad(m.astype(np.float64).cumsum(0).cumsum(1), ((1, 0), (1, 0)))
+        gt, bt = table(good), table(bad)
+        cands = []
+        for ps in range(cfg['patch'][0], cfg['patch'][1] + 1, pstep):
+            k = ps // div
+            for y in range(0, good.shape[0] - k, 2):
+                for x in range(0, good.shape[1] - k, 2):
+                    area = k * k
+                    g = (gt[y + k, x + k] - gt[y, x + k] - gt[y + k, x] + gt[y, x]) / area
+                    b = (bt[y + k, x + k] - bt[y, x + k] - bt[y + k, x] + bt[y, x]) / area
+                    if g >= cfg['keep'] and b == 0:
+                        cands.append((x * div, y * div, ps))
+        if not cands:
+            raise SystemExit(f'{realm}: no patch of {cfg["src"]} qualifies')
+        pools.append((cfg, src, cands))
     T = GEODE_TILE
     tile = Image.new('RGBA', (T, T), (0, 0, 0, 0))
 
@@ -323,19 +340,24 @@ def crystal_bed(realm):
         n = 48
         th = np.linspace(0, 2 * np.pi, n, endpoint=False)
         r = 1 + sum(rng.uniform(-0.09, 0.09) * np.cos(k * th + rng.uniform(0, 6.3)) for k in (2, 3, 5))
-        r = r * 0.40 * size
+        # 'inside': keep the outline within the patch, or a soft photo shows the patch's square edge as a
+        # straight line (the quartz does; the amethyst and fluorite tiles were made without it and keep their look)
+        r = (np.minimum(r * 0.40, 0.42) if bed.get('inside') else r * 0.40) * size
         from PIL import ImageDraw
         m = Image.new('L', (size, size), 0)
         ImageDraw.Draw(m).polygon([(size / 2 + r[i] * np.cos(th[i]), size / 2 + r[i] * np.sin(th[i])) for i in range(n)], fill=255)
         return m.filter(ImageFilter.GaussianBlur(size * 0.05))
 
+    weights = np.array([c.get('weight', 1) for c in bed['sources']], dtype=np.float64)
+    weights /= weights.sum()
     n = 0
-    while n < 600:
+    while n < 900:
         cov = np.asarray(tile.getchannel('A').resize((140, 140)))
         open_spots = np.argwhere(cov < 250)
         if len(open_spots) == 0:
             break
         cy, cx = open_spots[rng.integers(len(open_spots))] * (T / 140)
+        cfg, src, cands = pools[rng.choice(len(pools), p=weights)] if len(pools) > 1 else pools[0]
         px, py, ps = cands[rng.integers(len(cands))]   # a patch of the photo that is the crystal
         patch = src.crop((px, py, px + ps, py + ps))
         if rng.uniform() < 0.5:
@@ -346,13 +368,33 @@ def crystal_bed(realm):
         patch = patch.rotate(rng.uniform(0, 360), resample=Image.BICUBIC, expand=True)
         lay(patch, cx, cy)
         n += 1
-    base = {'crystal': (24, 10, 40), 'polar': (6, 30, 48)}[realm]
-    out_im = Image.new('RGB', (T, T), base)
+    if bed.get('stones'):   # whole stones laid over the bed, spread out, each with a soft shadow
+        st = bed['stones']
+        stones = [Image.open(os.path.join(MASTERS, f)).convert('RGBA') for f in st['srcs']]
+        spots = []
+        while len(spots) < st['count']:
+            x, y = rng.uniform(0, T, 2)
+            if all(min(abs(x - a), T - abs(x - a)) ** 2 + min(abs(y - b), T - abs(y - b)) ** 2 > (T * st['spacing']) ** 2 for a, b in spots) \
+                    or rng.uniform() < 0.002:
+                spots.append((x, y))
+        for i, (x, y) in enumerate(spots):
+            im = stones[i % len(stones)].copy()
+            if rng.uniform() < 0.5:
+                im = im.transpose(Image.FLIP_LEFT_RIGHT)
+            side = rng.uniform(*st['size']) * T
+            im.thumbnail((int(side), int(side)), Image.LANCZOS)
+            im = im.rotate(rng.uniform(0, 360), resample=Image.BICUBIC, expand=True)
+            alpha = im.getchannel('A')
+            sh = Image.new('RGBA', im.size, (2, 10, 6, 0))
+            sh.putalpha(alpha.filter(ImageFilter.GaussianBlur(side * 0.04)).point(lambda v: int(v * 0.8)))
+            lay(sh, x + side * 0.03, y + side * 0.05)
+            lay(im, x, y)
+    out_im = Image.new('RGB', (T, T), bed['base'])
     out_im.paste(tile, (0, 0), tile)
     out = os.path.join(OUT, realm, 'geode-tile.webp')
     os.makedirs(os.path.dirname(out), exist_ok=True)
     out_im.save(out, 'WEBP', quality=76, method=6)
-    print(realm, 'crystal bed', out_im.size, n, 'patches from', len(cands), 'candidates', os.path.getsize(out), 'bytes')
+    print(realm, 'crystal bed', out_im.size, n, 'patches from', sum(len(c) for _, _, c in pools), 'candidates', os.path.getsize(out), 'bytes')
 
 
 def main():
