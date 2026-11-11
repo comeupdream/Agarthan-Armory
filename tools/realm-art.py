@@ -56,8 +56,10 @@ ONLY = {
     # Vril's backdrop behind the Lasers chapter: two geodes glowing green under ultraviolet, on black
     'glowing-geodes': {'src': 'glowing-geodes.jpg', 'realms': ['vril'], 'widths': [900, 1500], 'keep': True},
     # Vril's plate beside the map, and its picture behind the map: the aurora over Bear Lake, Alaska
-    # (U.S. Air Force photo by Joshua Strang, public domain), the green fire the Vril stories describe
-    'aurora': {'src': 'aurora.jpg', 'realms': ['vril'], 'widths': [980, 1920], 'keep': True},
+    # (U.S. Air Force photo by Joshua Strang, public domain), the green fire the Vril stories describe.
+    # Sky only: both crops stop above the treeline, so the snow, the post and the little spruces are gone
+    'aurora': {'src': 'aurora.jpg', 'realms': ['vril'], 'widths': [980], 'keep': True, 'crop': (200, 0, 2100, 949)},
+    'aurora-sky': {'src': 'aurora.jpg', 'realms': ['vril'], 'widths': [2600], 'keep': True, 'crop': (0, 0, 2600, 949)},
 }
 # A realm-only photo is mostly near-white or grey (crystal, an engraving), so moving its hues does
 # little; instead its lightness is mapped through the realm's own ramp, dark to light (a tone map).
@@ -182,6 +184,8 @@ def render_only(names=None):
         if spec.get('keep'):
             # as photographed (a cut-out keeps its transparency): only sized
             master = master.convert('RGBA' if master.mode in ('RGBA', 'LA', 'P') else 'RGB')
+            if spec.get('crop'):
+                master = master.crop(spec['crop'])
             for theme in spec['realms']:
                 os.makedirs(os.path.join(OUT, theme), exist_ok=True)
                 for w in spec['widths']:

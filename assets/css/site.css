@@ -1352,7 +1352,7 @@ html:not([data-theme]) .map-backdrop { background-image: url("../img/feature/rea
 html[data-theme="inner-earth"] .map-backdrop { background-image: url("../img/feature/realm/inner-earth/petra-treasury-1600.webp"); background-position: 50% 40%; }
 html[data-theme="mono"] .map-backdrop { background-image: url("../img/feature/realm/mono/symmes-hole-980.webp"); }
 html[data-theme="crystal"] .map-backdrop { background-image: url("../img/feature/realm/crystal/endurance-dawn-1920.webp"); }
-html[data-theme="vril"] .map-backdrop { background-image: url("../img/feature/realm/vril/aurora-1920.webp"); background-position: 50% 20%; }
+html[data-theme="vril"] .map-backdrop { background-image: url("../img/feature/realm/vril/aurora-sky-2600.webp"); }
 /* behind the departments: the realm's Featured plate (Black & White and Vril have none) */
 html:not([data-theme]) .top-backdrop { background-image: url("../img/feature/realm/polar/fluorite-1920.webp"); }
 html[data-theme="inner-earth"] .top-backdrop { background-image: url("../img/feature/realm/inner-earth/petra-treasury-1600.webp"); background-position: 50% 45%; }
