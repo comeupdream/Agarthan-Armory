@@ -149,6 +149,13 @@ export function namesProduct(r, p, upc) {
 }
 /** a site's home page: its pictures are banners and promotions, never one product's photo */
 export const isHomePage = (url) => { try { const u = new URL(url); return u.pathname === '/' || u.pathname === ''; } catch { return false; } };
+/** a page listing many products (a category, collection, brand or search page): its photo may be any of them */
+export const isListingPage = (url) => {
+  let u; try { u = new URL(url); } catch { return false; }
+  const p = u.pathname + u.search;
+  if (/\/products?\/[^/]+/i.test(u.pathname)) return false;                 // a product's own page
+  return /\/(product-category|product-categories|category|categories|collections?|catalog|catalogsearch|search|shop|brands?|manufacturers?|tag|tags|series|departments?|c)\/|[?&](s|q|search|query|keyword|keywords)=|\/search(\b|$)/i.test(p);
+};
 
 export function scoreResult(r, p, upc, { strict = false } = {}) {
   const host = String(r.host || '').toLowerCase();
@@ -363,7 +370,25 @@ async function main() {
   const keyOf = (p) => (PER_VARIANT ? p.id : lineOf(p) + (byColor(p) ? '|' + colorOf(p).toLowerCase() : ''));
   // the colour a product's photo was found for (a variant shares its line's photo unless it got its own)
   const photoColor = (p) => colorOf(p.photoSource && p.photoSource.sharedFrom ? byId.get(p.photoSource.sharedFrom) || p : p).toLowerCase();
-  const wrongColor = (p) => byColor(p) && (p.localImages || []).length > 0 && !!p.photoSource && photoColor(p) !== colorOf(p).toLowerCase();
+  // an FDE/green variant whose photo, looked at, shows no such colour (found for it before colours were searched,
+  // the black gun) counts as another colour's photo too — and never lends it to a sibling
+  const colourMiss = new Set();
+  if (COLORS && sharp) {
+    const looked = new Map();
+    for (const p of all) {
+      const fam = colorFamily(colorOf(p)), f = (p.localImages || [])[0];
+      if (!fam || !f || !p.photoSource || !byColor(p) || !GUNS.has((site.get(p.id) || {}).dept)) continue;
+      const k = `${fam}|${f}`;
+      if (!looked.has(k)) {
+        try {
+          const { data, info } = await sharp(path.resolve(f)).flatten({ background: '#ffffff' }).removeAlpha().resize(240, 240, { fit: 'inside' }).raw().toBuffer({ resolveWithObject: true });
+          looked.set(k, !colorProblem(fam, colorShares(data, info.width, info.height, info.channels)));
+        } catch { looked.set(k, true); }
+      }
+      if (!looked.get(k)) colourMiss.add(p.id);
+    }
+  }
+  const wrongColor = (p) => byColor(p) && (p.localImages || []).length > 0 && !!p.photoSource && (photoColor(p) !== colorOf(p).toLowerCase() || colourMiss.has(p.id));
   const inScope = (p) => {
     if (!siteItems) return true;
     const i = site.get(p.id); if (!i) return false;
@@ -379,6 +404,7 @@ async function main() {
     const n = (p.localImages || []).length;
     if (n && !p.photoSource) return false;                                     // the store's own photo is never touched
     if (!n) return RETRY || ps(p).result !== 'none' || (byColor(p) && !ps(p).colorTried);
+    if (colourMiss.has(p.id)) return RETRY || !ps(p).colorChecked;             // its photo shows another colour
     if (wrongColor(p)) return RETRY || !ps(p).colorTried;                      // showing another colour's photo
     if (GALLERY > 1 && n < GALLERY) return RETRY || !((ps(p).gallery || 0) >= GALLERY);
     return false;
@@ -397,7 +423,7 @@ async function main() {
   const donors = new Map();
   for (const p of all) {
     const n = (p.localImages || []).length;
-    if (!n || (byColor(p) && p.photoSource && photoColor(p) !== colorOf(p).toLowerCase())) continue;
+    if (!n || (byColor(p) && p.photoSource && (photoColor(p) !== colorOf(p).toLowerCase() || colourMiss.has(p.id)))) continue;
     const k = keyOf(p); const cur = donors.get(k);
     if (!cur || n > cur.localImages.length) donors.set(k, p);
   }
@@ -492,7 +518,7 @@ async function main() {
       const want = Math.max(1, GALLERY) - keep.length;
       const at = new Date().toISOString();
       const mark = (q, extra) => { q.photoSearch = { ...(q.photoSearch || {}), at, ...extra }; };
-      const tried = { ...(colorway ? { colorTried: true } : {}), ...(GALLERY > 1 ? { gallery: GALLERY } : {}) };
+      const tried = { ...(colorway ? { colorTried: true } : {}), ...(colorway && expect ? { colorChecked: true } : {}), ...(GALLERY > 1 ? { gallery: GALLERY } : {}) };
       // a sibling of the same line and colour already has the right photos: share them, no search
       const donor = !keep.length ? donors.get(keyOf(p)) : null;
       if (donor && !group.includes(donor) && donor.localImages.length >= (GALLERY > 1 ? GALLERY : 1)) {
@@ -504,7 +530,9 @@ async function main() {
       }
       const chosen = [];
       const hashes = [];
-      if (sharp && GALLERY > 1) for (const f of keep) { try { hashes.push(await dhash(sharp, await readFile(path.resolve(f)))); } catch { /* gone */ } }
+      const sharesOf = async (buf) => { const { data, info } = await sharp(buf).flatten({ background: '#ffffff' }).removeAlpha().resize(240, 240, { fit: 'inside' }).raw().toBuffer({ resolveWithObject: true }); return colorShares(data, info.width, info.height, info.channels); };
+      let firstShares = null;                                            // the colour of the gallery's first photo
+      if (sharp && GALLERY > 1) for (const f of keep) { try { const buf = await readFile(path.resolve(f)); hashes.push(await dhash(sharp, buf)); if (!firstShares) firstShares = await sharesOf(buf); } catch { /* gone */ } }
       // never a photo taken down before, nor (for more angles) one this product already shows
       const refused = new Set([...group.flatMap((q) => (q.photoSearch && q.photoSearch.refused) || []), ...(keep.length ? group.map((q) => q.photoSource && q.photoSource.image).filter(Boolean) : [])]);
       try {
@@ -521,6 +549,10 @@ async function main() {
             if (sharp && GALLERY > 1) {                                  // a gallery shows different angles, not the same picture twice
               const h = await dhash(sharp, b);
               if (hashes.some((x) => hamming(x, h) <= 10)) continue;
+              // …of the same gun: an extra angle in another colour (a white or FDE Vector in a black one's gallery) is not it
+              const sh = await sharesOf(b);
+              if (!firstShares && !keep.length) firstShares = sh;
+              else if (firstShares && (Math.abs(sh.tan - firstShares.tan) > 0.3 || Math.abs(sh.green - firstShares.green) > 0.3)) continue;
               hashes.push(h);
             }
             // a new name: never one a product shows (a sibling's photo, another colour's), nor a later angle already on disk
@@ -601,6 +633,11 @@ async function recheck({ cats, own, sharp, DRY, CAT_DIR }) {
     if (pulled) { takeDown.push({ file: f, products: ps, why: `pulled by hand: ${String(ov[pulled.id]._photo || '').replace(/^pulled [\d-]+: /, '')}`, pulled: true }); continue; }
     const src = ps.find((p) => p.photoSource && !p.photoSource.sharedFrom) || ps.find((p) => p.photoSource);
     if (src && isHomePage(src.photoSource.page)) { takeDown.push({ file: f, products: ps, why: 'came from a site\'s home page (a banner, not this product\'s page)' }); continue; }
+    // from a page listing many products, with nothing saying it is this one: searched again (by the rule that a
+    // result must name the product); not refused, so the same picture can come back from the product's own page
+    if (src && isListingPage(src.photoSource.page) && !namesProduct({ title: src.photoSource.title || '', page: src.photoSource.page, image: src.photoSource.image }, src, upcOf(src))) {
+      takeDown.push({ file: f, products: ps, why: 'came from a listing page that doesn\'t name this product', keepUrl: true }); continue;
+    }
     let why = null;
     try {
       const { data, info } = await sharp(path.resolve(root, f)).flatten({ background: '#ffffff' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -618,9 +655,9 @@ async function recheck({ cats, own, sharp, DRY, CAT_DIR }) {
     const { unlink } = await import('node:fs/promises');
     for (const t of takeDown) {
       for (const p of t.products) {
-        const refused = [...new Set([...((p.photoSearch && p.photoSearch.refused) || []), ...(p.photoSource && p.photoSource.image ? [p.photoSource.image] : [])])].slice(-10);
+        const refused = [...new Set([...((p.photoSearch && p.photoSearch.refused) || []), ...(p.photoSource && p.photoSource.image && !t.keepUrl ? [p.photoSource.image] : [])])].slice(-10);
         delete p.localImages; delete p.photoSource;
-        p.photoSearch = { result: 'retake', refused };          // searched again next run, never this photo again
+        p.photoSearch = { result: 'retake', refused };          // searched again next run (a wrong photo never again)
         if (ov[p.id] && ov[p.id].noPhoto) {                      // the hand-pulled flag goes with the photo
           delete ov[p.id].noPhoto; delete ov[p.id]._photo;
           if (!Object.keys(ov[p.id]).some((k) => !k.startsWith('_'))) delete ov[p.id];
