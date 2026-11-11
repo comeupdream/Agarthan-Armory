@@ -1108,8 +1108,31 @@ html[data-cursor] :is(input, textarea) { cursor: text; }
 
 /* ---------- the owner's banner, under the hero ---------- */
 .manifesto { padding: clamp(28px, 4vw, 56px) 0 0; }
-.manifesto-frame { margin: 0; position: relative; overflow: hidden; border: 1px solid var(--line); background: #0b1d3a; }
-.manifesto-frame img { display: block; width: 100%; height: auto; }
+/* the banner: slides side by side in a track that scrolls sideways and snaps to each */
+.banner { position: relative; border: 1px solid var(--line); background: #0b1d3a; }
+.banner-track { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.banner-track::-webkit-scrollbar { display: none; }
+.banner-track:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.banner-slide { flex: 0 0 100%; margin: 0; position: relative; overflow: hidden; aspect-ratio: 16 / 9; scroll-snap-align: start; scroll-snap-stop: always; }
+.manifesto-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* slide two: the lead time, set over the realm's own crystal (its geode tile; Black & White's Naica cave) */
+.lead-slide { container-type: inline-size; display: grid; place-items: center; text-align: center;
+  background: #050505 50% 50% / 46% repeat; }
+html[data-theme="inner-earth"] .lead-slide { background-image: url("../img/feature/realm/inner-earth/geode-tile.webp"); }
+html[data-theme="crystal"] .lead-slide { background-image: url("../img/feature/realm/crystal/geode-tile.webp"); }
+html[data-theme="vril"] .lead-slide { background-image: url("../img/feature/realm/vril/geode-tile.webp"); }
+html:not([data-theme]) .lead-slide { background-image: url("../img/feature/realm/polar/geode-tile.webp"); }
+html[data-theme="mono"] .lead-slide { background-image: url("../img/feature/realm/mono/naica-1600.webp"); background-size: cover; background-repeat: no-repeat; }
+.lead-slide::before { content: ""; position: absolute; inset: 0;
+  background: radial-gradient(58% 72% at 50% 50%, rgba(var(--bg-rgb), .8) 0%, rgba(var(--bg-rgb), .55) 55%, rgba(var(--bg-rgb), .18) 100%); }
+.lead-in { position: relative; z-index: 1; padding: 0 6cqw; }
+.lead-seal { display: block; width: 12cqw; height: auto; margin: 0 auto 2.2cqw; filter: drop-shadow(0 0 2.2cqw rgba(var(--accent-rgb), .55)); }
+.lead-title { margin: 0; font-size: 9.4cqw; line-height: .98; letter-spacing: .03em; color: var(--frost); text-transform: uppercase;
+  text-shadow: 0 .4cqw 2.4cqw rgba(0, 0, 0, .85), 0 0 3.2cqw rgba(var(--accent-rgb), .4); }
+.lead-title span { display: block; white-space: nowrap; }
+.lead-url { margin: 3cqw 0 0; font: 400 1.9cqw/1 var(--f-mono); letter-spacing: .32em; text-transform: uppercase; color: var(--frost); text-shadow: 0 .2cqw 1cqw rgba(0, 0, 0, .9); }
+.banner-nav { margin-top: 12px; }
 
 /* ---------- into the dark: lasers, night vision, thermal; picture and words alternate ---------- */
 .dark-story { background: linear-gradient(180deg, transparent, #02050a 14%, #02050a 86%, transparent); }

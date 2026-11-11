@@ -93,7 +93,8 @@ for (const [realm, sel] of Object.entries(GEODES)) {
   ok(existsSync(tile), `${realm} has a geode tile (tools/realm-art.py --geodes)`);
   if (existsSync(tile)) { const [w, h] = size(tile); ok(w === h && w >= 800, `the ${realm} geode tile is a square of at least 800 px (${w}×${h})`); }
   const rules = tileRules.filter(([, r]) => r === realm);
-  ok(rules.length === 1 && rules[0][0] === `${sel} .geode-field`, `only ${realm} asks for its own geode tile (rules: ${rules.map(([x]) => x).join(' | ')})`);
+  ok(rules.length === 2 && rules.map(([x]) => x).sort().join() === [`${sel} .geode-field`, `${sel} .lead-slide`].sort().join(),
+    `only ${realm} asks for its own geode tile, for the geode field and the banner's lead slide (rules: ${rules.map(([x]) => x).join(' | ')})`);
 }
 ok(tileRules.every(([, r]) => r in GEODES), `no other realm has a geode tile (${tileRules.map(([, r]) => r)})`);
 for (const sel of ['html[data-theme="mono"]'])
@@ -103,6 +104,16 @@ for (const sel of ['html[data-theme="mono"]'])
 const lasersChapter = home.match(/<article class="chapter[^"]*">\s*<div class="ch-backdrop realm-only" data-realms="([^"]+)"[\s\S]*?<\/div>\s*<a class="ch-art"[^>]*sub=Lasers/);
 ok(!!lasersChapter && lasersChapter[1] === 'vril', `the Lasers chapter has a Vril-only backdrop (found ${lasersChapter && lasersChapter[1]})`);
 if (lasersChapter) ok(/glowing-geodes-1500\.webp/.test(lasersChapter[0]) && /loading="lazy"/.test(lasersChapter[0]), 'the backdrop is the glowing geodes, loaded lazily');
+
+// the banner: the manifesto, then "3–5 day lead times" over the realm's crystal (Black & White: its Naica cave)
+const banner = home.match(/<div class="banner-track"[^>]*>([\s\S]*?)\n        <\/div>\n      <\/div>/);
+ok(!!banner, 'the home page has a banner track');
+if (banner) {
+  ok(/class="banner-slide manifesto-frame"[\s\S]*manifesto-1280\.webp/.test(banner[1]), 'slide one is the manifesto');
+  ok(/class="banner-slide lead-slide"[\s\S]*3–5 day[\s\S]*lead times/.test(banner[1]), 'slide two says 3–5 day lead times');
+}
+ok(/html\[data-theme="mono"\] \.lead-slide \{[^}]*realm\/mono\/naica-1600\.webp/.test(css), 'Black & White sets the lead slide over its Naica cave');
+ok(existsSync(path.join(FEATURE, 'realm', 'mono', 'naica-1600.webp')), 'the Black & White Naica picture exists');
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

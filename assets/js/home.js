@@ -54,6 +54,39 @@
     if (ok) f.reset();
   });
 
+  /* ---------- the banner: slides scrolled through sideways ----------
+     The track scrolls natively (swipe, trackpad, arrow keys) and snaps to each slide; the dots follow
+     the scroll, the arrows and dots scroll it. It moves on by itself every 8 seconds while it is on
+     screen and nobody is touching it, and never when the visitor has asked for less motion. */
+  (function banner() {
+    const track = document.querySelector('.banner-track');
+    const nav = document.querySelector('.banner-nav');
+    if (!track || !nav) return;
+    const slides = [...track.children], dots = [...nav.querySelectorAll('.sp-dot')];
+    let at = 0, held = false, onScreen = false, raf = 0;
+    const width = () => track.clientWidth || 1;
+    const go = (n) => {
+      at = (n + slides.length) % slides.length;
+      track.scrollTo({ left: at * width(), behavior: AA.reduced ? 'auto' : 'smooth' });
+    };
+    const mark = () => {
+      raf = 0;
+      at = Math.max(0, Math.min(slides.length - 1, Math.round(track.scrollLeft / width())));
+      dots.forEach((d, i) => d.setAttribute('aria-pressed', String(i === at)));
+    };
+    track.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(mark); }, { passive: true });
+    nav.addEventListener('click', (e) => {
+      const d = e.target.closest('.sp-dot'), a = e.target.closest('.sp-arrow');
+      if (d) go(+d.dataset.i);
+      if (a) go(at + +a.dataset.d);
+    });
+    const box = track.closest('.manifesto');
+    for (const [ev, v] of [['pointerenter', true], ['pointerleave', false], ['focusin', true], ['focusout', false], ['touchstart', true]])
+      box.addEventListener(ev, () => { held = v; }, { passive: true });
+    if ('IntersectionObserver' in window) new IntersectionObserver((es) => { onScreen = es[0].isIntersecting; }, { threshold: 0.5 }).observe(track);
+    if (!AA.reduced) setInterval(() => { if (onScreen && !held && !document.hidden) go(at + 1); }, 8000);
+  })();
+
   /* ---------- Spotlight: the store's promotion slides, from the Ops Console ---------- */
   (function spotlight() {
     const box = document.getElementById('spotlight');
