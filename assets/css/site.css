@@ -1241,10 +1241,11 @@ html:not([data-theme]) .chapter:has(> .ch-art[data-sits-out~="polar"]) { grid-te
 /* ---------- the geode field: the Silent Vault and the gate sit in one massive geode ----------
    Each realm with a geode has its own seamless tile (tools/realm-art.py --geodes): rhodochrosite in
    Inner Earth, amethyst in Agarthan Crystal, blue fluorite in Polar Night, green quartz and geodes in
-   Vril, the Naica cave's quartz beams in grey in Black & White. It repeats behind both
+   Vril. It repeats behind both
    sections under a wash of the realm's own dark (--geode-wash: deeper over the bright fluorite,
    lighter over the dark amethyst), heaviest at the top and bottom edges so the field fades into the
-   page. A realm asks only for its own tile. */
+   page. A realm asks only for its own tile. Black & White has the Naica cave instead, whole: the
+   photo as it is, laid once over both sections. */
 .geode-field { position: relative; isolation: isolate; --geode-wash: .62; --geode-deepen: 0; }
 html[data-theme="crystal"] .geode-field { --geode-wash: .5; }
 html:not([data-theme]) .geode-field { --geode-wash: .56; }
@@ -1257,7 +1258,8 @@ html[data-theme="inner-earth"] .geode-field { background-image: var(--geode-over
 html[data-theme="crystal"] .geode-field { background-image: var(--geode-over), url("../img/feature/realm/crystal/geode-tile.webp"); }
 html:not([data-theme]) .geode-field { background-image: var(--geode-over), url("../img/feature/realm/polar/geode-tile.webp"); }
 html[data-theme="vril"] .geode-field { background-image: var(--geode-over), url("../img/feature/realm/vril/geode-tile.webp"); }
-html[data-theme="mono"] .geode-field { background-image: var(--geode-over), url("../img/feature/realm/mono/geode-tile.webp"); }
+html[data-theme="mono"] .geode-field { background-image: var(--geode-over), url("../img/feature/realm/mono/naica-2600.webp");
+  background-size: auto, cover; background-repeat: no-repeat; background-position: 50% 0, 50% 50%; }
 .geode-field { --geode-over: linear-gradient(180deg, rgb(var(--bg-rgb)) 0, rgba(var(--bg-rgb), calc(var(--geode-wash) + var(--geode-deepen))) 9%,
   rgba(var(--bg-rgb), calc(var(--geode-wash) + var(--geode-deepen))) 91%, rgb(var(--bg-rgb)) 100%); }
 :is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html[data-theme="mono"], html:not([data-theme])) .geode-field #gate-in-the-wall { background: none !important; }   /* its blue band would cover the field */
@@ -1268,6 +1270,7 @@ html[data-theme="mono"] .geode-field { background-image: var(--geode-over), url(
   background: linear-gradient(180deg, rgba(var(--bg-rgb), .78) 0%, rgba(var(--bg-rgb), .45) 30%, rgba(var(--bg-rgb), .38) 70%, rgba(var(--bg-rgb), .74) 100%); }
 @media (max-width: 760px) {   /* smaller crystals, and a deeper wash: on a phone the text runs across the whole field */
   :is(html[data-theme="inner-earth"], html[data-theme="crystal"], html[data-theme="vril"], html[data-theme="mono"], html:not([data-theme])) .geode-field { background-size: auto, 460px; --geode-deepen: .1; }
+  html[data-theme="mono"] .geode-field { background-size: auto, cover; }
 }
 
 /* =====================================================================
