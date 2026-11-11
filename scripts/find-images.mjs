@@ -265,6 +265,16 @@ export function colorProblem(family, sh) {
   if (family === 'green' && sh.tan + sh.green < 0.10) return 'the photo shows no green (the listing is that colour)';
   return null;
 }
+/** a plain black finish (not two-tone, not black-and-FDE, not camo) */
+export const isPlainBlack = (c) => /black/i.test(c || '') && !/fde|flat dark earth|\btan\b|coyote|sand|green|\bod\b|olive|camo|multicam|silver|stainless|white|bronze|gr[ae]y|\/|,|&|two/i.test(c || '');
+/** does one photo of a gallery fit the listing? Its colour when known (FDE/tan, green, plain black: strongly tan or
+ *  green is another colourway), otherwise the gallery's first photo (another colour is another colourway) */
+export function galleryFits(color, s, first = null) {
+  const fam = colorFamily(color);
+  if (fam) return !colorProblem(fam, s);
+  if (isPlainBlack(color)) return s.tan < 0.3 && s.green < 0.3;
+  return !first || (Math.abs(s.tan - first.tan) <= 0.3 && Math.abs(s.green - first.green) <= 0.3);
+}
 /** a 64-bit picture fingerprint (difference hash): near-identical photos are a few bits apart */
 export async function dhash(sharp, buf) {
   const d = await sharp(buf).flatten({ background: '#ffffff' }).greyscale().resize(9, 8, { fit: 'fill' }).raw().toBuffer();
@@ -549,10 +559,11 @@ async function main() {
             if (sharp && GALLERY > 1) {                                  // a gallery shows different angles, not the same picture twice
               const h = await dhash(sharp, b);
               if (hashes.some((x) => hamming(x, h) <= 10)) continue;
-              // …of the same gun: an extra angle in another colour (a white or FDE Vector in a black one's gallery) is not it
+              // …of the same gun: an angle in another colour (a white or FDE Vector in a black one's gallery) is not it.
+              // Judged by the listing's colour when it is known, else by the gallery's first photo
               const sh = await sharesOf(b);
-              if (!firstShares && !keep.length) firstShares = sh;
-              else if (firstShares && (Math.abs(sh.tan - firstShares.tan) > 0.3 || Math.abs(sh.green - firstShares.green) > 0.3)) continue;
+              if (!galleryFits(colorOf(p), sh, firstShares)) continue;
+              if (!firstShares) firstShares = sh;
               hashes.push(h);
             }
             // a new name: never one a product shows (a sibling's photo, another colour's), nor a later angle already on disk
@@ -645,6 +656,29 @@ async function recheck({ cats, own, sharp, DRY, CAT_DIR }) {
     } catch (e) { why = `unreadable (${e.message})`; }
     if (why) takeDown.push({ file: f, products: ps, why });
   }
+  // galleries: an extra angle in another colour than the first photo (a white or FDE Vector among a black one's
+  // photos) comes off; the first photo and the matching angles stay
+  const gone = new Set(takeDown.map((t) => t.file));
+  const galleries = new Map();
+  for (const p of all) {
+    const list = p.localImages || [];
+    if (list.length < 2 || !p.photoSource || own(p) || gone.has(list[0])) continue;
+    const k = list.join('|'); if (!galleries.has(k)) galleries.set(k, { list, products: [] }); galleries.get(k).products.push(p);
+  }
+  const trims = [];   // { list, drop: [indexes], products }
+  const sharesOf = async (f) => { const { data, info } = await sharp(path.resolve(root, f)).flatten({ background: '#ffffff' }).removeAlpha().resize(240, 240, { fit: 'inside' }).raw().toBuffer({ resolveWithObject: true }); return colorShares(data, info.width, info.height, info.channels); };
+  for (const g of galleries.values()) {
+    const color = colorOf(g.products[0]);
+    if (g.products.some((q) => colorOf(q).toLowerCase() !== color.toLowerCase())) continue;   // shared across colours: not ours to judge
+    try {
+      const s = []; for (const f of g.list) s.push(await sharesOf(f));
+      const byListing = !!colorFamily(color) || isPlainBlack(color);
+      // by the listing's colour every photo is judged, the first too; otherwise the extras against the first
+      const ok = s.map((x, i) => (byListing ? galleryFits(color, x) : i === 0 || galleryFits(color, x, s[0])));
+      const drop = ok.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
+      if (drop.length && drop.length < g.list.length) trims.push({ ...g, drop });              // none fits: left for a colour run
+    } catch { /* a file gone: leave it */ }
+  }
   const esc = (x) => String(x || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const sheet = path.join(CAT_DIR, 'photo-recheck.html');
   const rel = path.relative(CAT_DIR, root).split(path.sep).join('/') || '.';
@@ -665,9 +699,26 @@ async function recheck({ cats, own, sharp, DRY, CAT_DIR }) {
       }
       try { await unlink(path.resolve(root, t.file)); } catch { /* already gone */ }
     }
+    for (const t of trims) {
+      const dropped = t.drop.map((i) => t.list[i]);
+      for (const p of t.products) {
+        p.localImages = t.list.filter((_, i) => !t.drop.includes(i));
+        // where the photos came from: list[0] is photoSource itself, list[j+1] is more[j]
+        const src = [{ image: p.photoSource && p.photoSource.image, page: p.photoSource && p.photoSource.page }, ...((p.photoSource && p.photoSource.more) || [])];
+        const kept = src.filter((_, i) => !t.drop.includes(i));
+        if (p.photoSource) {
+          const head = kept[0] || {};
+          p.photoSource = { ...p.photoSource, image: head.image || p.photoSource.image, page: head.page || p.photoSource.page, more: kept.slice(1).filter((m) => m && m.image) };
+          if (!p.photoSource.more.length) delete p.photoSource.more;
+        }
+      }
+      const still = new Set(all.flatMap((p) => p.localImages || []));
+      for (const f of dropped) if (!still.has(f)) { try { await unlink(path.resolve(root, f)); } catch { /* gone */ } }
+    }
     for (const c of cats) await writeCatalog(c.f, c.list);
     if (takeDown.some((t) => t.pulled)) await writeFile(ovFile, JSON.stringify(ov, null, 2) + '\n');
   }
+  if (trims.length) console.log(`${DRY ? '→ would take' : '✓ took'} ${trims.reduce((n, t) => n + t.drop.length, 0)} off-colour angles out of ${trims.length} galleries (${trims.reduce((n, t) => n + t.products.length, 0)} products keep their first photo)`);
   const pulled = takeDown.filter((t) => t.pulled).length;
   console.log(`${DRY ? '→ would take down' : '✓ took down'} ${takeDown.length} photos (${takeDown.length - pulled} failing the bar, ${pulled} pulled by hand), ${takeDown.reduce((n, t) => n + t.products.length, 0)} products back on the search list`);
   console.log(`  list: ${path.relative(root, sheet)}${DRY ? ' (open it to look; run again without --dry-run to take them down)' : ''}`);
