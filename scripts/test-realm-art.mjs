@@ -118,34 +118,54 @@ if (banner) {
 ok(/html\[data-theme="mono"\] \.lead-slide \{[^}]*realm\/mono\/naica-1600\.webp/.test(css), 'Black & White sets the lead slide over its Naica cave');
 ok(existsSync(path.join(FEATURE, 'realm', 'mono', 'naica-1600.webp')), 'the Black & White Naica picture exists');
 
-// the map backdrop: each realm plate beside the map carries a Backdrop switch in its picture's corner, off until
-// pressed; pressed, the realm's own picture is blown up behind the map. Vril has no plate and no backdrop
-const mapSec = home.match(/<section class="section map-section" id="map">([\s\S]*?)<\/section>/);
-ok(!!mapSec, 'the home page has the map section');
-if (mapSec) {
-  const plates = [...mapSec[1].matchAll(/<figure class="realm-only realm-plate[^"]*" data-realms="([^"]+)">([\s\S]*?)<\/figure>/g)];
-  ok(plates.length === 3, `the map heading has three realm plates (found ${plates.length})`);
+// backdrop switches, in the corner of a plate's picture, all off until pressed:
+// - Backdrop, on the plates beside the map: the realm's picture behind the map (Inner Earth: Petra)
+// - Top backdrop and See-through, on the Featured plates: that picture behind the departments, cards see-through
+const sectionOf = (id) => (home.match(new RegExp(`<section class="[^"]*" id="${id}">([\\s\\S]*?)</section>`)) || [])[1];
+const platesIn = (html) => [...html.matchAll(/<figure class="realm-only realm-plate[^"]*" data-realms="([^"]+)">([\s\S]*?)<\/figure>/g)];
+const switchesIn = (body) => [...body.matchAll(/<button[^>]*data-switch="([a-z-]+)"[^>]*>/g)];
+const checkPlates = (where, html, want, kinds) => {
+  const plates = platesIn(html);
+  ok(plates.map(([, rs]) => rs).sort().join() === want.slice().sort().join(), `${where}: one plate each for ${want.join(', ')} (found ${plates.map(([, rs]) => rs).join(', ')})`);
   for (const [, rs, body] of plates) {
-    const sw = body.match(/<button[^>]*data-map-backdrop[^>]*>/);
-    ok(!!sw, `the ${rs} plate has a Backdrop switch`);
-    if (sw) ok(/aria-pressed="false"/.test(sw[0]) && /\bhidden\b/.test(sw[0]) && /type="button"/.test(sw[0]),
-      `the ${rs} switch starts off, and stays hidden until home.js wires it`);
-    ok(sw && body.indexOf(sw[0]) < body.indexOf('<img'), `the ${rs} switch sits in the picture (before the image, in its corner)`);
+    const sws = switchesIn(body);
+    ok(sws.map((m) => m[1]).join() === kinds.join(), `${where}: the ${rs} plate has the ${kinds.join(' + ')} switch(es) (found ${sws.map((m) => m[1])})`);
+    for (const [tag] of sws) ok(/aria-pressed="false"/.test(tag) && /\bhidden\b/.test(tag) && /type="button"/.test(tag), `${where}: the ${rs} switches start off, hidden until home.js wires them`);
+    ok(/^\s*<div class="plate-switches">/.test(body) && body.indexOf('plate-switches') < body.indexOf('<img'), `${where}: the ${rs} switches sit in the picture's corner`);
   }
-  ok(/<div class="map-backdrop" aria-hidden="true"><\/div>/.test(mapSec[1]), 'the map section has a backdrop layer, hidden from screen readers');
+};
+const mapHtml = sectionOf('map'), deptHtml = sectionOf('departments'), featHtml = sectionOf('featured');
+ok(!!mapHtml && !!deptHtml && !!featHtml, 'the home page has the map, departments and featured sections');
+if (mapHtml) {
+  checkPlates('map', mapHtml, ['inner-earth mono', 'polar', 'crystal', 'vril'], ['map']);
+  ok(/^\s*<!--[^>]*-->\s*<div class="sec-backdrop map-backdrop" aria-hidden="true"><\/div>/.test(mapHtml), 'the map section opens with its backdrop layer, hidden from screen readers');
 }
-const BACKDROPS = { polar: ['html:not([data-theme])', 'polar/ice-cave-exit-1920.webp'], crystal: ['html[data-theme="crystal"]', 'crystal/endurance-dawn-1920.webp'],
-  'inner-earth': ['html[data-theme="inner-earth"]', 'inner-earth/symmes-hole-980.webp'], mono: ['html[data-theme="mono"]', 'mono/symmes-hole-980.webp'] };
-for (const [realm, [sel, pic]] of Object.entries(BACKDROPS)) {
-  const rule = css.match(new RegExp(sel.replace(/[[\]()"]/g, '\\$&') + ' \\.map-backdrop \\{[^}]*realm/([a-z-]+/[a-z0-9-]+\\.webp)'));
-  ok(rule && rule[1] === pic, `${realm} lays ${pic} behind the map (found ${rule && rule[1]})`);
-  ok(existsSync(path.join(FEATURE, 'realm', pic)), `the ${realm} backdrop picture exists`);
+if (featHtml) checkPlates('featured', featHtml, ['polar', 'inner-earth', 'crystal'], ['top', 'see-through']);
+if (deptHtml) ok(/^\s*<!--[^>]*-->\s*<div class="sec-backdrop top-backdrop" aria-hidden="true"><\/div>/.test(deptHtml), 'the departments section opens with its backdrop layer, hidden from screen readers');
+const SEL = { polar: 'html:not([data-theme])', 'inner-earth': 'html[data-theme="inner-earth"]', mono: 'html[data-theme="mono"]', crystal: 'html[data-theme="crystal"]', vril: 'html[data-theme="vril"]' };
+const BACKDROPS = {
+  map: { polar: 'polar/ice-cave-exit-1920.webp', crystal: 'crystal/endurance-dawn-1920.webp', 'inner-earth': 'inner-earth/petra-treasury-1600.webp',
+    mono: 'mono/symmes-hole-980.webp', vril: 'vril/aurora-1920.webp' },
+  top: { polar: 'polar/fluorite-1920.webp', 'inner-earth': 'inner-earth/petra-treasury-1600.webp', crystal: 'crystal/atomium-1920.webp' },
+};
+for (const [target, pics] of Object.entries(BACKDROPS)) {
+  for (const [realm, sel] of Object.entries(SEL)) {
+    const rule = css.match(new RegExp(sel.replace(/[[\]()"]/g, '\\$&') + ` \\.${target}-backdrop \\{[^}]*realm/([a-z-]+/[a-z0-9-]+\\.webp)`));
+    const pic = pics[realm];
+    if (pic) {
+      ok(rule && rule[1] === pic, `${realm} lays ${pic} behind the ${target === 'map' ? 'map' : 'departments'} (found ${rule && rule[1]})`);
+      ok(existsSync(path.join(FEATURE, 'realm', pic)), `the ${realm} ${target} backdrop picture exists`);
+    } else {
+      ok(!rule && new RegExp(sel.replace(/[[\]()"]/g, '\\$&') + `[^{]*\\.${target}-backdrop[^{]*\\{ display: none; \\}`).test(css), `${realm} lays nothing behind the departments`);
+    }
+  }
 }
-ok(/\.map-backdrop \{ display: none;/.test(css) && /\.map-section\.has-backdrop \.map-backdrop \{ display: block; \}/.test(css),
-  'the backdrop shows only once switched on (so its picture is not even downloaded before then)');
-ok(/html\[data-theme="vril"\] \.map-section \.map-backdrop \{ display: none; \}/.test(css), 'Vril shows no map backdrop');
+ok(/\.sec-backdrop \{ display: none;/.test(css) && /\.has-backdrop > \.sec-backdrop \{ display: block; \}/.test(css),
+  'a backdrop shows only once switched on (so its picture is not even downloaded before then)');
+ok(/#departments\.has-backdrop\.see-through \.dept \{/.test(css), 'See-through turns the department cards see-through only while the picture is behind them');
 const homeJs = readFileSync(path.join(ROOT, 'assets/js/home.js'), 'utf8');
-ok(/AA\.store\.get\(KEY, false\) === true/.test(homeJs) && /'aa-map-backdrop'/.test(homeJs), 'the switch is off unless this browser turned it on');
+for (const k of ['aa-map-backdrop', 'aa-top-backdrop', 'aa-top-see-through']) ok(homeJs.includes(`'${k}'`), `home.js remembers ${k}`);
+ok(/AA\.store\.get\(sw\.key, false\) === true/.test(homeJs), 'every switch is off unless this browser turned it on');
 
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

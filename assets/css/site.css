@@ -1315,19 +1315,25 @@ html[data-theme="vril"] :is(.realm-only[data-realms~="vril"], .realm-only [data-
 /* a portrait relic takes a narrower plate */
 .realm-plate.portrait { flex-basis: 300px; }
 
-/* the plate's Backdrop switch: it sits in the picture's corner and puts that picture, blown up,
-   behind the ice wall map. Off until pressed (home.js remembers the choice); each realm shows its
-   own picture, and Vril, which has no plate, shows none. */
-.realm-plate .plate-switch {
-  position: absolute; z-index: 2; top: 20px; right: 20px;
+/* backdrop switches: they sit in a plate picture's corner and lay that picture, blown up, behind a
+   section. Off until pressed (home.js remembers each choice on this browser):
+   - Backdrop, on the plates beside the map: the realm's picture behind the ice wall map
+     (Inner Earth lays its Petra, from the Featured plates, rather than the Symmes engraving)
+   - Top backdrop and See-through, on the Featured plates: that picture behind the departments at the
+     top of the page, and the department cards turned see-through so it shows through them */
+.realm-plate .plate-switches { position: absolute; z-index: 2; top: 20px; right: 20px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.plate-switch {
   display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px 5px 6px;
   font: 400 10.5px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--frost);
   background: rgba(var(--bg-rgb), .72); border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: border-color .2s, background .2s;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: border-color .2s, background .2s, opacity .2s;
 }
-.realm-plate .plate-switch[hidden] { display: none; }
+.plate-switch[hidden] { display: none; }
 .plate-switch:hover { border-color: rgb(var(--accent-rgb)); background: rgba(var(--bg-rgb), .86); }
 .plate-switch:focus-visible { outline: 2px solid rgb(var(--accent-rgb)); outline-offset: 2px; }
+/* See-through only shows once the Top backdrop is on, so until then it reads as standing by */
+.plate-switch[data-idle] { opacity: .6; }
 .plate-switch .ps-track { position: relative; flex: none; width: 24px; height: 14px; border-radius: 999px;
   background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .3); transition: background .2s, border-color .2s; }
 .plate-switch .ps-track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%;
@@ -1335,32 +1341,45 @@ html[data-theme="vril"] :is(.realm-only[data-realms~="vril"], .realm-only [data-
 .plate-switch[aria-pressed="true"] .ps-track { background: rgba(var(--accent-rgb), .5); border-color: rgb(var(--accent-rgb)); }
 .plate-switch[aria-pressed="true"] .ps-track::after { transform: translateX(10px); background: #fff; }
 @media (prefers-reduced-motion: reduce) { .plate-switch, .plate-switch .ps-track, .plate-switch .ps-track::after { transition: none; } }
+@media (pointer: coarse) { .plate-switch { padding: 9px 13px 9px 9px; font-size: 11px; } }
 
-.map-section { position: relative; isolation: isolate; }
-.map-backdrop { display: none; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: 50% 50% / cover no-repeat; }
-.map-section.has-backdrop .map-backdrop { display: block; }
-html[data-theme="vril"] .map-section .map-backdrop { display: none; }
+.map-section, #departments { position: relative; isolation: isolate; }
+.sec-backdrop { display: none; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: 50% 50% / cover no-repeat; --bd-wash: .32; }
+.has-backdrop > .sec-backdrop { display: block; }
+/* behind the map: each realm its own picture */
 html:not([data-theme]) .map-backdrop { background-image: url("../img/feature/realm/polar/ice-cave-exit-1920.webp"); }
-html[data-theme="inner-earth"] .map-backdrop { background-image: url("../img/feature/realm/inner-earth/symmes-hole-980.webp"); }
+html[data-theme="inner-earth"] .map-backdrop { background-image: url("../img/feature/realm/inner-earth/petra-treasury-1600.webp"); background-position: 50% 40%; }
 html[data-theme="mono"] .map-backdrop { background-image: url("../img/feature/realm/mono/symmes-hole-980.webp"); }
 html[data-theme="crystal"] .map-backdrop { background-image: url("../img/feature/realm/crystal/endurance-dawn-1920.webp"); }
+html[data-theme="vril"] .map-backdrop { background-image: url("../img/feature/realm/vril/aurora-1920.webp"); background-position: 50% 20%; }
+/* behind the departments: the realm's Featured plate (Black & White and Vril have none) */
+html:not([data-theme]) .top-backdrop { background-image: url("../img/feature/realm/polar/fluorite-1920.webp"); }
+html[data-theme="inner-earth"] .top-backdrop { background-image: url("../img/feature/realm/inner-earth/petra-treasury-1600.webp"); background-position: 50% 45%; }
+html[data-theme="crystal"] .top-backdrop { background-image: url("../img/feature/realm/crystal/atomium-1920.webp"); background-position: 50% 30%; }
+html[data-theme="mono"] .top-backdrop, html[data-theme="vril"] .top-backdrop { display: none; }
 /* a wash of the realm's own dark, deepest at the edges so the section still meets its neighbours
-   cleanly, with shade behind the heading's paragraph; --bd-wash is heavier over the bright Endurance sky */
-.map-backdrop { --bd-wash: .32; }
+   cleanly, with shade behind the heading's paragraph; --bd-wash is heavier over a bright picture */
 html[data-theme="crystal"] .map-backdrop { --bd-wash: .55; }
-.map-backdrop::after { content: ""; position: absolute; inset: 0;
+html:not([data-theme]) .top-backdrop { --bd-wash: .45; }
+.sec-backdrop::after { content: ""; position: absolute; inset: 0;
   background:
     radial-gradient(48% 26% at 22% 13%, rgba(var(--bg-rgb), .62), transparent 72%),
     linear-gradient(180deg, var(--void) 0%, rgba(var(--bg-rgb), calc(var(--bd-wash) + .2)) 16%, rgba(var(--bg-rgb), var(--bd-wash)) 50%,
       rgba(var(--bg-rgb), calc(var(--bd-wash) + .2)) 84%, var(--void) 100%); }
-@media (pointer: coarse) { .realm-plate .plate-switch { padding: 9px 13px 9px 9px; font-size: 11px; } }
+/* over a picture, the heading's grey paragraph (and the Inner Earth crystal's caption) gets a shadow to stand on */
+.has-backdrop .section-head p, .has-backdrop .realm-float figcaption { color: var(--sub);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 0 16px rgba(0, 0, 0, .85); }
+/* See-through: the department cards let the picture through (only while it is behind them) */
+#departments.has-backdrop.see-through .dept { background-color: rgba(var(--bg-rgb), .28);
+  -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); text-shadow: 0 1px 10px rgba(0, 0, 0, .85); }
+#departments.has-backdrop.see-through .dept p { color: var(--sub); }
 @media (max-width: 760px) {
   /* on a phone the section is tall and the picture is blown up several times over: a touch of blur
-     keeps the engraving's lines from turning to blocks */
-  .map-backdrop { filter: blur(2px); }
-  /* the heading, the plate and the map stack, so the shade follows the words down the side */
-  .map-backdrop::after { background:
+     keeps an engraving's lines from turning to blocks */
+  .sec-backdrop { filter: blur(2px); }
+  /* the heading, the plates and the cards stack, so the shade follows the words down the side */
+  .sec-backdrop::after { background:
     linear-gradient(180deg, var(--void) 0%, rgba(var(--bg-rgb), calc(var(--bd-wash) + .3)) 10%, rgba(var(--bg-rgb), calc(var(--bd-wash) + .1)) 50%,
       rgba(var(--bg-rgb), calc(var(--bd-wash) + .3)) 90%, var(--void) 100%); }
 }
