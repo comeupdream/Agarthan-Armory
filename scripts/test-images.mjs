@@ -461,7 +461,54 @@ api.close();
     eq(g3('vg').photoSource && g3('vg').photoSource.image, `${b3}/greenGun.png`, '--colors: an olive variant gets a green photo');
     eq([g3('vb').localImages, g3('vb2').localImages, g3('vb2').photoSource.sharedFrom, seen3.filter((q) => /Black/.test(q)).length], [['img/vb-1.webp'], ['img/vb-1.webp'], 'vb', 0], '--colors: the black variant without a photo borrows its sibling\'s, no search; the black original untouched');
     eq([g3('alpha').localImages.length, seen3.some((q) => /Can/.test(q))], [3, false], '--colors: the guns only (the suppressors left alone)');
+
+    // an FDE variant whose own photo (found before colours were searched) shows the black gun: searched again, and never lent
+    // a gallery keeps one colour: an FDE angle is not added to a black gun's photos
+    shapes.tanSide = png(900, 600, (x, y) => (inBox(x, y, [100, 260, 800, 340]) ? [160, 134, 98] : [255, 255, 255]));
+    writeFileSync(path.join(gd, 'img', 'ef-1.webp'), await S3(shapes.blackGun).webp().toBuffer());
+    writeFileSync(path.join(gd, 'scraped', 'catalog.json'), JSON.stringify([
+      { id: 'eb', line: 'echo', name: 'Echo Rifle', brand: 'Kriss', variant: { Color: 'Black' } },
+      { id: 'ef', line: 'echo', name: 'Echo Rifle', brand: 'Kriss', variant: { Color: 'Flat Dark Earth' }, localImages: ['img/ef-1.webp'], photoSource: { image: 'https://www.kriss-usa.com/old.jpg', page: 'https://www.kriss-usa.com/echo' }, photoSearch: { result: 'found', colorTried: true } },
+      { id: 'ef2', line: 'echo', name: 'Echo Rifle', brand: 'Kriss', variant: { Color: 'Flat Dark Earth' } },
+      { id: 'delta', line: 'delta', name: 'Delta Can', brand: 'Silencerco', variant: { Color: 'Black' } },
+    ]));
+    writeFileSync(path.join(gd, 'catalog.js'), 'window.AA_CATALOG = ' + JSON.stringify({ items: [item('eb', 'longarms', 'Semi-Auto Rifles', 1), item('ef', 'longarms', 'Semi-Auto Rifles', 2), item('ef2', 'longarms', 'Semi-Auto Rifles', 3), item('delta', 'nfa', 'Suppressors', 4)] }) + ';');
     api3.close();
+    const api4 = await new Promise((res) => { const s6 = http.createServer((q, w) => {
+      const u = new URL(q.url, 'http://x'); const self = `http://127.0.0.1:${s6.address().port}`;
+      if (u.pathname === '/res/v1/images/search') {
+        const term = u.searchParams.get('q');
+        const r = (file, host) => ({ title: term, url: `https://${host}/p${file}`, meta_url: { hostname: host }, properties: { url: self + file, width: 1200, height: 800 } });
+        const results = /Echo Rifle Flat Dark Earth/.test(term) ? [r('/tanGun.png', 'www.kriss-usa.com')]
+          : /Echo Rifle Black/.test(term) ? [r('/blackGun.png', 'www.kriss-usa.com')]
+          : /Delta Can/.test(term) ? [r('/side.png', 'www.silencerco.com'), r('/tanSide.png', 'www.silencerco.com'), r('/end.png', 'www.silencerco.com')] : [];
+        w.writeHead(200, { 'Content-Type': 'application/json' }); return w.end(JSON.stringify({ results }));
+      }
+      const k = u.pathname.slice(1).replace(/\.png$/, '');
+      if (shapes[k]) { w.writeHead(200, { 'Content-Type': 'image/png' }); return w.end(shapes[k]); }
+      w.writeHead(404); w.end();
+    }).listen(0, '127.0.0.1', () => res(s6)); });
+    const run4 = (args) => new Promise((res) => {
+      const c = spawn(process.execPath, [path.join(HERE, 'find-images.mjs'), '--catalog-dir', path.join(gd, 'scraped'), '--img-dir', path.join(gd, 'img'), '--catalog-js', path.join(gd, 'catalog.js'), '--rps', '50', ...args],
+        { cwd: gd, env: { ...process.env, BRAVE_API_KEY: 'test-key', BRAVE_API_BASE: `http://127.0.0.1:${api4.address().port}` } });
+      let out = ''; c.stdout.on('data', (x) => (out += x)); c.stderr.on('data', (x) => (out += x)); c.on('close', (code) => res({ code, out }));
+    });
+    r3 = await run4(['--colors']);
+    eq([g3('ef').photoSource && g3('ef').photoSource.image.endsWith('/tanGun.png'), g3('ef2').photoSource && g3('ef2').photoSource.image.endsWith('/tanGun.png')], [true, true],
+      '--colors: an FDE variant whose own photo shows black is searched again (and its black photo is not lent to its FDE sibling)\n' + r3.out);
+    r3 = await run4(['--dept', 'nfa', '--gallery', '4']);
+    eq([g3('delta').localImages.length, (g3('delta').photoSource.more || []).some((m) => /tanSide/.test(m.image))], [2, false], '--gallery: an angle in another colour is not added to a black can\'s gallery');
+
+    // --recheck: from a listing page that doesn't name the product → searched again (the picture not refused); a named one stays
+    writeFileSync(path.join(gd, 'img', 'lp-1.webp'), await S3(shapes.side).webp().toBuffer());
+    writeFileSync(path.join(gd, 'img', 'ln-1.webp'), await S3(shapes.end).webp().toBuffer());
+    writeFileSync(path.join(gd, 'scraped', 'catalog.json'), JSON.stringify([
+      { id: 'lp', name: 'Magloader', brand: 'Glock', localImages: ['img/lp-1.webp'], photoSource: { image: 'https://cdn.example/glock-19.jpg', page: 'https://shop.example/manufacturer/glock' } },
+      { id: 'ln', name: 'Magloader', brand: 'Glock', localImages: ['img/ln-1.webp'], photoSource: { image: 'https://cdn.example/x.jpg', page: 'https://shop.example/category/glock-magloader' } },
+    ]));
+    r3 = await run4(['--recheck']);
+    eq([g3('lp').localImages, g3('lp').photoSearch.refused, g3('ln').localImages], [undefined, [], ['img/ln-1.webp']], '--recheck: a listing page that doesn\'t name the product is searched again (its picture may come back); one that names it stays');
+    api4.close();
   }
 }
 
