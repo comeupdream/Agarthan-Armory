@@ -81,9 +81,9 @@ for (const [key, file] of [['optics/Lasers', 'lasers-900'], ['optics/Night Visio
 ok(/art\[2\]\.includes\(document\.documentElement\.dataset\.theme\)/.test(armory), 'showArt honours a header\'s sit-out realms');
 
 // the geode field: the Silent Vault and the gate share one bed of crystal in Inner Earth (rhodochrosite),
-// Agarthan Crystal (amethyst), Polar Night (fluorite), Vril (green quartz and geodes) and Black & White (Naica's
-// quartz beams, in grey); each realm asks only for its own tile
-const GEODES = { 'inner-earth': 'html[data-theme="inner-earth"]', crystal: 'html[data-theme="crystal"]', vril: 'html[data-theme="vril"]', mono: 'html[data-theme="mono"]', polar: 'html:not([data-theme])' };
+// Agarthan Crystal (amethyst), Polar Night (fluorite) and Vril (green quartz and geodes); each realm asks only for its
+// own tile. Black & White lays the Naica cave photo whole instead, and asks for no tile
+const GEODES = { 'inner-earth': 'html[data-theme="inner-earth"]', crystal: 'html[data-theme="crystal"]', vril: 'html[data-theme="vril"]', polar: 'html:not([data-theme])' };
 const field = home.match(/<div class="geode-field">([\s\S]*?)\n  <\/div>\n/);
 ok(!!field, 'the home page has a geode field');
 if (field) for (const id of ['silent-vault', 'gate-in-the-wall']) ok(field[1].includes(`id="${id}"`), `the geode field holds #${id}`);
@@ -93,12 +93,15 @@ for (const [realm, sel] of Object.entries(GEODES)) {
   ok(existsSync(tile), `${realm} has a geode tile (tools/realm-art.py --geodes)`);
   if (existsSync(tile)) { const [w, h] = size(tile); ok(w === h && w >= 800, `the ${realm} geode tile is a square of at least 800 px (${w}×${h})`); }
   const rules = tileRules.filter(([, r]) => r === realm);
-  // the banner's lead slide uses the tile too, except in Black & White, where it is the Naica cave itself
-  const want = realm === 'mono' ? [`${sel} .geode-field`] : [`${sel} .geode-field`, `${sel} .lead-slide`];
+  // the geode field and the banner's lead slide
+  const want = [`${sel} .geode-field`, `${sel} .lead-slide`];
   ok(rules.map(([x]) => x).sort().join() === want.sort().join(),
     `only ${realm} asks for its own geode tile (rules: ${rules.map(([x]) => x).join(' | ')})`);
 }
 ok(tileRules.every(([, r]) => r in GEODES), `no other realm has a geode tile (${tileRules.map(([, r]) => r)})`);
+ok(!tileRules.some(([x]) => x.includes('html[data-theme="mono"]')), 'Black & White asks for no geode tile');
+ok(/html\[data-theme="mono"\] \.geode-field \{[^}]*realm\/mono\/naica-2600\.webp[^}]*background-size: auto, cover/.test(css), 'Black & White lays the Naica cave whole behind the geode field');
+ok(existsSync(path.join(FEATURE, 'realm', 'mono', 'naica-2600.webp')), 'the Black & White Naica picture (2600) exists');
 
 // Vril: the glowing geodes lie behind the Lasers chapter, and only Vril shows (and downloads) them
 const lasersChapter = home.match(/<article class="chapter[^"]*">\s*<div class="ch-backdrop realm-only" data-realms="([^"]+)"[\s\S]*?<\/div>\s*<a class="ch-art"[^>]*sub=Lasers/);
