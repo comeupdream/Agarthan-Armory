@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/site.css?v=fb1eb9ec79">
+<link rel="stylesheet" href="assets/css/site.css?v=2a117c92af">
 <script>try{var d=document.documentElement,t=+JSON.parse(localStorage.getItem('aa-age-ok'));if(t&&Date.now()-t<2592e6)d.classList.add('age-ok');var p=JSON.parse(localStorage.getItem('aa-prefs')||'{}')||{};if(p.theme&&p.theme!=='polar')d.dataset.theme=p.theme;if(p.font)d.dataset.font=p.font}catch(e){}</script>
 </head>
 <body>
@@ -129,13 +129,32 @@
   </div>
 
   <!-- ================= THE OWNER'S BANNER ================= -->
-  <section class="manifesto" aria-label="Agarthan Armory">
+  <!-- the banner: slides you scroll through (swipe, trackpad, arrow keys or the buttons); home.js drives the dots -->
+  <section class="manifesto" aria-label="Agarthan Armory" aria-roledescription="carousel">
     <div class="wrap">
-      <figure class="manifesto-frame hud brackets reveal">
-        <img src="assets/img/feature/manifesto-1280.webp" srcset="assets/img/feature/manifesto-1280.webp 1280w, assets/img/feature/manifesto-2400.webp 2400w" sizes="(max-width: 1280px) 100vw, 1200px"
-          width="1280" height="720" loading="lazy" decoding="async"
-          alt="Agarthan Armory. For those who seek what lies beyond the known world: from the frozen expanses of the surface to the uncharted depths below, Agarthan Armory provides the tools required for the journey.">
-      </figure>
+      <div class="banner hud brackets reveal">
+        <div class="banner-track" tabindex="0" aria-label="Banner: scroll sideways for more">
+          <figure class="banner-slide manifesto-frame" role="group" aria-roledescription="slide" aria-label="1 of 2">
+            <img src="assets/img/feature/manifesto-1280.webp" srcset="assets/img/feature/manifesto-1280.webp 1280w, assets/img/feature/manifesto-2400.webp 2400w" sizes="(max-width: 1280px) 100vw, 1200px"
+              width="1280" height="720" loading="lazy" decoding="async"
+              alt="Agarthan Armory. For those who seek what lies beyond the known world: from the frozen expanses of the surface to the uncharted depths below, Agarthan Armory provides the tools required for the journey.">
+          </figure>
+          <!-- set over the realm's own crystal (site.css .lead-slide) -->
+          <div class="banner-slide lead-slide" role="group" aria-roledescription="slide" aria-label="2 of 2">
+            <div class="lead-in">
+              <img class="lead-seal" src="assets/img/brand/seal-256.png" width="256" height="256" loading="lazy" decoding="async" alt="">
+              <h2 class="lead-title"><span>3–5 day</span> <span>lead times</span></h2>
+              <p class="lead-url">agarthanarmory.com</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sp-nav banner-nav">
+        <button type="button" class="sp-arrow" data-d="-1" aria-label="Previous slide">‹</button>
+        <button type="button" class="sp-dot" data-i="0" aria-label="Slide 1" aria-pressed="true"></button>
+        <button type="button" class="sp-dot" data-i="1" aria-label="Slide 2" aria-pressed="false"></button>
+        <button type="button" class="sp-arrow" data-d="1" aria-label="Next slide">›</button>
+      </div>
     </div>
   </section>
 
@@ -591,6 +610,6 @@
 <script src="assets/js/map-data.js?v=55d7e4b3b6"></script>
 <script src="assets/js/map.js?v=654ab17ce1"></script>
 <script src="assets/js/eye.js?v=4edacf2e36"></script>
-<script src="assets/js/home.js?v=0e50d6f63c"></script>
+<script src="assets/js/home.js?v=347efb85f2"></script>
 </body>
 </html>
