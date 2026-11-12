@@ -56,7 +56,13 @@ STAGE=a node tools/trailer/render.mjs arsenal       # film the site only
 STAGE=b node tools/trailer/render.mjs arsenal       # re-run the trip on frames already filmed
 PREVIEW_T=4,12.5,20 node tools/trailer/render.mjs phase   # stills in .trailer-cache/<key>/preview/
 FROM=12 TO=18 node tools/trailer/render.mjs event   # a slice
+STAGE=b FROM=107 TO=120 PREROLL=3 SLICE=tail node tools/trailer/render.mjs way-down   # a slice to join back in
 ```
+
+A slice starts with clean trails, so it does not match the whole film where trails are running. `PREROLL=3` runs
+the trip pass three seconds early, unrecorded, and the slice then starts with the trails the film has there.
+That is how a long render cut short is finished without starting over: render the missing stretch as a slice
+and join it to the part already made.
 
 It needs the Playwright Chromium (`require('playwright')`), ffmpeg on the PATH and Node 18+.
 Frames are cached in `.trailer-cache/` (git-ignored). The MP4s are git-ignored too: at
