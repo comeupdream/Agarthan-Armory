@@ -45,6 +45,9 @@ npm run films:check      # the flash check
 The trip pass is the slow one (about a second a frame at 1920×1080, on four cores). `OUT_SIZE=1280x720 node tools/trailer/render.mjs harvest`
 runs it at 1280×720 and scales the film back up to full size: under half the time, a little softer.
 
+A film can name stretches too fast to show frame by frame (`smooth: [[from, to, frames]]`); `node tools/trailer/smooth.mjs way-down`
+blends them over time, once, after the render and before `films:sound`.
+
 One film, or a look before a long render:
 
 ```bash

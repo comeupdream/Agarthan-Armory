@@ -413,6 +413,9 @@ export default {
   prefs: { cursor: 'disc', font: 'future' },
   act,
   lens,
+  // the way back passes eight rings of light and dark a second: blended over nine frames it is a streak,
+  // not a flicker (tools/trailer/smooth.mjs, after the render and before the sound)
+  smooth: [[104.0, 108.7, 9]],
   plates: ['wordmark@future@crystal', 'wordmark@runic@crystal', 'wordmark@oldworld@crystal'],
   cues: [
     { t: 0.3, kind: 'arrive' }, { t: 2.6, kind: 'swoop' },
