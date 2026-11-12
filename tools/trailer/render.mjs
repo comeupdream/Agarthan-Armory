@@ -8,6 +8,8 @@
  *   STAGE=b  …   re-run the trip pass on frames already filmed
  *   PREVIEW_T=0,4.2,19 …   stills only (JPEGs in .trailer-cache/<key>/preview/)
  *   FROM=12 TO=18 …        a slice of a film, for looking at
+ *   PREROLL=3 …            with FROM: run the trip pass this many seconds early, unrecorded, so the
+ *                          slice starts with the trails the whole film would have there
  *   FPS=30 CRF=18 OUT=dir  …
  *
  * Two passes, the same shape as EVRITHNG's brand kit (frontend/brandkit/motion-render.cjs):
@@ -49,6 +51,7 @@ const STAGE = process.env.STAGE || 'ab';
 const PREVIEW = process.env.PREVIEW_T ? process.env.PREVIEW_T.split(',').map(Number) : null;
 const FROM = process.env.FROM != null ? Number(process.env.FROM) : null;
 const TO = process.env.TO != null ? Number(process.env.TO) : null;
+const PREROLL = Number(process.env.PREROLL || 0);
 const T0 = Date.parse('2026-12-21T22:47:00Z'); // the outpost clock reads polar night, midwinter
 
 /* ---------- a static server for the repo (site + this folder + the frame cache) ---------- */
@@ -163,13 +166,25 @@ async function stageB(browser, base, film, frames) {
     const name = FROM != null || TO != null ? `${film.key}-slice${process.env.SLICE ? '-' + process.env.SLICE : ''}.mp4` : `${film.key}.mp4`;
     ff = encoder(path.join(OUT, name), process.env.OUT_SIZE ? (film.out || [1920, 1080]) : null);
   }
+  // feedback trails depend on the previous frame, so B always runs from the slice start. A slice that has
+  // to match the whole film (a part re-rendered and joined back in) warms the trails first: PREROLL
+  // seconds of frames go through the lens and are not recorded
+  let warmed = false;
+  if (!preview && PREROLL > 0 && frames.length && frames[0] > 0) {
+    const a = Math.max(0, frames[0] - Math.round(PREROLL * FPS));
+    for (let f = a; f < frames[0]; f++) {
+      const t = f / FPS;
+      await page.evaluate(([f, t, u, fresh]) => window.__lens.frame(f, t, u, fresh), [f, t, film.lens ? film.lens(t) : {}, f === a]);
+      if ((f - a) % 30 === 0) process.stdout.write(`\r  B ${film.key}  warming the trails ${t.toFixed(1)}s   `);
+    }
+    warmed = true;
+  }
   const t0 = Date.now();
-  // feedback trails depend on the previous frame, so B always runs from the slice start
   for (let i = 0; i < frames.length; i++) {
     const f = frames[i];
     const t = f / FPS;
     const u = film.lens ? film.lens(t) : {};
-    await page.evaluate(([f, t, u, fresh]) => window.__lens.frame(f, t, u, fresh), [f, t, u, preview || i === 0]);
+    await page.evaluate(([f, t, u, fresh]) => window.__lens.frame(f, t, u, fresh), [f, t, u, preview || (i === 0 && !warmed)]);
     const buf = await page.screenshot({ type: 'jpeg', quality: 95 });
     if (preview) fs.writeFileSync(path.join(dirP, `${film.key}-${t.toFixed(2)}s.jpg`), buf);
     else if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
