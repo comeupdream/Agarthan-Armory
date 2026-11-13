@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /ops
 Disallow: /api/
-Sitemap: https://agarthanarmory.com/sitemap.xml
+Sitemap: https://agarthan-armory.onrender.com/sitemap.xml

@@ -167,5 +167,23 @@ const homeJs = readFileSync(path.join(ROOT, 'assets/js/home.js'), 'utf8');
 for (const k of ['aa-map-backdrop', 'aa-top-backdrop', 'aa-top-see-through']) ok(homeJs.includes(`'${k}'`), `home.js remembers ${k}`);
 ok(/AA\.store\.get\(sw\.key, false\) === true/.test(homeJs), 'every switch is off unless this browser turned it on');
 
+// the link preview: every page names the same card, at the address that serves this site, and the card is in the repo
+const SITE = 'https://agarthan-armory.onrender.com';
+const jpegSize = (file) => { const b = readFileSync(file); for (let i = 2; i < b.length - 9;) { if (b[i] !== 0xff) return null; const m = b[i + 1]; if (m >= 0xc0 && m <= 0xc3) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)]; i += 2 + b.readUInt16BE(i + 2); } return null; };
+for (const [file, url] of [['index.html', '/'], ['armory.html', '/armory'], ['forbidden.html', '/forbidden'], ['transfers.html', '/transfers']]) {
+  const h = readFileSync(path.join(ROOT, file), 'utf8');
+  const meta = (k) => (h.match(new RegExp(`<meta (?:property|name)="${k}" content="([^"]*)"`)) || [])[1];
+  const img = meta('og:image') || '';
+  ok(img.startsWith(SITE + '/assets/img/'), `${file}: the share card is at ${SITE} (got ${img})`);
+  ok(meta('twitter:image') === img, `${file}: twitter:image is the same card as og:image`);
+  ok(meta('og:url') === SITE + url, `${file}: og:url is ${SITE + url} (got ${meta('og:url')})`);
+  ok(meta('twitter:card') === 'summary_large_image', `${file}: the card is shown large`);
+  const local = path.join(ROOT, img.slice(SITE.length + 1));
+  ok(existsSync(local), `${file}: ${img.slice(SITE.length + 1)} is in the repo`);
+  if (existsSync(local)) ok(JSON.stringify(jpegSize(local)) === JSON.stringify([+meta('og:image:width'), +meta('og:image:height')]) && +meta('og:image:width') === 1200 && +meta('og:image:height') === 630, `${file}: the card is 1200×630, as its tags say`);
+}
+ok(readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').includes(`Sitemap: ${SITE}/sitemap.xml`), 'robots.txt names the sitemap at the same address');
+ok(!/agarthanarmory\.com/.test(readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8')), 'sitemap.xml lists pages at the address that serves them');
+
 console.log(`${fail ? '✗' : '✓'} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
