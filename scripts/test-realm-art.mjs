@@ -34,7 +34,7 @@ function size(file) {
 }
 
 const originals = readdirSync(FEATURE).filter((f) => art.test(`assets/img/feature/${f}`));
-ok(originals.length === 9, `nine pictures of the owner's art are swapped (found ${originals.length}: ${originals})`);
+ok(originals.length === 11, `eleven pictures of the owner's art are swapped (found ${originals.length}: ${originals})`);
 for (const realm of realms) {
   for (const f of originals) {
     const copy = path.join(FEATURE, 'realm', realm, f);
@@ -166,6 +166,23 @@ ok(/#departments\.has-backdrop\.see-through \.dept \{/.test(css), 'See-through t
 const homeJs = readFileSync(path.join(ROOT, 'assets/js/home.js'), 'utf8');
 for (const k of ['aa-map-backdrop', 'aa-top-backdrop', 'aa-top-see-through']) ok(homeJs.includes(`'${k}'`), `home.js remembers ${k}`);
 ok(/AA\.store\.get\(sw\.key, false\) === true/.test(homeJs), 'every switch is off unless this browser turned it on');
+
+// the $20 behind the transfer section, by screen: laid straight on a desktop, both sides to 760px, stood on end on a phone
+{
+  const home = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const gate = home.slice(home.indexOf('id="gate-in-the-wall"'), home.indexOf('id="code"'));
+  ok(/<source media="\(max-width: 760px\)" srcset="assets\/img\/feature\/antarctica-20-both\.webp">\s*<img src="assets\/img\/feature\/antarctica-20-front\.webp"/.test(gate), 'the note: both sides to 760px, the face laid straight above that');
+  for (const side of ['face', 'back']) {
+    ok(new RegExp(`<div class="gate-note gate-note-${side}" aria-hidden="true"><img src="assets/img/feature/antarctica-20-${side}-tall\\.webp" width="772" height="1584" loading="lazy"`).test(gate), `the phone's ${side} note is in the section, lazy, at its own size`);
+    ok(JSON.stringify(size(path.join(FEATURE, `antarctica-20-${side}-tall.webp`))) === '[772,1584]', `antarctica-20-${side}-tall.webp is 772×1584`);
+  }
+  ok(gate.indexOf('gate-note-face') < gate.indexOf('class="section-head') && gate.indexOf('class="steps') < gate.indexOf('gate-note-back') && gate.indexOf('gate-note-back') < gate.indexOf('class="fee-grid'), 'the face sits with the heading and the steps, the back with the fees');
+  const css = readFileSync(path.join(ROOT, 'assets/css/site.css'), 'utf8');
+  ok(/\n\.gate-note \{ display: none; \}/.test(css), 'the phone notes are off unless a phone asks for them (so a desktop never downloads them)');
+  const phone = css.slice(css.indexOf('@media (max-width: 460px) {\n  #gate-in-the-wall { --note-w'));
+  ok(/#gate-in-the-wall \.gate-money \{ display: none; \}/.test(phone) && /#gate-in-the-wall \.gate-note \{ display: block;/.test(phone), 'on a phone the two notes replace the one behind the section');
+  ok(/\.gate-note-back \{ top: 0; height: min\(100% \+ 22px, var\(--note-w\) \* 2\.052\); \}/.test(phone), 'the back is never drawn larger than it is, so TWENTY DOLLARS keeps both its ends');
+}
 
 // the link preview: every page names the same card, at the address that serves this site, and the card is in the repo
 const SITE = 'https://agarthan-armory.onrender.com';

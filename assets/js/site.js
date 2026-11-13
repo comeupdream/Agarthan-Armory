@@ -593,7 +593,7 @@
    * <source> pointing at one of them follows html[data-theme], now and when it
    * changes; the browser keeps the old picture up until the new one arrives. */
   const REALMS = new Set(['inner-earth', 'mono', 'crystal', 'vril']);
-  const REALM_ART = /assets\/img\/feature\/(?:realm\/[a-z-]+\/)?((?:manifesto-\d+|tiny-cans-\d+|antarctica-dollars-750|antarctica-20-(?:front|both)|holo-laser-\d+)\.webp)/g;
+  const REALM_ART = /assets\/img\/feature\/(?:realm\/[a-z-]+\/)?((?:manifesto-\d+|tiny-cans-\d+|antarctica-dollars-750|antarctica-20-(?:front|both|face-tall|back-tall)|holo-laser-\d+)\.webp)/g;
   AA.realmSrc = (s, theme = document.documentElement.dataset.theme) =>
     s.replace(REALM_ART, (m, file) => `assets/img/feature/${REALMS.has(theme) ? `realm/${theme}/` : ''}${file}`);
   function realmArt() {

@@ -4,6 +4,7 @@ realm-art.py — recolour the owner's art for each realm (colour theme).
     python3 tools/realm-art.py            writes assets/img/feature/realm/<theme>/<file>.webp
     python3 tools/realm-art.py --sheet S  also writes a contact sheet to S
     python3 tools/realm-art.py --only     just the realm-only pieces (ONLY below); --only a,b  just those
+    python3 tools/realm-art.py --tall     the $20 stood on end for phones (then --files antarctica-20-face-tall.webp,antarctica-20-back-tall.webp)
     python3 tools/realm-art.py --files a.webp,b.webp   just those pictures of the owner's art
     python3 tools/realm-art.py --geodes   the geode fields: rhodochrosite (Inner Earth), amethyst (Crystal), fluorite (Polar),
                                           green quartz and druzy (Vril)
@@ -31,7 +32,7 @@ OUT = os.path.join(SRC, 'realm')
 
 # the owner's art, as the site serves it
 FILES = ['manifesto-1280.webp', 'manifesto-2400.webp', 'tiny-cans-640.webp', 'tiny-cans-1100.webp',
-         'antarctica-dollars-750.webp', 'antarctica-20-front.webp', 'antarctica-20-both.webp',
+         'antarctica-dollars-750.webp', 'antarctica-20-front.webp', 'antarctica-20-both.webp', 'antarctica-20-face-tall.webp', 'antarctica-20-back-tall.webp',
          'holo-laser-900.webp', 'holo-laser-1600.webp']
 
 # art that belongs to some realms only: master in assets/img/realm-src/, realms, widths to serve
@@ -409,7 +410,35 @@ def crystal_bed(realm):
     print(realm, 'crystal bed', out_im.size, n, 'patches from', sum(len(c) for _, _, c in pools), 'candidates', os.path.getsize(out), 'bytes')
 
 
+def tall_twenty():
+    """The $20 stood on end, for a phone: antarctica-20-face-tall.webp and antarctica-20-back-tall.webp.
+
+    The transfer section is a tall column on a phone and a note laid straight is a strip across it, so
+    the phone gets the note turned a quarter, one side behind each half of the section. The face turns
+    anticlockwise: its "20" block and the landscape come to the top, under the heading. The back turns
+    clockwise: its TWENTY DOLLARS band comes upright to the top, where it shows above the transfer fees.
+    Drawn at twice the scan's size with a light sharpen: a phone shows them about three screen pixels to
+    one of the scan's, and Lanczos does that better than the browser. Made from the pictures as
+    delivered; the realm copies follow from --files.
+    """
+    front = Image.open(os.path.join(SRC, 'antarctica-20-front.webp')).convert('RGB')          # 792×386
+    back = Image.open(os.path.join(SRC, 'antarctica-20-both.webp')).convert('RGB').crop((17, 412, 779, 779))
+    k = front.height / back.height
+    back = back.resize((round(back.width * k), front.height), Image.LANCZOS)
+    x0 = (back.width - front.width) // 2
+    back = back.crop((x0, 0, x0 + front.width, front.height))
+    for name, side, turn in (('face', front, Image.ROTATE_90), ('back', back, Image.ROTATE_270)):
+        tall = side.transpose(turn)
+        tall = tall.resize((2 * tall.width, 2 * tall.height), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))
+        out = os.path.join(SRC, f'antarctica-20-{name}-tall.webp')
+        tall.save(out, 'WEBP', quality=80, method=6)
+        print(os.path.basename(out), tall.size, os.path.getsize(out), 'bytes')
+
+
 def main():
+    if '--tall' in sys.argv:
+        tall_twenty()
+        return
     if '--geodes' in sys.argv:
         geode_tile()
         for realm in BEDS:

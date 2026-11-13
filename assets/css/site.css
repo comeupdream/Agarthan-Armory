@@ -1233,9 +1233,48 @@ html:not([data-theme]) .chapter:has(> .ch-art[data-sits-out~="polar"]) { grid-te
 .gate-money::after { content: ""; position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(3, 8, 16, .78) 0%, rgba(3, 8, 16, .45) 30%, rgba(3, 8, 16, .38) 70%, rgba(3, 8, 16, .74) 100%); }
 .fee-grid > .fee { background: color-mix(in srgb, var(--panel) 85%, transparent); backdrop-filter: blur(3px); }
+/* Narrower than a desktop the section is a column and a note laid straight is a strip across it, so
+   the note changes with the screen. The id outranks the geode field's own sizes, which would
+   otherwise shrink the note to four fifths of the width.
+     to 760px   both sides of the note, one over the other, edge to edge and centred in the section
+     to 460px   a phone: the note stood on end (tools/realm-art.py --tall), one side behind each half
+                of the section, each tied to the words it sits under so it lands the same on every
+                phone. The face runs behind the heading and the five steps. The back runs behind the
+                fees, and starts above them: its TWENTY DOLLARS band, upright, shows clear over the
+                cards. The crystals show down both edges and between the two.
+   On a phone the words run over the whole note, so the wash is even, the words get a dark halo and a
+   lighter ink, and the fee cards are shorter and let more of the note through. */
+.gate-note { display: none; }
 @media (max-width: 760px) {
-  .gate-money { place-items: end center; padding-bottom: 40px; }
-  .gate-money picture { width: 100%; }
+  #gate-in-the-wall .gate-money picture { width: calc(100% - 20px); }
+  #gate-in-the-wall .gate-money img { opacity: .9; }
+  #gate-in-the-wall .gate-money picture::after { background: rgba(var(--bg-rgb), .56); }
+  #gate-in-the-wall :is(.section-head, .steps) :is(h2, h3, p, .eyebrow) { text-shadow: 0 1px 2px rgb(var(--bg-rgb)), 0 0 10px rgb(var(--bg-rgb)), 0 0 22px rgba(var(--bg-rgb), .9); }
+  #gate-in-the-wall :is(.section-head, .step) p { color: color-mix(in srgb, var(--text) 86%, var(--muted)); }
+  #gate-in-the-wall .fee-grid > .fee { background: color-mix(in srgb, var(--panel) 72%, transparent); backdrop-filter: blur(2px); }
+}
+@media (max-width: 460px) {
+  #gate-in-the-wall { --note-w: calc(100vw - 20px); }   /* the note runs to 10px from each edge of the screen */
+  #gate-in-the-wall .gate-money { display: none; }
+  #gate-in-the-wall :is(.gate-run, .gate-fees) { position: relative; }
+  #gate-in-the-wall .gate-note { display: block; position: absolute; z-index: -1; inset-inline: calc(10px - var(--gutter)); overflow: hidden;
+    border-radius: 6px; background: rgb(var(--bg-rgb)); box-shadow: 0 0 0 1px rgba(var(--line-rgb), .24), 0 18px 60px rgba(0, 0, 0, .65); }
+  #gate-in-the-wall .gate-note img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .95; }
+  #gate-in-the-wall .gate-note::after { content: ""; position: absolute; inset: 0; }
+  /* the face: from just under the section's top edge (its padding is 64px here) to just past the last step */
+  #gate-in-the-wall .gate-note-face { top: -38px; bottom: -16px; }
+  #gate-in-the-wall .gate-note-face img { object-position: 50% 70%; }
+  #gate-in-the-wall .gate-note-face::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .7) 0, rgba(var(--bg-rgb), .54) 12%, rgba(var(--bg-rgb), .54) 100%); }
+  /* the back: its top stands clear above the first card, as far down as the TWENTY DOLLARS band runs
+     (0.44 of the note's width), under a lighter wash. It is never drawn larger than it is, so the band
+     keeps both its ends: on the narrowest phones the note stops a little short of the last card. */
+  #gate-in-the-wall .gate-fees { margin-top: 26px; padding-top: calc(var(--note-w) * .47 + 22px); }
+  #gate-in-the-wall .gate-fees .fee-grid { margin-top: 0 !important; }
+  #gate-in-the-wall .gate-note-back { top: 0; height: min(100% + 22px, var(--note-w) * 2.052); }
+  #gate-in-the-wall .gate-note-back img { object-position: 50% 0; }
+  #gate-in-the-wall .gate-note-back::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .26) 0, rgba(var(--bg-rgb), .26) calc(var(--note-w) * .45), rgba(var(--bg-rgb), .56) calc(var(--note-w) * .55), rgba(var(--bg-rgb), .56) 100%); }
+  #gate-in-the-wall .fee-grid > .fee { padding: 16px 20px; background: color-mix(in srgb, var(--panel) 68%, transparent); backdrop-filter: blur(1.5px); }
+  #gate-in-the-wall .fee .amt { margin: 10px 0 4px; }
 }
 
 /* ---------- the geode field: the Silent Vault and the gate sit in one massive geode ----------
