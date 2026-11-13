@@ -14,6 +14,10 @@
 # Custom domain: leave agarthanarmory.com pointed at the current store until
 # cutover day. Review on the .onrender.com address Render gives you; at cutover,
 # add the domain under Settings → Custom Domains and point DNS where Render says.
+# The link preview tags (og:image, twitter:image, og:url in the four pages), sitemap.xml
+# and robots.txt name the .onrender.com address, because that is what serves the site
+# today; change them to the custom domain at cutover (scripts/test-realm-art.mjs holds
+# the address they must all agree on).
 
 services:
   - type: web
