@@ -5,7 +5,8 @@
  * files; any static host (Netlify, Cloudflare Pages, Render Static) works
  * with the repo root as the publish directory and no build command.
  *
- * Serves only the public tree: pages, assets/, favicon, robots, sitemap.
+ * Serves only the public tree: pages, assets/, favicon, robots, sitemap, and
+ * all of it behind the site's password (server/site-gate.mjs).
  * tools/, scripts/, partials/ and dotfiles are never served.
  */
 import http from 'node:http';
@@ -14,9 +15,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { handleApi, configScript, setRoot } from './server/ops.mjs';
+import { gate, gateOn, setRoot as setGateRoot } from './server/site-gate.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 setRoot(ROOT);
+setGateRoot(ROOT);
 const PORT = +process.env.PORT || 3000;
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -55,6 +58,8 @@ const OPS_CSP = "default-src 'self'; img-src 'self' data:; style-src 'self'; scr
 http.createServer(async (req, res) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // the password over the whole site (server/site-gate.mjs): without it, every link lands on the gate at /
+  if (await gate(req, res)) return;
   if (req.url.startsWith('/api/')) {
     let u;
     try { u = new URL(req.url, 'http://x'); } catch { res.writeHead(400); return res.end(); }
@@ -107,7 +112,8 @@ http.createServer(async (req, res) => {
     }
     const head = {
       'Content-Type': TYPES[ext] || 'application/octet-stream',
-      'Cache-Control': longCache ? 'public, max-age=86400' : 'no-cache',
+      // behind the gate, a shared cache must not keep a copy to hand to someone without the password
+      'Cache-Control': longCache ? `${gateOn() ? 'private' : 'public'}, max-age=86400` : 'no-cache',
       'Last-Modified': modified,
       'X-Content-Type-Options': 'nosniff',
     };

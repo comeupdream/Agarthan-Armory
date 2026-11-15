@@ -257,6 +257,23 @@ The repo root is the site, with no build step.
 
 Point the domain's DNS where the host says. HTTPS is automatic on all of them.
 
+### The site password
+
+While the site is in preview, all of it sits behind one password
+(`server/site-gate.mjs`). A visitor without it sees only the password page at
+`/`; every other link, old or new, goes there instead of to what it named.
+The right password sets a cookie for 30 days and the site works as normal.
+Link previews still show the share card, which stays open.
+
+- The password is not written in the repo, only a check value for it.
+  Set `SITE_PASSWORD` in Render's dashboard to change it; that signs everyone
+  out. A short word can be guessed from the check value by anyone who tries
+  a list of words, so use something long if the gate has to hold.
+- `SITE_GATE=off` removes the gate (on launch day, or for a local preview).
+- Eight different wrong passwords from one address lock it out for ten minutes.
+- This needs the Node server (`npm start`). A static host would serve every
+  file to everyone.
+
 ## Ops Console (/ops)
 
 The staff back office, at **/ops** on the live site. It's ported from the
@@ -380,6 +397,7 @@ To add a realm: copy a theme block in `site.css`, then add it to `THEMES` in
 
 ## Before going live — compliance checklist
 
+- [ ] Site password removed (`SITE_GATE=off` in Render), unless the site stays private.
 - [ ] FFL number, license type, legal name and address shown (config.js).
 - [ ] Age gate age set (`ageMin`, default 21).
 - [ ] Transfer fees, services and the transfer FAQ match how the store

@@ -29,6 +29,7 @@ services:
     startCommand: npm start
     healthCheckPath: /
     autoDeploy: true
+    # The site password (README → The site password): SITE_PASSWORD changes it, SITE_GATE=off removes it.
     # The Ops Console (/ops) — set these in the dashboard (README → Ops Console):
     #   OPS_PASSWORD  unlocks it            GH_TOKEN  publishes edits (Contents: read/write, this repo only)
     #   DATA_DIR=/var/data + a 1 GB disk at /var/data   inbox and traffic
