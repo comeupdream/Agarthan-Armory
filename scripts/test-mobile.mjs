@@ -19,7 +19,7 @@ let pass = 0, fail = 0;
 const ok = (c, msg) => { if (c) pass++; else { fail++; console.log(`✗ ${msg}`); } };
 
 const PORT = 4600 + Math.floor(Math.random() * 300);
-const srv = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PORT: String(PORT), OPS_PASSWORD: '' } });
+const srv = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, SITE_GATE: 'off', PORT: String(PORT), OPS_PASSWORD: '' } });
 let log = ''; srv.stdout.on('data', (d) => (log += d)); srv.stderr.on('data', (d) => (log += d));
 await new Promise((r) => { const i = setInterval(() => { if (log.includes('http://')) { clearInterval(i); r(); } }, 50); });
 const BASE = `http://127.0.0.1:${PORT}`;

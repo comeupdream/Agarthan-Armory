@@ -35,7 +35,7 @@ const woo = await mockWoo();
 const mail = await mockMail();
 const PORT = 4800 + Math.floor(Math.random() * 200);   // below 5060, a port fetch refuses
 const srv = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: {
-  ...process.env, PORT: String(PORT), OPS_PASSWORD: 'ui-test-passcode', DATA_DIR: mkdtempSync(path.join(tmpdir(), 'ops-ui-')),
+  ...process.env, SITE_GATE: 'off', PORT: String(PORT), OPS_PASSWORD: 'ui-test-passcode', DATA_DIR: mkdtempSync(path.join(tmpdir(), 'ops-ui-')),
   GH_TOKEN: gh.token, GH_REPO: gh.repo, GH_API: gh.url, WOO_URL: woo.url, WOO_CK: woo.ck, WOO_CS: woo.cs, RENDER_GIT_COMMIT: 'b'.repeat(40),
   RESEND_API_KEY: mail.key, RESEND_API: mail.url, ALERT_EMAIL: 'store@example.com',
 } });

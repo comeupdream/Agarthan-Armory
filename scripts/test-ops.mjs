@@ -189,7 +189,7 @@ const mail = await mockMail();
 const data = mkdtempSync(path.join(tmpdir(), 'ops-data-'));
 const PORT = 4300 + Math.floor(Math.random() * 500);
 const env = {
-  ...process.env, PORT: String(PORT), OPS_PASSWORD: 'correct-horse-9', DATA_DIR: data,
+  ...process.env, SITE_GATE: 'off', PORT: String(PORT), OPS_PASSWORD: 'correct-horse-9', DATA_DIR: data,
   GH_TOKEN: gh.token, GH_REPO: gh.repo, GH_BRANCH: 'main', GH_API: gh.url,
   WOO_URL: woo.url, WOO_CK: woo.ck, WOO_CS: woo.cs, RENDER_GIT_COMMIT: 'a'.repeat(40),
   RESEND_API_KEY: mail.key, RESEND_API: mail.url, ALERT_EMAIL: 'store@example.com', MAIL_FROM: 'Agarthan Armory <alerts@example.com>', SITE_URL: 'https://agarthan.test',
