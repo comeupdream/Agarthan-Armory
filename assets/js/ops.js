@@ -199,7 +199,6 @@
     } else if (!S.status.live) {
       msg.textContent = 'The console is not switched on yet.';
       $('#gateForm').hidden = true; $('#gatePreview').hidden = false;
-      fine.textContent = 'To switch it on: Render → this service → Environment → add OPS_PASSWORD (8+ characters), then redeploy.';
     }
     if (S.token && S.status && S.status.live) { try { await api('/api/ops/deploy'); return enter(false); } catch { S.token = ''; ss.set('aa-ops-token', ''); } }
     $('#gate').hidden = false; $('#shell').hidden = true;
@@ -1186,12 +1185,14 @@
     const shared = na.filter((h) => nb.includes(h) && h !== key);
     const mapOf = (rows, k) => new Map(rows.slice(1).map((r) => [String(r[k] || '').trim().toLowerCase(), r]));
     const ma = mapOf(A.rows, ka), mb = mapOf(B.rows, kb);
-    const onlyA = [...ma.keys()].filter((k) => k && !mb.has(k)), onlyB = [...mb.keys()].filter((k) => k && !ma.has(k));
+    // rows match whatever the case, but are shown (and downloaded) as the file wrote them
+    const shown = (m, k, i) => String(m.get(k)[i] || '').trim();
+    const onlyA = [...ma.keys()].filter((k) => k && !mb.has(k)).map((k) => shown(ma, k, ka)), onlyB = [...mb.keys()].filter((k) => k && !ma.has(k)).map((k) => shown(mb, k, kb));
     const changed = [];
     for (const [k, ra] of ma) {
       const rb = mb.get(k); if (!rb) continue;
       const cols = shared.filter((h) => String(ra[na.indexOf(h)] || '').trim() !== String(rb[nb.indexOf(h)] || '').trim());
-      if (cols.length) changed.push([k, cols.map((h) => `${h}: ${ra[na.indexOf(h)] || '∅'} → ${rb[nb.indexOf(h)] || '∅'}`).join(' · ')]);
+      if (cols.length) changed.push([shown(ma, k, ka), cols.map((h) => `${h}: ${ra[na.indexOf(h)] || '∅'} → ${rb[nb.indexOf(h)] || '∅'}`).join(' · ')]);
     }
     const list = (title, items, fmt) => `<div class="ops-h">${esc(title)} <small>${num(items.length)}</small></div><div class="ops-diff">${items.slice(0, 300).map(fmt).join('<br>') || '—'}</div>`;
     $('#diffOut').innerHTML = `<p class="ops-note">Matched on <b>${esc(key)}</b> · comparing ${num(shared.length)} shared columns.</p>

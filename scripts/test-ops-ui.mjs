@@ -273,6 +273,12 @@ try {
   await page.click('#mailGo');
   await page.waitForFunction(() => /sent|Sent/.test((document.querySelector('#toast') || {}).textContent));
   ok(mail.sent.length === m0 + 1 && mail.sent[m0].to[0] === 'store@example.com', 'tools: the test email is delivered');
+  // the CSV diff matches rows whatever the case, and shows keys as the file wrote them
+  await page.setInputFiles('#dropA input', { name: 'old.csv', mimeType: 'text/csv', buffer: Buffer.from('SKU,Price\nAB-1,10\nCD-2,20\n') });
+  await page.setInputFiles('#dropB input', { name: 'new.csv', mimeType: 'text/csv', buffer: Buffer.from('sku,price\nab-1,12\nEF-3,30\n') });
+  await page.waitForSelector('#diffOut .ops-diff');
+  const df = await page.textContent('#diffOut');
+  ok(/CD-2/.test(df) && /EF-3/.test(df) && /AB-1/.test(df) && /10 → 12/.test(df) && !/\bcd-2\b|\bef-3\b/.test(df), 'tools: the CSV diff finds dropped, new and changed rows and keeps the SKUs as written');
 
   // data gaps jump to a filtered inventory
   await page.click('a[data-tab="photos"]');
